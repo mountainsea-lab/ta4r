@@ -23,313 +23,407 @@
  * SOFTWARE.
  */
 
-use std::cmp::Ordering;
-use std::fmt;
+use std::fmt::{self, Display, Formatter};
+use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
-/// Representation of `f64`. High performance, lower precision.
-///
-/// It uses a precision of up to `EPS` decimal places.
-///
-/// # Note
-/// The internal value should never become NaN. No self NaN checks are provided.
-#[derive(Clone, Copy)]
+use num_traits::{Num, One, Signed, ToPrimitive, Zero};
+use rust_decimal::Decimal;
+use rust_decimal::prelude::FromPrimitive;
+
+use crate::num::double_num_factory::DoubleNumFactory;
+use crate::num::{NumError, TrNum};
+use crate::num::types::NumberDelegate;
+
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct DoubleNum {
     delegate: f64,
 }
 
 impl DoubleNum {
-    /// Precision: epsilon for floating-point comparison
-    const EPS: f64 = 0.00001;
+    /// 精度阈值，浮点数比较时使用
+    const EPS: f64 = 1e-8;
 
-    /// Predefined constants for convenience
-    pub const MINUS_ONE: DoubleNum = DoubleNum { delegate: -1.0 };
-    pub const ZERO: DoubleNum = DoubleNum { delegate: 0.0 };
-    pub const ONE: DoubleNum = DoubleNum { delegate: 1.0 };
-    pub const TWO: DoubleNum = DoubleNum { delegate: 2.0 };
-    pub const THREE: DoubleNum = DoubleNum { delegate: 3.0 };
-    pub const HUNDRED: DoubleNum = DoubleNum { delegate: 100.0 };
-    pub const THOUSAND: DoubleNum = DoubleNum { delegate: 1000.0 };
+    /// 常用静态实例
+    pub const MINUS_ONE: Self = Self { delegate: -1.0 };
+    pub const ZERO: Self = Self { delegate: 0.0 };
+    pub const ONE: Self = Self { delegate: 1.0 };
+    pub const TWO: Self = Self { delegate: 2.0 };
+    pub const THREE: Self = Self { delegate: 3.0 };
+    pub const HUNDRED: Self = Self { delegate: 100.0 };
+    pub const THOUSAND: Self = Self { delegate: 1000.0 };
 
-    /// Constructs a new DoubleNum from a f64
+    /// 构造新的实例
+    #[inline]
     pub fn new(val: f64) -> Self {
         Self { delegate: val }
     }
 
-    /// Constructs a new DoubleNum from a &str
-    ///
-    /// # Panics
-    /// Panics if the string cannot be parsed as f64.
-    pub fn from_str(val: &str) -> Self {
-        Self {
-            delegate: val.parse::<f64>().expect("Failed to parse string to f64"),
+    /// 从字符串解析为 DoubleNum
+    pub fn from_str(val: &str) -> Result<Self, NumError> {
+        val.parse::<f64>()
+            .map(|v| Self::new(v))
+            .map_err(|_| NumError::ParseError(format!("Failed to parse '{}' to f64", val)))
+    }
+
+    /// 内部浮点值访问器
+    #[inline]
+    pub fn inner(&self) -> f64 {
+        self.delegate
+    }
+}
+
+// --- ToPrimitive 实现 ---
+
+impl ToPrimitive for DoubleNum {
+    fn to_i32(&self) -> Option<i32> {
+        if self.delegate.is_finite() { Some(self.delegate as i32) } else { None }
+    }
+
+    fn to_i64(&self) -> Option<i64> {
+        if self.delegate.is_finite() { Some(self.delegate as i64) } else { None }
+    }
+
+    fn to_u32(&self) -> Option<u32> {
+        if self.delegate.is_finite() && self.delegate >= 0.0 {
+            Some(self.delegate as u32)
+        } else {
+            None
         }
     }
 
-    /// Returns the internal f64 value
-    pub fn value(&self) -> f64 {
-        self.delegate
+    fn to_u64(&self) -> Option<u64> {
+        if self.delegate.is_finite() && self.delegate >= 0.0 {
+            Some(self.delegate as u64)
+        } else {
+            None
+        }
     }
 
-    /// Returns true if the value is NaN
-    pub fn is_nan(&self) -> bool {
-        self.delegate.is_nan()
+    fn to_f32(&self) -> Option<f32> {
+        if self.delegate.is_finite() { Some(self.delegate as f32) } else { None }
     }
 
-    /// Returns true if the value is zero
-    pub fn is_zero(&self) -> bool {
-        self.delegate == 0.0
+    fn to_f64(&self) -> Option<f64> {
+        if self.delegate.is_finite() { Some(self.delegate) } else { None }
+    }
+}
+
+// --- Zero 实现 ---
+
+impl Zero for DoubleNum {
+    fn zero() -> Self {
+        Self::ZERO
     }
 
-    /// Returns true if the value is positive
-    pub fn is_positive(&self) -> bool {
+    fn is_zero(&self) -> bool {
+        self.delegate.abs() < Self::EPS
+    }
+}
+
+// --- One 实现 ---
+
+impl One for DoubleNum {
+    fn one() -> Self {
+        Self::ONE
+    }
+}
+
+// --- Num 实现 ---
+
+impl Num for DoubleNum {
+    type FromStrRadixErr = NumError;
+
+    fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        if radix != 10 {
+            return Err(NumError::ParseError(format!("Only radix 10 supported, got {}", radix)));
+        }
+        Self::from_str(str)
+    }
+}
+
+// --- 运算符重载 ---
+
+impl Add for DoubleNum {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self {
+        self.plus(&rhs)
+    }
+}
+
+impl Sub for DoubleNum {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        self.minus(&rhs)
+    }
+}
+
+impl Mul for DoubleNum {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        self.multiplied_by(&rhs)
+    }
+}
+
+impl Div for DoubleNum {
+    type Output = Self;
+    fn div(self, rhs: Self) -> Self {
+        // 保持浮点除法默认行为，允许 Inf 或 NaN
+        Self::new(self.delegate / rhs.delegate)
+    }
+}
+
+// --- Signed 实现 ---
+
+impl Signed for DoubleNum {
+    fn abs(&self) -> Self {
+        Self::new(self.delegate.abs())
+    }
+
+    fn abs_sub(&self, other: &Self) -> Self {
+        let diff = self.delegate - other.delegate;
+        if diff < 0.0 {
+            Self::ZERO
+        } else {
+            Self::new(diff)
+        }
+    }
+
+    fn signum(&self) -> Self {
+        if self.delegate > 0.0 {
+            Self::ONE
+        } else if self.delegate < 0.0 {
+            Self::MINUS_ONE
+        } else {
+            Self::ZERO
+        }
+    }
+
+    fn is_positive(&self) -> bool {
         self.delegate > 0.0
     }
 
-    /// Returns true if the value is positive or zero
-    pub fn is_positive_or_zero(&self) -> bool {
+    fn is_negative(&self) -> bool {
+        self.delegate < 0.0
+    }
+}
+
+// --- FromPrimitive 实现 ---
+
+impl FromPrimitive for DoubleNum {
+    fn from_i64(n: i64) -> Option<Self> {
+        Some(Self::new(n as f64))
+    }
+
+    fn from_u64(n: u64) -> Option<Self> {
+        Some(Self::new(n as f64))
+    }
+
+    fn from_f64(n: f64) -> Option<Self> {
+        Some(Self::new(n))
+    }
+
+    fn from_i32(n: i32) -> Option<Self> {
+        Some(Self::new(n as f64))
+    }
+
+    fn from_u32(n: u32) -> Option<Self> {
+        Some(Self::new(n as f64))
+    }
+}
+
+impl Neg for DoubleNum {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self::new(-self.delegate)
+    }
+}
+
+impl Rem for DoubleNum {
+    type Output = Self;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        Self::new(self.delegate % rhs.delegate)
+    }
+}
+
+// --- Display 实现 ---
+
+impl Display for DoubleNum {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.delegate.is_nan() {
+            write!(f, "NaN")
+        } else {
+            write!(f, "{}", self.delegate)
+        }
+    }
+}
+impl TrNum for DoubleNum {
+    type Factory = DoubleNumFactory;
+
+    #[inline]
+    fn get_delegate(&self) -> NumberDelegate {
+        NumberDelegate::Float(self.delegate)
+    }
+
+    #[inline]
+    fn get_factory(&self) -> Self::Factory {
+        DoubleNumFactory
+    }
+
+    #[inline]
+    fn get_name(&self) -> &'static str {
+        "DoubleNum"
+    }
+
+    #[inline]
+    fn plus(&self, augend: &Self) -> Self {
+        Self::new(self.delegate + augend.delegate)
+    }
+
+    #[inline]
+    fn minus(&self, subtrahend: &Self) -> Self {
+        Self::new(self.delegate - subtrahend.delegate)
+    }
+
+    #[inline]
+    fn multiplied_by(&self, multiplicand: &Self) -> Self {
+        Self::new(self.delegate * multiplicand.delegate)
+    }
+
+    fn divided_by(&self, divisor: &Self) -> Result<Self, NumError> {
+        if divisor.delegate.abs() < Self::EPS {
+            Err(NumError::DivisionByZero)
+        } else {
+            Ok(Self::new(self.delegate / divisor.delegate))
+        }
+    }
+
+    fn remainder(&self, divisor: &Self) -> Result<Self, NumError> {
+        if divisor.delegate.abs() < Self::EPS {
+            Err(NumError::DivisionByZero)
+        } else {
+            Ok(Self::new(self.delegate % divisor.delegate))
+        }
+    }
+
+    #[inline]
+    fn floor(&self) -> Self {
+        Self::new(self.delegate.floor())
+    }
+
+    #[inline]
+    fn ceil(&self) -> Self {
+        Self::new(self.delegate.ceil())
+    }
+
+    fn pow(&self, n: i32) -> Result<Self, NumError> {
+        Ok(Self::new(self.delegate.powi(n)))
+    }
+
+    fn pow_num(&self, n: &Self) -> Result<Self, NumError> {
+        Ok(Self::new(self.delegate.powf(n.delegate)))
+    }
+
+    fn log(&self) -> Result<Self, NumError> {
+        if self.delegate <= 0.0 {
+            Err(NumError::InvalidLog)
+        } else {
+            Ok(Self::new(self.delegate.ln()))
+        }
+    }
+
+    fn sqrt(&self) -> Result<Self, NumError> {
+        if self.delegate < 0.0 {
+            Err(NumError::NegativeSqrt)
+        } else {
+            Ok(Self::new(self.delegate.sqrt()))
+        }
+    }
+
+    #[inline]
+    fn abs(&self) -> Self {
+        Self::new(self.delegate.abs())
+    }
+
+    #[inline]
+    fn negate(&self) -> Self {
+        Self::new(-self.delegate)
+    }
+
+    #[inline]
+    fn is_nan(&self) -> bool {
+        self.delegate.is_nan()
+    }
+
+    // 统一调用 ToPrimitive trait
+    #[inline]
+    fn to_i32(&self) -> Option<i32> {
+        ToPrimitive::to_i32(self)
+    }
+
+    #[inline]
+    fn to_i64(&self) -> Option<i64> {
+        ToPrimitive::to_i64(self)
+    }
+
+    #[inline]
+    fn to_f32(&self) -> Option<f32> {
+        ToPrimitive::to_f32(self)
+    }
+
+    #[inline]
+    fn to_f64(&self) -> Option<f64> {
+        ToPrimitive::to_f64(self)
+    }
+
+    #[inline]
+    fn is_positive_or_zero(&self) -> bool {
         self.delegate >= 0.0
     }
 
-    /// Returns true if the value is negative
-    pub fn is_negative(&self) -> bool {
-        self.delegate < 0.0
-    }
-
-    /// Returns true if the value is negative or zero
-    pub fn is_negative_or_zero(&self) -> bool {
+    #[inline]
+    fn is_negative_or_zero(&self) -> bool {
         self.delegate <= 0.0
     }
 
-    /// Adds two DoubleNum values, returns NaN if any operand is NaN
-    pub fn plus(&self, other: DoubleNum) -> DoubleNum {
-        if self.is_nan() || other.is_nan() {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate + other.delegate)
-        }
+    /// 误差阈值用于浮点比较
+    #[inline]
+    fn is_equal(&self, other: &Self) -> bool {
+        (self.delegate - other.delegate).abs() < Self::EPS
     }
 
-    /// Subtracts two DoubleNum values, returns NaN if any operand is NaN
-    pub fn minus(&self, other: DoubleNum) -> DoubleNum {
-        if self.is_nan() || other.is_nan() {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate - other.delegate)
-        }
+    #[inline]
+    fn is_greater_than(&self, other: &Self) -> bool {
+        self.delegate > other.delegate + Self::EPS
     }
 
-    /// Multiplies two DoubleNum values, returns NaN if any operand is NaN
-    pub fn multiplied_by(&self, other: DoubleNum) -> DoubleNum {
-        if self.is_nan() || other.is_nan() {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate * other.delegate)
-        }
+    #[inline]
+    fn is_greater_than_or_equal(&self, other: &Self) -> bool {
+        self.is_greater_than(other) || self.is_equal(other)
     }
 
-    /// Divides two DoubleNum values, returns NaN if divisor is zero or NaN
-    pub fn divided_by(&self, other: DoubleNum) -> DoubleNum {
-        if other.is_nan() || other.is_zero() {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate / other.delegate)
-        }
+    #[inline]
+    fn is_less_than(&self, other: &Self) -> bool {
+        self.delegate < other.delegate - Self::EPS
     }
 
-    /// Calculates remainder of division, returns NaN if divisor is NaN
-    pub fn remainder(&self, other: DoubleNum) -> DoubleNum {
-        if other.is_nan() {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate % other.delegate)
-        }
+    #[inline]
+    fn is_less_than_or_equal(&self, other: &Self) -> bool {
+        self.is_less_than(other) || self.is_equal(other)
     }
 
-    /// Returns floor of the value
-    pub fn floor(&self) -> DoubleNum {
-        DoubleNum::new(self.delegate.floor())
+    #[inline]
+    fn min(&self, other: &Self) -> Self {
+        if self.is_less_than(other) { self.clone() } else { other.clone() }
     }
 
-    /// Returns ceil of the value
-    pub fn ceil(&self) -> DoubleNum {
-        DoubleNum::new(self.delegate.ceil())
+    #[inline]
+    fn max(&self, other: &Self) -> Self {
+        if self.is_greater_than(other) { self.clone() } else { other.clone() }
     }
 
-    /// Returns the value raised to an integer power
-    pub fn pow_i32(&self, n: i32) -> DoubleNum {
-        DoubleNum::new(self.delegate.powi(n))
-    }
-
-    /// Returns the value raised to a DoubleNum power
-    pub fn pow(&self, n: DoubleNum) -> DoubleNum {
-        DoubleNum::new(self.delegate.powf(n.delegate))
-    }
-
-    /// Returns the square root, NaN if value is negative
-    pub fn sqrt(&self) -> DoubleNum {
-        if self.delegate < 0.0 {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate.sqrt())
-        }
-    }
-
-    /// Returns absolute value
-    pub fn abs(&self) -> DoubleNum {
-        DoubleNum::new(self.delegate.abs())
-    }
-
-    /// Returns negated value
-    pub fn negate(&self) -> DoubleNum {
-        DoubleNum::new(-self.delegate)
-    }
-
-    /// Returns true if equal within EPS precision, false otherwise
-    pub fn is_equal(&self, other: DoubleNum) -> bool {
-        if self.is_nan() || other.is_nan() {
-            false
-        } else {
-            (self.delegate - other.delegate).abs() < DoubleNum::EPS
-        }
-    }
-
-    /// Returns the natural logarithm, NaN if value <= 0
-    pub fn log(&self) -> DoubleNum {
-        if self.delegate <= 0.0 {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate.ln())
-        }
-    }
-
-    /// Returns true if greater than other
-    pub fn is_greater_than(&self, other: DoubleNum) -> bool {
-        if self.is_nan() || other.is_nan() {
-            false
-        } else {
-            self.delegate > other.delegate
-        }
-    }
-
-    /// Returns true if greater than or equal to other
-    pub fn is_greater_than_or_equal(&self, other: DoubleNum) -> bool {
-        if self.is_nan() || other.is_nan() {
-            false
-        } else {
-            self.delegate >= other.delegate
-        }
-    }
-
-    /// Returns true if less than other
-    pub fn is_less_than(&self, other: DoubleNum) -> bool {
-        if self.is_nan() || other.is_nan() {
-            false
-        } else {
-            self.delegate < other.delegate
-        }
-    }
-
-    /// Returns true if less than or equal to other
-    pub fn is_less_than_or_equal(&self, other: DoubleNum) -> bool {
-        if self.is_nan() || other.is_nan() {
-            false
-        } else {
-            self.delegate <= other.delegate
-        }
-    }
-
-    /// Returns the minimum of self and other, NaN if other is NaN
-    pub fn min(&self, other: DoubleNum) -> DoubleNum {
-        if other.is_nan() {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate.min(other.delegate))
-        }
-    }
-
-    /// Returns the maximum of self and other, NaN if other is NaN
-    pub fn max(&self, other: DoubleNum) -> DoubleNum {
-        if other.is_nan() {
-            DoubleNum::nan()
-        } else {
-            DoubleNum::new(self.delegate.max(other.delegate))
-        }
-    }
-
-    /// Returns a NaN DoubleNum
-    pub fn nan() -> DoubleNum {
-        DoubleNum::new(f64::NAN)
-    }
-}
-
-impl PartialEq for DoubleNum {
-    fn eq(&self, other: &Self) -> bool {
-        if self.is_nan() && other.is_nan() {
-            true
-        } else {
-            (self.delegate - other.delegate).abs() < DoubleNum::EPS
-        }
-    }
-}
-
-impl Eq for DoubleNum {}
-
-impl PartialOrd for DoubleNum {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if self.is_nan() || other.is_nan() {
-            None
-        } else {
-            self.delegate.partial_cmp(&other.delegate)
-        }
-    }
-}
-
-impl Ord for DoubleNum {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
-    }
-}
-
-impl fmt::Display for DoubleNum {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.delegate)
-    }
-}
-
-impl fmt::Debug for DoubleNum {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "DoubleNum({})", self.delegate)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::DoubleNum;
-
-    #[test]
-    fn test_basic_arithmetic() {
-        let a = DoubleNum::new(5.0);
-        let b = DoubleNum::new(2.0);
-        assert_eq!(a.plus(b), DoubleNum::new(7.0));
-        assert_eq!(a.minus(b), DoubleNum::new(3.0));
-        assert_eq!(a.multiplied_by(b), DoubleNum::new(10.0));
-        assert_eq!(a.divided_by(b), DoubleNum::new(2.5));
-        assert!(a.divided_by(DoubleNum::ZERO).is_nan());
-    }
-
-    #[test]
-    fn test_comparisons() {
-        let a = DoubleNum::new(5.0);
-        let b = DoubleNum::new(5.0 + DoubleNum::EPS / 2.0);
-        assert!(a.is_equal(b));
-        assert!(a.is_less_than(DoubleNum::new(6.0)));
-        assert!(a.is_greater_than(DoubleNum::new(4.0)));
-    }
-
-    #[test]
-    fn test_nan() {
-        let nan = DoubleNum::nan();
-        assert!(nan.is_nan());
-        assert_eq!(nan.plus(DoubleNum::ONE), nan);
+    fn to_decimal(&self) -> Option<Decimal> {
+        Decimal::from_f64(self.delegate)
     }
 }

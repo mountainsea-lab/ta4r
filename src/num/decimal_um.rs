@@ -83,7 +83,7 @@ impl DecimalNum {
     }
 
     /// 返回内部 Decimal
-    pub fn inner(&self) -> &rust_decimal::Decimal {
+    pub fn inner(&self) -> &Decimal {
         &self.delegate
     }
 
