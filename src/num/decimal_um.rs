@@ -1,5 +1,31 @@
+/*!
+ * MIT License
+ *
+ * Copyright (c) 2025 Mountainsea
+ * Based on ta4j (c) 2017–2025 Ta4j Organization & respective authors (see AUTHORS)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 use rust_decimal::RoundingStrategy;
 use rust_decimal::prelude::*;
+use std::fmt;
 use std::str::FromStr;
 
 /// 数学上下文，对应Java的MathContext
@@ -26,7 +52,7 @@ impl MathContext {
 }
 
 /// 高精度数值类型，对应ta4j的DecimalNum
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct DecimalNum {
     delegate: Decimal,
     math_context: MathContext,
@@ -84,5 +110,17 @@ impl DecimalNum {
             other.delegate - self.delegate
         };
         diff <= delta.delegate
+    }
+}
+
+impl fmt::Display for DecimalNum {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.delegate)
+    }
+}
+
+impl fmt::Debug for DecimalNum {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "DecimalNum({})", self.delegate)
     }
 }
