@@ -52,7 +52,6 @@ pub trait NumFactory<T: Num> {
 
 /// 数值计算的核心trait，提供统一的数值操作接口
 pub trait Num: Clone + PartialEq + PartialOrd + Debug + Display + Send + Sync {
-
     type Factory: NumFactory<Self>;
 
     /// @return factory that created this instance with defined precision
@@ -101,5 +100,4 @@ pub trait Num: Clone + PartialEq + PartialOrd + Debug + Display + Send + Sync {
     fn to_f32(&self) -> Option<f32>;
     fn to_f64(&self) -> Option<f64>;
     fn to_decimal(&self) -> Option<rust_decimal::Decimal>;
-
 }

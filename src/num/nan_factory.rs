@@ -5,13 +5,27 @@ use crate::num::{Num, NumError, NumFactory};
 pub struct NaNFactory;
 
 impl NumFactory<NaN> for NaNFactory {
-    fn minus_one() -> NaN { NaN }
-    fn zero() -> NaN { NaN }
-    fn one() -> NaN { NaN }
-    fn two() -> NaN { NaN }
-    fn three() -> NaN { NaN }
-    fn hundred() -> NaN { NaN }
-    fn thousand() -> NaN { NaN }
+    fn minus_one() -> NaN {
+        NaN
+    }
+    fn zero() -> NaN {
+        NaN
+    }
+    fn one() -> NaN {
+        NaN
+    }
+    fn two() -> NaN {
+        NaN
+    }
+    fn three() -> NaN {
+        NaN
+    }
+    fn hundred() -> NaN {
+        NaN
+    }
+    fn thousand() -> NaN {
+        NaN
+    }
 
     fn from_str(_s: &str) -> Result<NaN, NumError> {
         Ok(NaN)

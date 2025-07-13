@@ -17,7 +17,9 @@ impl DoubleNum {
 
     /// 对应ta4j的valueOf方法
     pub fn value_of_string(val: &str) -> Self {
-        Self { delegate: val.parse().unwrap() }
+        Self {
+            delegate: val.parse().unwrap(),
+        }
     }
 
     pub fn value_of_number(val: f64) -> Self {
