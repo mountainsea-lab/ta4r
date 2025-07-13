@@ -292,7 +292,7 @@ pub trait NumFactory<T: TrNum> {
 // }
 
 pub trait TrNum:
-Num + Copy + Clone + PartialEq + PartialOrd + Debug + Display + Send + Sync +
+Num + Clone + PartialEq + PartialOrd + Debug + Display + Send + Sync +
 ToPrimitive + FromPrimitive + Signed
 {
     type Factory: NumFactory<Self>;
@@ -331,7 +331,8 @@ ToPrimitive + FromPrimitive + Signed
 
     /// 取反，Signed trait 已有 `negate`，可以复用
     fn negate(&self) -> Self {
-        -(*self)
+        // -(*self) 必须copy 但不方便扩展
+        -(self.clone())
     }
 
     /// 是否为 NaN，默认 false

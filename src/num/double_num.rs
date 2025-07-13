@@ -348,7 +348,7 @@ impl TrNum for DoubleNum {
 
     #[inline]
     fn negate(&self) -> Self {
-        Self::new(-self.delegate)
+        Self::new(-self.delegate)  // 直接用字段的 Copy 值，不移动 self
     }
 
     #[inline]
