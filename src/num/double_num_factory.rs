@@ -26,7 +26,6 @@
 use crate::num::double_num::DoubleNum;
 use crate::num::{NumError, NumFactory};
 
-
 /// This struct implements the `NumFactory` trait and provides convenient
 /// access to commonly used constant values.
 /// Factory implementation for creating `DoubleNum` instances.

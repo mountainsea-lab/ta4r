@@ -31,8 +31,8 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 
 use crate::num::double_num_factory::DoubleNumFactory;
-use crate::num::{NumError, TrNum};
 use crate::num::types::NumberDelegate;
+use crate::num::{NumError, TrNum};
 
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct DoubleNum {
@@ -76,11 +76,19 @@ impl DoubleNum {
 
 impl ToPrimitive for DoubleNum {
     fn to_i32(&self) -> Option<i32> {
-        if self.delegate.is_finite() { Some(self.delegate as i32) } else { None }
+        if self.delegate.is_finite() {
+            Some(self.delegate as i32)
+        } else {
+            None
+        }
     }
 
     fn to_i64(&self) -> Option<i64> {
-        if self.delegate.is_finite() { Some(self.delegate as i64) } else { None }
+        if self.delegate.is_finite() {
+            Some(self.delegate as i64)
+        } else {
+            None
+        }
     }
 
     fn to_u32(&self) -> Option<u32> {
@@ -100,11 +108,19 @@ impl ToPrimitive for DoubleNum {
     }
 
     fn to_f32(&self) -> Option<f32> {
-        if self.delegate.is_finite() { Some(self.delegate as f32) } else { None }
+        if self.delegate.is_finite() {
+            Some(self.delegate as f32)
+        } else {
+            None
+        }
     }
 
     fn to_f64(&self) -> Option<f64> {
-        if self.delegate.is_finite() { Some(self.delegate) } else { None }
+        if self.delegate.is_finite() {
+            Some(self.delegate)
+        } else {
+            None
+        }
     }
 }
 
@@ -135,7 +151,10 @@ impl Num for DoubleNum {
 
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         if radix != 10 {
-            return Err(NumError::ParseError(format!("Only radix 10 supported, got {}", radix)));
+            return Err(NumError::ParseError(format!(
+                "Only radix 10 supported, got {}",
+                radix
+            )));
         }
         Self::from_str(str)
     }
@@ -348,7 +367,7 @@ impl TrNum for DoubleNum {
 
     #[inline]
     fn negate(&self) -> Self {
-        Self::new(-self.delegate)  // 直接用字段的 Copy 值，不移动 self
+        Self::new(-self.delegate) // 直接用字段的 Copy 值，不移动 self
     }
 
     #[inline]
@@ -415,12 +434,20 @@ impl TrNum for DoubleNum {
 
     #[inline]
     fn min(&self, other: &Self) -> Self {
-        if self.is_less_than(other) { self.clone() } else { other.clone() }
+        if self.is_less_than(other) {
+            self.clone()
+        } else {
+            other.clone()
+        }
     }
 
     #[inline]
     fn max(&self, other: &Self) -> Self {
-        if self.is_greater_than(other) { self.clone() } else { other.clone() }
+        if self.is_greater_than(other) {
+            self.clone()
+        } else {
+            other.clone()
+        }
     }
 
     fn to_decimal(&self) -> Option<Decimal> {

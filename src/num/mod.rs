@@ -25,15 +25,15 @@
 
 mod decimal_um;
 mod double_num;
+mod double_num_factory;
 mod nan;
 mod nan_factory;
-mod double_num_factory;
 mod types;
 
-use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
-use std::fmt::{Debug, Display};
-use rust_decimal::Decimal;
 use crate::num::types::{NumError, NumberDelegate};
+use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
+use rust_decimal::Decimal;
+use std::fmt::{Debug, Display};
 
 /// 数值工厂trait，用于创建常用的数值实例
 pub trait NumFactory<T: TrNum> {
@@ -292,8 +292,17 @@ pub trait NumFactory<T: TrNum> {
 // }
 
 pub trait TrNum:
-Num + Clone + PartialEq + PartialOrd + Debug + Display + Send + Sync +
-ToPrimitive + FromPrimitive + Signed
+    Num
+    + Clone
+    + PartialEq
+    + PartialOrd
+    + Debug
+    + Display
+    + Send
+    + Sync
+    + ToPrimitive
+    + FromPrimitive
+    + Signed
 {
     type Factory: NumFactory<Self>;
 
