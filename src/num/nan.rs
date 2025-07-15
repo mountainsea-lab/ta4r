@@ -47,6 +47,12 @@ impl NaN {
     }
 }
 
+impl AsRef<NaN> for NaN {
+    fn as_ref(&self) -> &NaN {
+        self
+    }
+}
+
 impl fmt::Debug for NaN {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NaN")
@@ -232,6 +238,18 @@ impl TrNum for NaN {
         "NaN"
     }
 
+    fn plus(&self, _augend: &Self) -> Self {
+        NaN
+    }
+
+    fn minus(&self, _subtrahend: &Self) -> Self {
+        NaN
+    }
+
+    fn multiplied_by(&self, _multiplicand: &Self) -> Self {
+        NaN
+    }
+
     fn divided_by(&self, _divisor: &Self) -> Result<Self, NumError> {
         Ok(NaN)
     }
@@ -264,45 +282,8 @@ impl TrNum for NaN {
         Ok(NaN)
     }
 
-    fn abs(&self) -> Self {
-        NaN
-    }
-
-    fn negate(&self) -> Self {
-        NaN
-    }
-
     fn is_nan(&self) -> bool {
         true
-    }
-
-    fn is_positive_or_zero(&self) -> bool {
-        false
-    }
-
-    fn is_negative_or_zero(&self) -> bool {
-        false
-    }
-
-    fn is_equal(&self, other: &Self) -> bool {
-        // 只有两个 NaN 视为相等
-        matches!(other, NaN)
-    }
-
-    fn is_greater_than(&self, _other: &Self) -> bool {
-        false
-    }
-
-    fn is_greater_than_or_equal(&self, _other: &Self) -> bool {
-        false
-    }
-
-    fn is_less_than(&self, _other: &Self) -> bool {
-        false
-    }
-
-    fn is_less_than_or_equal(&self, _other: &Self) -> bool {
-        false
     }
 
     fn min(&self, _other: &Self) -> Self {
@@ -313,35 +294,7 @@ impl TrNum for NaN {
         NaN
     }
 
-    fn to_i32(&self) -> Option<i32> {
-        None
-    }
-
-    fn to_i64(&self) -> Option<i64> {
-        None
-    }
-
-    fn to_f32(&self) -> Option<f32> {
-        Some(f32::NAN)
-    }
-
-    fn to_f64(&self) -> Option<f64> {
-        Some(f64::NAN)
-    }
-
     fn to_decimal(&self) -> Option<Decimal> {
         None
-    }
-
-    fn plus(&self, _augend: &Self) -> Self {
-        NaN
-    }
-
-    fn minus(&self, _subtrahend: &Self) -> Self {
-        NaN
-    }
-
-    fn multiplied_by(&self, _multiplicand: &Self) -> Self {
-        NaN
     }
 }

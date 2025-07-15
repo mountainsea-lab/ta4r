@@ -23,12 +23,11 @@
  * SOFTWARE.
  */
 
-use std::fmt::{self, Display, Formatter};
-use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
-
 use num_traits::{Num, One, Signed, ToPrimitive, Zero};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
+use std::fmt::{self, Display, Formatter};
+use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
 use crate::num::double_num_factory::DoubleNumFactory;
 use crate::num::types::NumberDelegate;
@@ -69,6 +68,12 @@ impl DoubleNum {
     #[inline]
     pub fn inner(&self) -> f64 {
         self.delegate
+    }
+}
+
+impl AsRef<DoubleNum> for DoubleNum {
+    fn as_ref(&self) -> &DoubleNum {
+        self
     }
 }
 
@@ -361,80 +366,13 @@ impl TrNum for DoubleNum {
     }
 
     #[inline]
-    fn abs(&self) -> Self {
-        Self::new(self.delegate.abs())
-    }
-
-    #[inline]
-    fn negate(&self) -> Self {
-        Self::new(-self.delegate) // 直接用字段的 Copy 值，不移动 self
-    }
-
-    #[inline]
     fn is_nan(&self) -> bool {
         self.delegate.is_nan()
     }
 
-    // 统一调用 ToPrimitive trait
-    #[inline]
-    fn to_i32(&self) -> Option<i32> {
-        ToPrimitive::to_i32(self)
-    }
-
-    #[inline]
-    fn to_i64(&self) -> Option<i64> {
-        ToPrimitive::to_i64(self)
-    }
-
-    #[inline]
-    fn to_f32(&self) -> Option<f32> {
-        ToPrimitive::to_f32(self)
-    }
-
-    #[inline]
-    fn to_f64(&self) -> Option<f64> {
-        ToPrimitive::to_f64(self)
-    }
-
-    #[inline]
-    fn is_positive_or_zero(&self) -> bool {
-        self.delegate >= 0.0
-    }
-
-    #[inline]
-    fn is_negative_or_zero(&self) -> bool {
-        self.delegate <= 0.0
-    }
-
-    /// 误差阈值用于浮点比较
-    #[inline]
-    fn is_equal(&self, other: &Self) -> bool {
-        (self.delegate - other.delegate).abs() < Self::EPS
-    }
-
-    #[inline]
-    fn is_greater_than(&self, other: &Self) -> bool {
-        self.delegate > other.delegate + Self::EPS
-    }
-
-    #[inline]
-    fn is_greater_than_or_equal(&self, other: &Self) -> bool {
-        self.is_greater_than(other) || self.is_equal(other)
-    }
-
-    #[inline]
-    fn is_less_than(&self, other: &Self) -> bool {
-        self.delegate < other.delegate - Self::EPS
-    }
-
-    #[inline]
-    fn is_less_than_or_equal(&self, other: &Self) -> bool {
-        self.is_less_than(other) || self.is_equal(other)
-    }
-
     #[inline]
     fn min(&self, other: &Self) -> Self {
-        if self.is_less_than(other) {
+        if self.delegate < other.delegate {
             self.clone()
         } else {
             other.clone()
@@ -443,7 +381,7 @@ impl TrNum for DoubleNum {
 
     #[inline]
     fn max(&self, other: &Self) -> Self {
-        if self.is_greater_than(other) {
+        if self.delegate > other.delegate {
             self.clone()
         } else {
             other.clone()

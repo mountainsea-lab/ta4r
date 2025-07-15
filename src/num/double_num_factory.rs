@@ -23,13 +23,13 @@
  * SOFTWARE.
  */
 
+use crate::num::decimal_num_factory::DecimalNumFactory;
 use crate::num::double_num::DoubleNum;
-use crate::num::{NumError, NumFactory};
+use crate::num::{DecimalFactory, DoubleFactory, NumError, NumFactory};
 
 /// This struct implements the `NumFactory` trait and provides convenient
 /// access to commonly used constant values.
 /// Factory implementation for creating `DoubleNum` instances.
-
 #[derive(Clone, Copy, Debug)]
 pub struct DoubleNumFactory;
 
@@ -40,51 +40,54 @@ impl DoubleNumFactory {
     }
 }
 
-impl NumFactory<DoubleNum> for DoubleNumFactory {
-    fn minus_one(&self) -> DoubleNum {
+impl DoubleFactory for DecimalNumFactory {
+    type Num = DoubleNum;
+    fn num_of_f64(&self, number: impl Into<f64>) -> Result<Self::Num, NumError> {
+        Ok(DoubleNum::new(number.into()))
+    }
+}
+
+impl NumFactory for DoubleNumFactory {
+    type Num = DoubleNum;
+    type Output = DoubleNum; // 注意：值类型，避免 Arc 开销
+
+    fn minus_one(&self) -> Self::Output {
         DoubleNum::MINUS_ONE
     }
 
-    fn zero(&self) -> DoubleNum {
+    fn zero(&self) -> Self::Output {
         DoubleNum::ZERO
     }
 
-    fn one(&self) -> DoubleNum {
+    fn one(&self) -> Self::Output {
         DoubleNum::ONE
     }
 
-    fn two(&self) -> DoubleNum {
+    fn two(&self) -> Self::Output {
         DoubleNum::TWO
     }
 
-    fn three(&self) -> DoubleNum {
+    fn three(&self) -> Self::Output {
         DoubleNum::THREE
     }
 
-    fn hundred(&self) -> DoubleNum {
+    fn hundred(&self) -> Self::Output {
         DoubleNum::HUNDRED
     }
 
-    fn thousand(&self) -> DoubleNum {
+    fn thousand(&self) -> Self::Output {
         DoubleNum::THOUSAND
     }
 
-    fn num_of_str(&self, value: &str) -> Result<DoubleNum, NumError> {
-        DoubleNum::from_str(value)
+    fn num_of_str(&self, s: &str) -> Result<Self::Num, NumError> {
+        DoubleNum::from_str(s)
     }
 
-    fn num_of_i64(&self, val: i64) -> DoubleNum {
+    fn num_of_i64(&self, val: i64) -> Self::Num {
         DoubleNum::new(val as f64)
     }
 
-    fn num_of_f64(&self, number: impl Into<f64>) -> Result<DoubleNum, NumError> {
-        let val = number.into();
-        // 直接返回新的 DoubleNum
-        Ok(DoubleNum::new(val))
-    }
-
-    fn produces(&self, _num: &DoubleNum) -> bool {
-        // 该工厂只生产 DoubleNum，故返回 true
+    fn produces(&self, _num: &Self::Num) -> bool {
         true
     }
 }

@@ -23,7 +23,32 @@
  * SOFTWARE.
  */
 
+use rust_decimal::RoundingStrategy;
 use thiserror::Error;
+
+/// 数学上下文，对应Java的MathContext
+#[derive(Debug, Clone, PartialEq)]
+pub struct MathContext {
+    pub precision: u32,
+    pub rounding_mode: RoundingStrategy,
+}
+
+impl MathContext {
+    pub const DEFAULT_PRECISION: u32 = 32;
+    pub fn new(precision: u32, rounding_mode: RoundingStrategy) -> Self {
+        Self {
+            precision,
+            rounding_mode,
+        }
+    }
+
+    pub fn default() -> Self {
+        Self {
+            precision: Self::DEFAULT_PRECISION,
+            rounding_mode: RoundingStrategy::MidpointAwayFromZero,
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NumberDelegate {

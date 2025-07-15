@@ -24,47 +24,61 @@
  */
 
 use crate::num::nan::NaN;
-use crate::num::{NumError, NumFactory, TrNum};
+use crate::num::{DecimalFactory, DoubleFactory, NumError, NumFactory, TrNum};
+use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Copy)]
 pub struct NaNFactory;
 
-impl NumFactory<NaN> for NaNFactory {
-    fn minus_one(&self) -> NaN {
+impl DecimalFactory for NaNFactory {
+    type Num = NaN;
+    fn num_of_decimal(&self, _number: impl Into<Decimal>) -> Result<Self::Num, NumError> {
+        Ok(NaN)
+    }
+}
+
+impl DoubleFactory for NaNFactory {
+    type Num = NaN;
+    fn num_of_f64(&self, _number: impl Into<f64>) -> Result<Self::Num, NumError> {
+        Ok(NaN)
+    }
+}
+
+impl NumFactory for NaNFactory {
+    type Num = NaN;
+    type Output = NaN;
+
+    fn minus_one(&self) -> Self::Output {
         NaN
     }
-    fn zero(&self) -> NaN {
+    fn zero(&self) -> Self::Output {
         NaN
     }
-    fn one(&self) -> NaN {
+    fn one(&self) -> Self::Output {
         NaN
     }
-    fn two(&self) -> NaN {
+    fn two(&self) -> Self::Output {
         NaN
     }
-    fn three(&self) -> NaN {
+    fn three(&self) -> Self::Output {
         NaN
     }
-    fn hundred(&self) -> NaN {
+    fn hundred(&self) -> Self::Output {
         NaN
     }
-    fn thousand(&self) -> NaN {
+    fn thousand(&self) -> Self::Output {
         NaN
     }
 
-    fn num_of_str(&self, _s: &str) -> Result<NaN, NumError> {
+    fn num_of_str(&self, _s: &str) -> Result<Self::Num, NumError> {
         Ok(NaN)
     }
 
-    fn num_of_i64(&self, _val: i64) -> NaN {
+    fn num_of_i64(&self, _val: i64) -> Self::Num {
         NaN
     }
 
-    fn num_of_f64(&self, _number: impl Into<f64>) -> Result<NaN, NumError> {
-        Ok(NaN)
-    }
-
-    fn produces(&self, num: &NaN) -> bool {
+    fn produces(&self, num: &Self::Num) -> bool {
         num.is_nan()
     }
 }
