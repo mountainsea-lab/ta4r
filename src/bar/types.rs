@@ -1,5 +1,5 @@
-use std::time::{Duration, SystemTime};
 use crate::num::{NumFactory, TrNum};
+use std::time::{Duration, SystemTime};
 
 // Bar trait - 对应 ta4j 的 Bar 接口
 pub trait Bar<T: TrNum> {
@@ -180,7 +180,21 @@ pub trait BarSeries<T: TrNum> {
     /// 此实例及其子序列的索引可能不同，即子序列的索引 0 将是此实例的 startIndex。
     /// 如果 startIndex < this.seriesBeginIndex，则子序列将从此实例的第一个可用 bar 开始。
     /// 如果 endIndex > this.seriesEndIndex，则子序列将在此实例的最后一个可用 bar 结束。
-    fn get_sub_series(&self, start_index: usize, end_index: usize) -> Result<Box<dyn BarSeries<T, Bar = Self::Bar, Builder = Self::Builder, NumFactory = Self::NumFactory>>, String>;
+    fn get_sub_series(
+        &self,
+        start_index: usize,
+        end_index: usize,
+    ) -> Result<
+        Box<
+            dyn BarSeries<
+                    T,
+                    Bar = Self::Bar,
+                    Builder = Self::Builder,
+                    NumFactory = Self::NumFactory,
+                >,
+        >,
+        String,
+    >;
 }
 
 // BarSeriesBuilder trait - 对应 ta4j 的 BarSeriesBuilder 接口

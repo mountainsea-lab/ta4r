@@ -1,5 +1,4 @@
-mod types;
-mod bar;
-mod bar_builder;
+mod base_bar;
 mod base_bar_series;
-
+mod base_bar_series_builder;
+mod types;
