@@ -88,8 +88,7 @@ impl DecimalFactory for DecimalNumFactory {
     }
 }
 
-impl NumFactory for DecimalNumFactory {
-    type Num = DecimalNum;
+impl NumFactory<DecimalNum> for DecimalNumFactory {
     type Output = Arc<DecimalNum>;
 
     fn minus_one(&self) -> Self::Output {
@@ -120,15 +119,15 @@ impl NumFactory for DecimalNumFactory {
         THOUSAND.clone()
     }
 
-    fn num_of_str(&self, s: &str) -> Result<Self::Num, NumError> {
+    fn num_of_str(&self, s: &str) -> Result<DecimalNum, NumError> {
         DecimalNum::from_str_with_context(s, self.math_context.clone())
     }
 
-    fn num_of_i64(&self, val: i64) -> Self::Num {
+    fn num_of_i64(&self, val: i64) -> DecimalNum {
         DecimalNum::with_context(val, self.math_context.clone())
     }
 
-    fn produces(&self, _num: &Self::Num) -> bool {
+    fn produces(&self, _num: &DecimalNum) -> bool {
         // 这里示意总返回true，你可以自定义判断逻辑
         true
     }

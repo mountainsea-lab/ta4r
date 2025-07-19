@@ -47,8 +47,7 @@ impl DoubleFactory for DecimalNumFactory {
     }
 }
 
-impl NumFactory for DoubleNumFactory {
-    type Num = DoubleNum;
+impl NumFactory<DoubleNum> for DoubleNumFactory {
     type Output = DoubleNum; // 注意：值类型，避免 Arc 开销
 
     fn minus_one(&self) -> Self::Output {
@@ -79,15 +78,15 @@ impl NumFactory for DoubleNumFactory {
         DoubleNum::THOUSAND
     }
 
-    fn num_of_str(&self, s: &str) -> Result<Self::Num, NumError> {
+    fn num_of_str(&self, s: &str) -> Result<DoubleNum, NumError> {
         DoubleNum::from_str(s)
     }
 
-    fn num_of_i64(&self, val: i64) -> Self::Num {
+    fn num_of_i64(&self, val: i64) -> DoubleNum {
         DoubleNum::new(val as f64)
     }
 
-    fn produces(&self, _num: &Self::Num) -> bool {
+    fn produces(&self, _num: &DoubleNum) -> bool {
         true
     }
 }

@@ -37,9 +37,9 @@ use rust_decimal::Decimal;
 use std::fmt::{Debug, Display};
 
 /// 数值工厂 trait，用于创建常用数值实例，兼容 Arc<T> 或 T
-pub trait NumFactory {
-    type Num: TrNum;
-    type Output: AsRef<Self::Num> + Clone;
+pub trait NumFactory<T: TrNum> {
+    // type Num: TrNum;
+    type Output: AsRef<T> + Clone;
 
     fn minus_one(&self) -> Self::Output;
     fn zero(&self) -> Self::Output;
@@ -49,11 +49,11 @@ pub trait NumFactory {
     fn hundred(&self) -> Self::Output;
     fn thousand(&self) -> Self::Output;
 
-    fn num_of_str(&self, s: &str) -> Result<Self::Num, NumError>;
-    fn num_of_i64(&self, val: i64) -> Self::Num;
+    fn num_of_str(&self, s: &str) -> Result<T, NumError>;
+    fn num_of_i64(&self, val: i64) -> T;
 
     /// 检查数值是否由该工厂创建
-    fn produces(&self, num: &Self::Num) -> bool;
+    fn produces(&self, num: &T) -> bool;
 }
 
 pub trait DoubleFactory {
@@ -76,7 +76,7 @@ pub trait DecimalFactory {
 pub trait TrNum:
     Num + Clone + PartialOrd + Debug + Display + Send + Sync + ToPrimitive + FromPrimitive + Signed
 {
-    type Factory: NumFactory;
+    type Factory: NumFactory<Self>;
 
     /// 获取底层委托数字
     fn get_delegate(&self) -> NumberDelegate;

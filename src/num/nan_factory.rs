@@ -44,8 +44,7 @@ impl DoubleFactory for NaNFactory {
     }
 }
 
-impl NumFactory for NaNFactory {
-    type Num = NaN;
+impl NumFactory<NaN> for NaNFactory {
     type Output = NaN;
 
     fn minus_one(&self) -> Self::Output {
@@ -70,15 +69,15 @@ impl NumFactory for NaNFactory {
         NaN
     }
 
-    fn num_of_str(&self, _s: &str) -> Result<Self::Num, NumError> {
+    fn num_of_str(&self, _s: &str) -> Result<NaN, NumError> {
         Ok(NaN)
     }
 
-    fn num_of_i64(&self, _val: i64) -> Self::Num {
+    fn num_of_i64(&self, _val: i64) -> NaN {
         NaN
     }
 
-    fn produces(&self, num: &Self::Num) -> bool {
+    fn produces(&self, num: &NaN) -> bool {
         num.is_nan()
     }
 }
