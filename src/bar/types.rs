@@ -1,11 +1,11 @@
 use crate::num::{NumFactory, TrNum};
-use std::time::{Duration, SystemTime};
+use time::{Duration, OffsetDateTime};
 
 // Bar trait - 对应 ta4j 的 Bar 接口
 pub trait Bar<T: TrNum> {
     fn get_time_period(&self) -> Duration;
-    fn get_begin_time(&self) -> SystemTime;
-    fn get_end_time(&self) -> SystemTime;
+    fn get_begin_time(&self) -> OffsetDateTime;
+    fn get_end_time(&self) -> OffsetDateTime;
     fn get_open_price(&self) -> Option<T>;
     fn get_high_price(&self) -> Option<T>;
     fn get_low_price(&self) -> Option<T>;
@@ -15,7 +15,7 @@ pub trait Bar<T: TrNum> {
     fn get_trades(&self) -> u64;
     fn add_trade(&mut self, trade_volume: T, trade_price: T);
     fn add_price(&mut self, price: T);
-    fn in_period(&self, time: SystemTime) -> bool {
+    fn in_period(&self, time: OffsetDateTime) -> bool {
         time >= self.get_begin_time() && time <= self.get_end_time()
     }
 }
@@ -25,8 +25,8 @@ pub trait BarBuilder<T: TrNum> {
     type Bar: Bar<T>;
 
     fn time_period(self, period: Duration) -> Self;
-    fn begin_time(self, time: SystemTime) -> Self;
-    fn end_time(self, time: SystemTime) -> Self;
+    fn begin_time(self, time: OffsetDateTime) -> Self;
+    fn end_time(self, time: OffsetDateTime) -> Self;
     fn open_price(self, price: T) -> Self;
     fn high_price(self, price: T) -> Self;
     fn low_price(self, price: T) -> Self;
@@ -34,15 +34,19 @@ pub trait BarBuilder<T: TrNum> {
     fn volume(self, volume: T) -> Self;
     fn amount(self, amount: T) -> Self;
     fn trades(self, trades: u64) -> Self;
-    fn build(self) -> Result<Self::Bar, String>;
+    fn build(&self) -> Result<Self::Bar, String>;
+    /**
+     * Builds bar with {@link #build()} and adds it to series
+     */
+    fn add(&mut self);
 }
 
 // BarBuilderFactory trait - 使用关联类型
 pub trait BarBuilderFactory<T: TrNum> {
+    type Series: BarSeries<T>;
     type Builder: BarBuilder<T>;
-    type Bar: Bar<T>;
 
-    fn create_bar_builder(&self) -> Self::Builder;
+    fn create_bar_builder(&self, series: &Self::Series) -> Self::Builder;
 }
 
 // BarSeries trait - 对应 ta4j 的 BarSeries 接口
@@ -50,6 +54,7 @@ pub trait BarSeries<T: TrNum> {
     type Bar: Bar<T>;
     type Builder: BarBuilder<T, Bar = Self::Bar>;
     type NumFactory: NumFactory<T>;
+    type SubSeries; // 关联类型
 
     /// 返回生成此 BarSeries 中可用数字的工厂
     fn num_factory(&self) -> &Self::NumFactory;
@@ -123,7 +128,7 @@ pub trait BarSeries<T: TrNum> {
 
     /// 返回系统默认时区中的序列周期描述
     fn get_series_period_description_in_system_time_zone(&self) -> String {
-        // 在 Rust 中，SystemTime 默认使用系统时区
+        // 在 Rust 中，OffsetDateTime 默认使用系统时区
         self.get_series_period_description()
     }
 
@@ -184,24 +189,14 @@ pub trait BarSeries<T: TrNum> {
         &self,
         start_index: usize,
         end_index: usize,
-    ) -> Result<
-        Box<
-            dyn BarSeries<
-                    T,
-                    Bar = Self::Bar,
-                    Builder = Self::Builder,
-                    NumFactory = Self::NumFactory,
-                >,
-        >,
-        String,
-    >;
+    ) -> Result<Self::SubSeries, String>;
 }
 
 // BarSeriesBuilder trait - 对应 ta4j 的 BarSeriesBuilder 接口
 pub trait BarSeriesBuilder<T: TrNum> {
     type BarSeries: BarSeries<T>;
 
-    fn build(self) -> Self::BarSeries;
+    fn build(self) -> Result<Self::BarSeries, String>;
 }
 
 // BarAggregator trait - 对应 ta4j 的 BarAggregator 接口

@@ -23,9 +23,8 @@
  * SOFTWARE.
  */
 
-use crate::num::decimal_num_factory::DecimalNumFactory;
 use crate::num::double_num::DoubleNum;
-use crate::num::{DecimalFactory, DoubleFactory, NumError, NumFactory};
+use crate::num::{DoubleFactory, NumError, NumFactory};
 
 /// This struct implements the `NumFactory` trait and provides convenient
 /// access to commonly used constant values.
@@ -40,7 +39,13 @@ impl DoubleNumFactory {
     }
 }
 
-impl DoubleFactory for DecimalNumFactory {
+impl Default for DoubleNumFactory {
+    fn default() -> Self {
+        Self::instance()
+    }
+}
+
+impl DoubleFactory for DoubleNumFactory {
     type Num = DoubleNum;
     fn num_of_f64(&self, number: impl Into<f64>) -> Result<Self::Num, NumError> {
         Ok(DoubleNum::new(number.into()))

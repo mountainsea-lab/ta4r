@@ -2,7 +2,7 @@ use crate::bar::types::Bar;
 use crate::num::TrNum;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::time::{Duration, SystemTime};
+use time::{Duration, OffsetDateTime};
 
 /// BaseBar 结构体 - 对应 ta4j 的 BaseBar 类
 #[derive(Debug, Clone)]
@@ -10,9 +10,9 @@ pub struct BaseBar<T: TrNum> {
     /// 时间周期（例如 1 天、15 分钟等）
     time_period: Duration,
     /// Bar 周期的开始时间（UTC）
-    begin_time: SystemTime,
+    begin_time: OffsetDateTime,
     /// Bar 周期的结束时间（UTC）
-    end_time: SystemTime,
+    end_time: OffsetDateTime,
     /// Bar 周期的开盘价
     open_price: Option<T>,
     /// Bar 周期的最高价
@@ -33,7 +33,7 @@ impl<T: TrNum> BaseBar<T> {
     /// 构造函数，实现与 Java 版本相同的时间计算逻辑
     pub fn new(
         time_period: Duration,
-        end_time: SystemTime,
+        end_time: OffsetDateTime,
         open_price: Option<T>,
         high_price: Option<T>,
         low_price: Option<T>,
@@ -43,9 +43,12 @@ impl<T: TrNum> BaseBar<T> {
         trades: u64,
     ) -> Result<Self, String> {
         // 计算 begin_time = end_time - time_period
-        let begin_time = end_time
-            .checked_sub(time_period)
-            .ok_or("Begin time calculation overflow")?;
+        let begin_time = end_time.checked_sub(time_period).ok_or_else(|| {
+            format!(
+                "Begin time = end_time - period overflow: {:?} - {:?}",
+                end_time, time_period
+            )
+        })?;
 
         Ok(BaseBar {
             time_period,
@@ -64,8 +67,8 @@ impl<T: TrNum> BaseBar<T> {
     /// 带有完整时间参数的构造函数
     pub fn new_with_times(
         time_period: Option<Duration>,
-        begin_time: Option<SystemTime>,
-        end_time: Option<SystemTime>,
+        begin_time: Option<OffsetDateTime>,
+        end_time: Option<OffsetDateTime>,
         open_price: Option<T>,
         high_price: Option<T>,
         low_price: Option<T>,
@@ -78,9 +81,10 @@ impl<T: TrNum> BaseBar<T> {
         let calculated_time_period = match time_period {
             Some(period) => {
                 if let (Some(begin), Some(end)) = (begin_time, end_time) {
-                    let calculated = end
-                        .duration_since(begin)
-                        .map_err(|_| "End time must be after begin time")?;
+                    let calculated = end - begin;
+                    if calculated.is_negative() {
+                        return Err("End time must be after begin time".to_string());
+                    }
                     if period != calculated {
                         return Err("The calculated timePeriod between beginTime and endTime does not match the given timePeriod".to_string());
                     }
@@ -89,8 +93,11 @@ impl<T: TrNum> BaseBar<T> {
             }
             None => {
                 if let (Some(begin), Some(end)) = (begin_time, end_time) {
-                    end.duration_since(begin)
-                        .map_err(|_| "End time must be after begin time")?
+                    let calculated = end - begin;
+                    if calculated.is_negative() {
+                        return Err("End time must be after begin time".to_string());
+                    }
+                    calculated
                 } else {
                     return Err("Time period cannot be null".to_string());
                 }
@@ -136,11 +143,11 @@ impl<T: TrNum> Bar<T> for BaseBar<T> {
         self.time_period
     }
 
-    fn get_begin_time(&self) -> SystemTime {
+    fn get_begin_time(&self) -> OffsetDateTime {
         self.begin_time
     }
 
-    fn get_end_time(&self) -> SystemTime {
+    fn get_end_time(&self) -> OffsetDateTime {
         self.end_time
     }
 

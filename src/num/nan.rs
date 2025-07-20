@@ -53,13 +53,13 @@ impl AsRef<NaN> for NaN {
     }
 }
 
-impl fmt::Debug for NaN {
+impl fmt::Display for NaN {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NaN")
     }
 }
 
-impl fmt::Display for NaN {
+impl fmt::Debug for NaN {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "NaN")
     }

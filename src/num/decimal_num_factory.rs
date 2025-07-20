@@ -25,7 +25,7 @@
 
 use crate::num::decimal_num::DecimalNum;
 use crate::num::types::{MathContext, NumError};
-use crate::num::{DecimalFactory, DoubleFactory, NumFactory};
+use crate::num::{DecimalFactory, NumFactory};
 use once_cell::sync::Lazy;
 use rust_decimal::{Decimal, RoundingStrategy};
 use std::sync::Arc;
@@ -60,6 +60,7 @@ pub static HUNDRED: Lazy<Arc<DecimalNum>> =
 pub static THOUSAND: Lazy<Arc<DecimalNum>> =
     Lazy::new(|| Arc::new(DecimalNum::with_context(1000, MC_FOUR_PRECISION)));
 
+#[derive(Debug, Clone)]
 pub struct DecimalNumFactory {
     math_context: MathContext,
 }
@@ -78,6 +79,12 @@ impl DecimalNumFactory {
 
     pub fn instance() -> Self {
         Self::new(Self::DEFAULT_PRECISION)
+    }
+}
+
+impl Default for DecimalNumFactory {
+    fn default() -> Self {
+        Self::instance()
     }
 }
 

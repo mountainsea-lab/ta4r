@@ -33,7 +33,7 @@ use crate::num::double_num_factory::DoubleNumFactory;
 use crate::num::types::NumberDelegate;
 use crate::num::{NumError, TrNum};
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub struct DoubleNum {
     delegate: f64,
 }
@@ -234,7 +234,15 @@ impl Signed for DoubleNum {
 // --- FromPrimitive 实现 ---
 
 impl FromPrimitive for DoubleNum {
+    fn from_i32(n: i32) -> Option<Self> {
+        Some(Self::new(n as f64))
+    }
+
     fn from_i64(n: i64) -> Option<Self> {
+        Some(Self::new(n as f64))
+    }
+
+    fn from_u32(n: u32) -> Option<Self> {
         Some(Self::new(n as f64))
     }
 
@@ -244,14 +252,6 @@ impl FromPrimitive for DoubleNum {
 
     fn from_f64(n: f64) -> Option<Self> {
         Some(Self::new(n))
-    }
-
-    fn from_i32(n: i32) -> Option<Self> {
-        Some(Self::new(n as f64))
-    }
-
-    fn from_u32(n: u32) -> Option<Self> {
-        Some(Self::new(n as f64))
     }
 }
 
@@ -271,17 +271,6 @@ impl Rem for DoubleNum {
     }
 }
 
-// --- Display 实现 ---
-
-impl Display for DoubleNum {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        if self.delegate.is_nan() {
-            write!(f, "NaN")
-        } else {
-            write!(f, "{}", self.delegate)
-        }
-    }
-}
 impl TrNum for DoubleNum {
     type Factory = DoubleNumFactory;
 
@@ -390,5 +379,24 @@ impl TrNum for DoubleNum {
 
     fn to_decimal(&self) -> Option<Decimal> {
         Decimal::from_f64(self.delegate)
+    }
+}
+
+// --- Display 实现 ---
+
+impl Display for DoubleNum {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        if self.delegate.is_nan() {
+            write!(f, "NaN")
+        } else {
+            write!(f, "{}", self.delegate)
+        }
+    }
+}
+
+impl fmt::Debug for DoubleNum {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // 这里自定义输出格式，比如只显示 delegate，保留两位小数
+        write!(f, "DoubleNum({:.2})", self.delegate)
     }
 }

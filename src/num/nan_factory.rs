@@ -44,6 +44,12 @@ impl DoubleFactory for NaNFactory {
     }
 }
 
+impl Default for NaNFactory {
+    fn default() -> Self {
+        NaNFactory
+    }
+}
+
 impl NumFactory<NaN> for NaNFactory {
     type Output = NaN;
 

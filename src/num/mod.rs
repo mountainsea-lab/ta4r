@@ -23,13 +23,13 @@
  * SOFTWARE.
  */
 
-mod decimal_num;
-mod decimal_num_factory;
-mod double_num;
-mod double_num_factory;
-mod nan;
-mod nan_factory;
-mod types;
+pub mod decimal_num;
+pub mod decimal_num_factory;
+pub mod double_num;
+pub mod double_num_factory;
+pub mod nan;
+pub mod nan_factory;
+pub mod types;
 
 use crate::num::types::{NumError, NumberDelegate};
 use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
@@ -38,7 +38,6 @@ use std::fmt::{Debug, Display};
 
 /// 数值工厂 trait，用于创建常用数值实例，兼容 Arc<T> 或 T
 pub trait NumFactory<T: TrNum> {
-    // type Num: TrNum;
     type Output: AsRef<T> + Clone;
 
     fn minus_one(&self) -> Self::Output;
@@ -76,7 +75,7 @@ pub trait DecimalFactory {
 pub trait TrNum:
     Num + Clone + PartialOrd + Debug + Display + Send + Sync + ToPrimitive + FromPrimitive + Signed
 {
-    type Factory: NumFactory<Self>;
+    type Factory: NumFactory<Self> + Default + Debug + Clone + Send + Sync;
 
     /// 获取底层委托数字
     fn get_delegate(&self) -> NumberDelegate;
