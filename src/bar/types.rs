@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::num::{NumFactory, TrNum};
 use time::{Duration, OffsetDateTime};
 
@@ -57,7 +58,7 @@ pub trait BarSeries<T: TrNum> {
     type SubSeries; // 关联类型
 
     /// 返回生成此 BarSeries 中可用数字的工厂
-    fn num_factory(&self) -> &Self::NumFactory;
+    fn num_factory(&self) -> Arc<Self::NumFactory>;
 
     /// 返回生成兼容 bar 的构建器
     fn bar_builder(&self) -> Self::Builder;

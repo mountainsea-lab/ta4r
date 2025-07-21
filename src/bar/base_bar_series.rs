@@ -125,8 +125,8 @@ where
     type Builder = TimeBarBuilder<T, Self>; // 暂时只支持 TimeBarBuilder
     type NumFactory = T::Factory;
     type SubSeries = BaseBarSeries<T>; // 子序列同样使用枚举封装后的类型
-    fn num_factory(&self) -> &Self::NumFactory {
-        &self.core.num_factory
+    fn num_factory(&self) -> Arc<Self::NumFactory>{
+        self.core.num_factory.clone()
     }
 
     fn bar_builder(&self) -> Self::Builder {

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use crate::bar::base_bar::BaseBar;
 use crate::bar::types::{BarBuilder, BarSeries};
 use crate::num::TrNum;
@@ -9,7 +10,7 @@ use time::{Duration, OffsetDateTime};
 #[derive(Debug, Clone)]
 pub struct TimeBarBuilder<T: TrNum, S: BarSeries<T>> {
     /// 数值工厂
-    num_factory: T::Factory,
+    num_factory:  Arc<T::Factory>,
     /// 绑定的 BarSeries（可选，使用泛型参数）
     bar_series: Option<S>,
 
@@ -29,7 +30,7 @@ pub struct TimeBarBuilder<T: TrNum, S: BarSeries<T>> {
 // 针对DoubleNum的具体实现，直接调用DoubleNumFactory::instance()
 impl<S: BarSeries<DoubleNum>> TimeBarBuilder<DoubleNum, S> {
     pub fn new() -> Self {
-        Self::new_with_factory(DoubleNumFactory::instance())
+        Self::new_with_factory(Arc::new(DoubleNumFactory::instance()))
     }
 }
 
@@ -39,13 +40,13 @@ where
     T::Factory: Default,
 {
     fn default() -> Self {
-        Self::new_with_factory(T::Factory::default())
+        Self::new_with_factory(Arc::new(T::Factory::default()))
     }
 }
 
 impl<T: TrNum, S: BarSeries<T>> TimeBarBuilder<T, S> {
     /// 创建新的 TimeBarBuilder，指定数值工厂
-    pub fn new_with_factory(num_factory: T::Factory) -> Self {
+    pub fn new_with_factory(num_factory:  Arc<T::Factory>) -> Self {
         Self {
             num_factory,
             bar_series: None,
