@@ -1,18 +1,19 @@
-use std::sync::Arc;
 use crate::bar::base_bar::BaseBar;
 use crate::bar::types::{BarBuilder, BarSeries};
 use crate::num::TrNum;
 use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
+use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
 /// TimeBarBuilder 结构体 - 使用泛型参数避免动态分发
-#[derive(Debug, Clone)]
-pub struct TimeBarBuilder<T: TrNum, S: BarSeries<T>> {
+#[derive(Debug)]
+pub struct TimeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
+    // pub struct TimeBarBuilder<'a, T: TrNum, S: BarSeries<T>> {
     /// 数值工厂
-    num_factory:  Arc<T::Factory>,
+    num_factory: Arc<T::Factory>,
     /// 绑定的 BarSeries（可选，使用泛型参数）
-    bar_series: Option<S>,
+    bar_series: Option<&'a mut S>,
 
     // Bar 构建字段
     time_period: Option<Duration>,
@@ -28,14 +29,14 @@ pub struct TimeBarBuilder<T: TrNum, S: BarSeries<T>> {
 }
 
 // 针对DoubleNum的具体实现，直接调用DoubleNumFactory::instance()
-impl<S: BarSeries<DoubleNum>> TimeBarBuilder<DoubleNum, S> {
+impl<'a, S: BarSeries<'a, DoubleNum>> TimeBarBuilder<'a, DoubleNum, S> {
     pub fn new() -> Self {
         Self::new_with_factory(Arc::new(DoubleNumFactory::instance()))
     }
 }
 
 // 额外为泛型实现 Default trait
-impl<T: TrNum, S: BarSeries<T>> Default for TimeBarBuilder<T, S>
+impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> Default for TimeBarBuilder<'a, T, S>
 where
     T::Factory: Default,
 {
@@ -44,9 +45,9 @@ where
     }
 }
 
-impl<T: TrNum, S: BarSeries<T>> TimeBarBuilder<T, S> {
+impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TimeBarBuilder<'a, T, S> {
     /// 创建新的 TimeBarBuilder，指定数值工厂
-    pub fn new_with_factory(num_factory:  Arc<T::Factory>) -> Self {
+    pub fn new_with_factory(num_factory: Arc<T::Factory>) -> Self {
         Self {
             num_factory,
             bar_series: None,
@@ -64,7 +65,7 @@ impl<T: TrNum, S: BarSeries<T>> TimeBarBuilder<T, S> {
     }
 
     /// 绑定到 BarSeries，返回新的类型化构建器
-    pub fn bind_to(self, bar_series: &S) -> TimeBarBuilder<T, S> {
+    pub fn bind_to(self, bar_series: &'a mut S) -> TimeBarBuilder<'a, T, S> {
         TimeBarBuilder {
             num_factory: self.num_factory,
             bar_series: Some(bar_series),
@@ -82,7 +83,10 @@ impl<T: TrNum, S: BarSeries<T>> TimeBarBuilder<T, S> {
     }
 }
 
-impl<T: TrNum, S: BarSeries<T>> BarBuilder<T> for TimeBarBuilder<T, S> {
+impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> BarBuilder<T> for TimeBarBuilder<'a, T, S>
+where
+    S: BarSeries<'a, T, Bar = BaseBar<T>>,
+{
     type Bar = BaseBar<T>;
 
     fn time_period(mut self, time_period: Duration) -> Self {
@@ -139,18 +143,18 @@ impl<T: TrNum, S: BarSeries<T>> BarBuilder<T> for TimeBarBuilder<T, S> {
         // 构建 BaseBar，对应 Java 版本的 build 方法
         BaseBar::new(
             self.time_period.unwrap_or(Duration::ZERO),
-            self.end_time.unwrap_or_else(OffsetDateTime::now_utc()),
+            self.end_time.unwrap_or_else(|| OffsetDateTime::now_utc()),
             self.open_price.clone(),
             self.high_price.clone(),
             self.low_price.clone(),
             self.close_price.clone(),
-            self.volume.clone().unwrap_or_else(T::zero()),
-            self.amount.clone().unwrap_or_else(T::zero()),
-            self.trades.clone().unwrap_or_else(0),
+            self.volume.clone().unwrap_or_else(|| T::zero()),
+            self.amount.clone().unwrap_or_else(|| T::zero()),
+            self.trades.clone().unwrap_or_else(|| 0),
         )
     }
 
-    fn add(&mut self) {
+    fn add(&mut self) -> Result<(), String> {
         // 自动推导 amount = close_price * volume
         if self.amount.is_none() {
             if let (Some(ref close), Some(ref volume)) =
@@ -165,5 +169,7 @@ impl<T: TrNum, S: BarSeries<T>> BarBuilder<T> for TimeBarBuilder<T, S> {
         if let Some(series) = self.bar_series.as_mut() {
             series.add_bar(bar);
         }
+
+        Ok(())
     }
 }

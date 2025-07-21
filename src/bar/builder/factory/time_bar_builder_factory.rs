@@ -7,11 +7,15 @@ use crate::num::TrNum;
 #[derive(Debug, Clone, Default)]
 pub struct TimeBarBuilderFactory;
 
-impl<T: TrNum> BarBuilderFactory<T> for TimeBarBuilderFactory {
+impl<T: TrNum + 'static> BarBuilderFactory<T> for TimeBarBuilderFactory {
     type Series = BaseBarSeries<T>;
-    type Builder = TimeBarBuilder<T, Self::Series>;
+    // GAT 的合法实现写法（注意这里声明了一个 GAT）
+    type Builder<'a>
+        = TimeBarBuilder<'a, T, Self::Series>
+    where
+        Self::Series: 'a;
 
-    fn create_bar_builder(&self, series: &Self::Series) -> Self::Builder {
+    fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a> {
         let factory = series.num_factory();
         TimeBarBuilder::new_with_factory(factory).bind_to(series)
     }

@@ -117,20 +117,29 @@ impl<T: TrNum> BaseBarSeries<T> {
     }
 }
 
-impl<T: TrNum> BarSeries<T> for BaseBarSeries<T>
+impl<'a, T: TrNum + 'static> BarSeries<'a, T> for BaseBarSeries<T>
 where
     T::Factory: NumFactory<T>,
 {
     type Bar = BaseBar<T>;
-    type Builder = TimeBarBuilder<T, Self>; // 暂时只支持 TimeBarBuilder
+
+    // 关联类型 Builder 改成带生命周期参数的 GAT
+    type Builder<'b>
+        = TimeBarBuilder<'b, T, Self>
+    where
+        Self: 'b;
+
     type NumFactory = T::Factory;
-    type SubSeries = BaseBarSeries<T>; // 子序列同样使用枚举封装后的类型
-    fn num_factory(&self) -> Arc<Self::NumFactory>{
+
+    type SubSeries = BaseBarSeries<T>;
+
+    fn num_factory(&self) -> Arc<Self::NumFactory> {
         self.core.num_factory.clone()
     }
 
-    fn bar_builder(&self) -> Self::Builder {
-        self.bar_builder_factory.create_bar_builder(self)
+    fn bar_builder(&mut self) -> Self::Builder<'_> {
+        let factory = self.bar_builder_factory.clone(); // 避免双借用
+        factory.create_bar_builder(self)
     }
 
     fn get_name(&self) -> &str {

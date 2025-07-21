@@ -15,19 +15,22 @@ pub enum BarBuilderFactories<T: TrNum> {
     _Phantom(PhantomData<T>),
 }
 
-impl<T: TrNum> BarBuilderFactory<T> for BarBuilderFactories<T> {
+impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
     // 这里使用枚举自身作为 Series 的 F 类型参数
     type Series = BaseBarSeries<T>;
     // Builder 先写成 TimeBarBuilder，后续扩展需重新设计
-    type Builder = TimeBarBuilder<T, Self::Series>;
+    type Builder<'a>
+        = TimeBarBuilder<'a, T, Self::Series>
+    where
+        Self::Series: 'a;
 
-    fn create_bar_builder(&self, series: &Self::Series) -> Self::Builder {
+    fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a> {
         match self {
-            BarBuilderFactories::TimeBarFactory(_factory) => {
+            BarBuilderFactories::TimeBarFactory(_) => {
                 let factory = series.num_factory();
                 TimeBarBuilder::new_with_factory(factory).bind_to(series)
             }
-            // BarBuilderFactories::Other(factory) => factory.create_bar_builder(series),
+            //         // BarBuilderFactories::Other(factory) => factory.create_bar_builder(series),
             _ => unreachable!("Unsupported BarBuilderFactories variant"),
         }
     }

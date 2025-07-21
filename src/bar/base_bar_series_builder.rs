@@ -95,7 +95,7 @@ impl<T: TrNum> BaseBarSeriesBuilder<T> {
 
 impl<T> BarSeriesBuilder<T> for BaseBarSeriesBuilder<T>
 where
-    T: TrNum,
+    T: TrNum + 'static,
     T::Factory: NumFactory<T>,
 {
     type BarSeries = BaseBarSeries<T>;

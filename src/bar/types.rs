@@ -1,9 +1,9 @@
-use std::sync::Arc;
 use crate::num::{NumFactory, TrNum};
+use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
 // Bar trait - 对应 ta4j 的 Bar 接口
-pub trait Bar<T: TrNum> {
+pub trait Bar<T: TrNum + 'static> {
     fn get_time_period(&self) -> Duration;
     fn get_begin_time(&self) -> OffsetDateTime;
     fn get_end_time(&self) -> OffsetDateTime;
@@ -22,7 +22,7 @@ pub trait Bar<T: TrNum> {
 }
 
 // BarBuilder trait - 使用关联类型避免动态分发
-pub trait BarBuilder<T: TrNum> {
+pub trait BarBuilder<T: TrNum + 'static> {
     type Bar: Bar<T>;
 
     fn time_period(self, period: Duration) -> Self;
@@ -39,29 +39,33 @@ pub trait BarBuilder<T: TrNum> {
     /**
      * Builds bar with {@link #build()} and adds it to series
      */
-    fn add(&mut self);
+    fn add(&mut self) -> Result<(), String>;
 }
 
 // BarBuilderFactory trait - 使用关联类型
-pub trait BarBuilderFactory<T: TrNum> {
-    type Series: BarSeries<T>;
-    type Builder: BarBuilder<T>;
-
-    fn create_bar_builder(&self, series: &Self::Series) -> Self::Builder;
+pub trait BarBuilderFactory<T: TrNum + 'static> {
+    type Series: for<'a> BarSeries<'a, T>;
+    type Builder<'a>: BarBuilder<T>
+    where
+        Self::Series: 'a;
+    fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a>;
 }
 
 // BarSeries trait - 对应 ta4j 的 BarSeries 接口
-pub trait BarSeries<T: TrNum> {
+pub trait BarSeries<'a, T: TrNum + 'static> {
     type Bar: Bar<T>;
-    type Builder: BarBuilder<T, Bar = Self::Bar>;
+    // GAT，Builder 关联类型带生命周期参数 'b
+    type Builder<'b>: BarBuilder<T, Bar = Self::Bar>
+    where
+        Self: 'b;
     type NumFactory: NumFactory<T>;
-    type SubSeries; // 关联类型
+    type SubSeries;
 
     /// 返回生成此 BarSeries 中可用数字的工厂
     fn num_factory(&self) -> Arc<Self::NumFactory>;
 
-    /// 返回生成兼容 bar 的构建器
-    fn bar_builder(&self) -> Self::Builder;
+    /// 返回生成兼容 bar 的构建器，生命周期和 self 绑定
+    fn bar_builder(&mut self) -> Self::Builder<'_>;
 
     /// 返回序列的名称
     fn get_name(&self) -> &str;
@@ -194,13 +198,12 @@ pub trait BarSeries<T: TrNum> {
 }
 
 // BarSeriesBuilder trait - 对应 ta4j 的 BarSeriesBuilder 接口
-pub trait BarSeriesBuilder<T: TrNum> {
-    type BarSeries: BarSeries<T>;
-
+pub trait BarSeriesBuilder<T: TrNum + 'static> {
+    type BarSeries: for<'a> BarSeries<'a, T>;
     fn build(self) -> Result<Self::BarSeries, String>;
 }
 
 // BarAggregator trait - 对应 ta4j 的 BarAggregator 接口
-pub trait BarAggregator<T: TrNum, B: Bar<T>> {
+pub trait BarAggregator<T: TrNum + 'static, B: Bar<T>> {
     fn aggregate(&self, bars: &[B]) -> Vec<B>;
 }

@@ -138,7 +138,7 @@ impl<T: TrNum> BaseBar<T> {
     }
 }
 
-impl<T: TrNum> Bar<T> for BaseBar<T> {
+impl<T: TrNum + 'static> Bar<T> for BaseBar<T> {
     fn get_time_period(&self) -> Duration {
         self.time_period
     }
