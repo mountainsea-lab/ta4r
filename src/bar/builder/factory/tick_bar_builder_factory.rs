@@ -4,7 +4,6 @@ use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
 
 /// TickBarBuilderFactory - 创建 TickBarBuilder 的工厂
-/// TickBarBuilderFactory - 创建 TickBarBuilder 的工厂
 #[derive(Debug, Clone, Default)]
 pub struct TickBarBuilderFactory {
     tick_count: u64,

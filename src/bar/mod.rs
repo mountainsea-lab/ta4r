@@ -3,4 +3,3 @@ mod base_bar_series;
 mod base_bar_series_builder;
 mod builder;
 mod types;
-mod volume_bar_builder;

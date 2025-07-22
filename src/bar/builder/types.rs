@@ -1,5 +1,7 @@
 use crate::bar::base_bar_series::BaseBarSeries;
+use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
 use crate::bar::builder::factory::time_bar_builder_factory::TimeBarBuilderFactory;
+use crate::bar::builder::factory::volume_bar_builder_factory::VolumeBarBuilderFactory;
 use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
@@ -10,7 +12,8 @@ use std::marker::PhantomData;
 #[derive(Clone)]
 pub enum BarBuilderFactories<T: TrNum> {
     TimeBarFactory(TimeBarBuilderFactory),
-    // Future: Other(OtherBarBuilderFactory<T>),
+    TickBarFactory(TickBarBuilderFactory),
+    VolumeBarFactory(VolumeBarBuilderFactory),
     // 以后可能会有其他带T的变体
     _Phantom(PhantomData<T>),
 }
@@ -40,6 +43,12 @@ impl<T: TrNum> fmt::Debug for BarBuilderFactories<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             BarBuilderFactories::TimeBarFactory(factory) => {
+                f.debug_tuple("TimeBarFactory").field(factory).finish()
+            }
+            BarBuilderFactories::TickBarFactory(factory) => {
+                f.debug_tuple("TimeBarFactory").field(factory).finish()
+            }
+            BarBuilderFactories::VolumeBarFactory(factory) => {
                 f.debug_tuple("TimeBarFactory").field(factory).finish()
             }
             // 如果添加了其他变体，继续写匹配
