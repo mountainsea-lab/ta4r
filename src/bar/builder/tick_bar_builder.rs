@@ -27,16 +27,6 @@ pub struct TickBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
     trades: Option<u64>,
 }
 
-// 额外为泛型实现 Default trait
-// impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> Default for TickBarBuilTer<'a, T, S>
-// where
-//     T::Factory: Default,
-// {
-//     fn default() -> Self {
-//         Self::new_with_factory(Arc::new(T::Factory::default()))
-//     }
-// }
-
 impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TickBarBuilder<'a, T, S> {
     /// 创建新的 TickBarBuilder，使用默认数值工厂
     pub fn new(tick_count: u64) -> Self
