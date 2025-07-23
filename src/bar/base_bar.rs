@@ -8,25 +8,25 @@ use time::{Duration, OffsetDateTime};
 #[derive(Debug, Clone)]
 pub struct BaseBar<T: TrNum> {
     /// 时间周期（例如 1 天、15 分钟等）
-    time_period: Duration,
+    pub(crate) time_period: Duration,
     /// Bar 周期的开始时间（UTC）
-    begin_time: OffsetDateTime,
+    pub begin_time: OffsetDateTime,
     /// Bar 周期的结束时间（UTC）
-    end_time: OffsetDateTime,
+    pub end_time: OffsetDateTime,
     /// Bar 周期的开盘价
-    open_price: Option<T>,
+    pub open_price: Option<T>,
     /// Bar 周期的最高价
-    high_price: Option<T>,
+    pub high_price: Option<T>,
     /// Bar 周期的最低价
-    low_price: Option<T>,
+    pub low_price: Option<T>,
     /// Bar 周期的收盘价
-    close_price: Option<T>,
+    pub close_price: Option<T>,
     /// Bar 周期的总交易量
-    volume: T,
+    pub volume: T,
     /// Bar 周期的总交易金额
-    amount: T,
+    pub amount: T,
     /// Bar 周期的交易次数
-    trades: u64,
+    pub trades: u64,
 }
 
 impl<T: TrNum> BaseBar<T> {

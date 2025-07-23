@@ -9,23 +9,22 @@ use time::{Duration, OffsetDateTime};
 /// TimeBarBuilder 结构体 - 使用泛型参数避免动态分发
 #[derive(Debug)]
 pub struct TimeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
-    // pub struct TimeBarBuilder<'a, T: TrNum, S: BarSeries<T>> {
     /// 数值工厂
-    num_factory: Arc<T::Factory>,
+    pub num_factory: Arc<T::Factory>,
     /// 绑定的 BarSeries（可选，使用泛型参数）
-    bar_series: Option<&'a mut S>,
+    pub bar_series: Option<&'a mut S>,
 
     // Bar 构建字段
-    time_period: Option<Duration>,
-    begin_time: Option<OffsetDateTime>,
-    end_time: Option<OffsetDateTime>,
-    open_price: Option<T>,
-    high_price: Option<T>,
-    low_price: Option<T>,
-    close_price: Option<T>,
-    volume: Option<T>,
-    amount: Option<T>,
-    trades: Option<u64>,
+    pub time_period: Option<Duration>,
+    pub begin_time: Option<OffsetDateTime>,
+    pub end_time: Option<OffsetDateTime>,
+    pub open_price: Option<T>,
+    pub high_price: Option<T>,
+    pub low_price: Option<T>,
+    pub close_price: Option<T>,
+    pub volume: Option<T>,
+    pub amount: Option<T>,
+    pub trades: Option<u64>,
 }
 
 // 针对DoubleNum的具体实现，直接调用DoubleNumFactory::instance()
