@@ -140,13 +140,22 @@ where
     }
 
     fn build(&self) -> Result<Self::Bar, String> {
+        let time_period = self.time_period.unwrap_or(Duration::ZERO);
+        let end_time = self.end_time.unwrap_or_else(|| OffsetDateTime::now_utc());
+
+        // 确保所有必须字段存在
+        let open_price = self.open_price.clone().ok_or("Missing open_price")?;
+        let high_price = self.high_price.clone().ok_or("Missing high_price")?;
+        let low_price = self.low_price.clone().ok_or("Missing low_price")?;
+        let close_price = self.close_price.clone().ok_or("Missing close_price")?;
+
         BaseBar::new(
-            self.time_period.unwrap_or(Duration::ZERO),
-            self.end_time.unwrap_or_else(OffsetDateTime::now_utc),
-            self.open_price.clone(),
-            self.high_price.clone(),
-            self.low_price.clone(),
-            self.close_price.clone(),
+            time_period,
+            end_time,
+            open_price,
+            high_price,
+            low_price,
+            close_price,
             self.volume.clone(),
             self.amount.clone(),
             self.trades,

@@ -98,6 +98,23 @@ pub trait TrNum:
     /// 除法，可能失败（对应 Java dividedBy）
     fn divided_by(&self, divisor: &Self) -> Result<Self, NumError>;
 
+    // 引用链式扩展
+    fn add_ref(&self, other: &Self) -> Self {
+        self.plus(other)
+    }
+
+    fn sub_ref(&self, other: &Self) -> Self {
+        self.minus(other)
+    }
+
+    fn multiplied_by_ref(&self, other: &Self) -> Self {
+        self.multiplied_by(other)
+    }
+
+    fn divided_by_ref(&self, other: &Self) -> Result<Self, NumError> {
+        self.divided_by(other)
+    }
+
     /// 取余数，可能失败（对应 Java remainder）
     fn remainder(&self, divisor: &Self) -> Result<Self, NumError>;
 

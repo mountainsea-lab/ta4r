@@ -174,10 +174,24 @@ impl Add for DoubleNum {
     }
 }
 
+impl<'a> Add for &'a DoubleNum {
+    type Output = DoubleNum;
+    fn add(self, rhs: Self) -> Self::Output {
+        self.plus(rhs)
+    }
+}
+
 impl Sub for DoubleNum {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
         self.minus(&rhs)
+    }
+}
+
+impl<'a> Sub for &'a DoubleNum {
+    type Output = DoubleNum;
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.minus(rhs)
     }
 }
 
@@ -188,11 +202,25 @@ impl Mul for DoubleNum {
     }
 }
 
+impl<'a> Mul for &'a DoubleNum {
+    type Output = DoubleNum;
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.multiplied_by(rhs)
+    }
+}
+
 impl Div for DoubleNum {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
         // 保持浮点除法默认行为，允许 Inf 或 NaN
         Self::new(self.delegate / rhs.delegate)
+    }
+}
+
+impl<'a> Div for &'a DoubleNum {
+    type Output = DoubleNum;
+    fn div(self, rhs: Self) -> Self::Output {
+        DoubleNum::new(self.delegate / rhs.delegate)
     }
 }
 

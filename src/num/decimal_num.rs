@@ -269,12 +269,30 @@ impl Add for DecimalNum {
     }
 }
 
+impl<'a> Add for &'a DecimalNum {
+    type Output = DecimalNum;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let math_context = self.choose_math_context_with_greater_precision(rhs);
+        DecimalNum::with_context(&self.delegate + &rhs.delegate, math_context)
+    }
+}
+
 impl Sub for DecimalNum {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
         let math_context = self.choose_math_context_with_greater_precision(&rhs);
         Self::with_context(self.delegate - rhs.delegate, math_context)
+    }
+}
+
+impl<'a> Sub for &'a DecimalNum {
+    type Output = DecimalNum;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let math_context = self.choose_math_context_with_greater_precision(rhs);
+        DecimalNum::with_context(&self.delegate - &rhs.delegate, math_context)
     }
 }
 
@@ -288,6 +306,15 @@ impl Mul for DecimalNum {
     }
 }
 
+impl<'a> Mul for &'a DecimalNum {
+    type Output = DecimalNum;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let math_context = self.choose_math_context_with_greater_precision(rhs);
+        DecimalNum::with_context(&self.delegate * &rhs.delegate, math_context)
+    }
+}
+
 impl Div for DecimalNum {
     type Output = Self;
 
@@ -297,6 +324,16 @@ impl Div for DecimalNum {
         Self::with_context(raw, ctx)
     }
 }
+
+impl<'a> Div for &'a DecimalNum {
+    type Output = DecimalNum;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        let math_context = self.choose_math_context_with_greater_precision(rhs);
+        DecimalNum::with_context(&self.delegate / &rhs.delegate, math_context)
+    }
+}
+
 impl Neg for DecimalNum {
     type Output = Self;
 

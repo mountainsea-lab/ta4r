@@ -69,14 +69,66 @@ where
     }
 
     fn build(&self) -> Result<Self::Bar, String> {
-        todo!()
+        let factory = &self.time_bar_builder.num_factory;
+
+        if let (Some(open), Some(high), Some(low), Some(close)) = (
+            &self.time_bar_builder.open_price,
+            &self.time_bar_builder.high_price,
+            &self.time_bar_builder.low_price,
+            &self.time_bar_builder.close_price,
+        ) {
+            if let (Some(prev_open), Some(prev_close)) = (
+                &self.previous_heikin_ashi_open_price,
+                &self.previous_heikin_ashi_close_price,
+            ) {
+                let four = factory.num_of_i64(4);
+                let two = factory.num_of_i64(2);
+
+                let ha_close = open
+                    .add_ref(high)
+                    .add_ref(low)
+                    .add_ref(close)
+                    .divided_by_ref(&four)
+                    .map_err(|e| e.to_string())?;
+
+                let ha_open = prev_open
+                    .add_ref(prev_close)
+                    .divided_by_ref(&two)
+                    .map_err(|e| e.to_string())?;
+
+                let ha_high = high.max(&ha_open).max(&ha_close);
+                let ha_low = low.min(&ha_open).min(&ha_close);
+
+                return BaseBar::new(
+                    self.time_bar_builder
+                        .time_period
+                        .ok_or("Missing time_period")?,
+                    self.time_bar_builder.end_time.ok_or("Missing end_time")?,
+                    ha_open,
+                    ha_high,
+                    ha_low,
+                    ha_close,
+                    self.time_bar_builder
+                        .volume
+                        .clone()
+                        .ok_or("Missing volume")?,
+                    self.time_bar_builder
+                        .amount
+                        .clone()
+                        .unwrap_or_else(|| T::zero()),
+                    self.time_bar_builder.trades.unwrap_or(0),
+                );
+            }
+        }
+
+        // fallback
+        self.time_bar_builder.build()
     }
 
     fn add(&mut self) -> Result<(), String> {
-        todo!()
+        self.time_bar_builder.add()
     }
 }
-
 
 impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> HeikinAshiBarBuilder<'a, T, S> {
     pub fn new_with_factory(num_factory: Arc<T::Factory>) -> Self {
@@ -100,73 +152,4 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> HeikinAshiBarBuilder<'a, T, S>
         self.previous_heikin_ashi_close_price = Some(previous_close_price);
         self
     }
-
-
-    // pub fn build(&self) -> Option<BaseBar<T>> {
-    //     let builder = &self.time_bar_builder;
-    //
-    //     // 先安全地解构所需字段
-    //     let (open, high, low, close) = (
-    //         builder.open_price.as_ref()?,
-    //         builder.high_price.as_ref()?,
-    //         builder.low_price.as_ref()?,
-    //         builder.close_price.as_ref()?,
-    //     );
-    //
-    //     let (volume, amount) = (builder.volume.as_ref()?, builder.amount.as_ref()?);
-    //
-    //     let trades = builder.trades?;
-    //     let end_time = builder.end_time?;
-    //     let time_period = builder.time_period?;
-    //     let begin_time = builder.begin_time.unwrap_or(end_time - time_period);
-    //
-    //     let factory = builder.num_factory.clone();
-    //
-    //     // 如果有前一根 heikin ashi bar，则计算
-    //     if let (Some(prev_open), Some(prev_close)) = (
-    //         self.previous_heikin_ashi_open_price.as_ref(),
-    //         self.previous_heikin_ashi_close_price.as_ref(),
-    //     ) {
-    //         // TODO 需要实现引用版本基础计算函数
-    //         let ha_close = open
-    //             .add(high)
-    //             .add(low)
-    //             .add(close)
-    //             .divided_by(&factory.num_of_i64(4));
-    //
-    //         let ha_open = prev_open.add(prev_close).divided_by(&factory.num_of_i64(2));
-    //
-    //         let ha_high = high.max(&ha_open).max(&ha_close);
-    //         let ha_low = low.min(&ha_open).min(&ha_close);
-    //
-    //         Some(BaseBar {
-    //             time_period,
-    //             begin_time,
-    //             end_time,
-    //             open_price: Some(ha_open),
-    //             high_price: Some(ha_high),
-    //             low_price: Some(ha_low),
-    //             close_price: Some(ha_close),
-    //             volume: volume.clone(),
-    //             amount: amount.clone(),
-    //             trades,
-    //         })
-    //     } else {
-    //         // 否则按原始字段构建普通 Bar
-    //         Some(BaseBar {
-    //             time_period,
-    //             begin_time,
-    //             end_time,
-    //             open_price: Some(open.clone()),
-    //             high_price: Some(high.clone()),
-    //             low_price: Some(low.clone()),
-    //             close_price: Some(close.clone()),
-    //             volume: volume.clone(),
-    //             amount: amount.clone(),
-    //             trades,
-    //         })
-    //     }
-    // }
-
-
 }

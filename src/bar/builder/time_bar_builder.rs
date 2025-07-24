@@ -139,17 +139,29 @@ where
     }
 
     fn build(&self) -> Result<Self::Bar, String> {
+        let time_period = self.time_period.unwrap_or(Duration::ZERO);
+        let end_time = self.end_time.unwrap_or_else(|| OffsetDateTime::now_utc());
+
+        // 确保所有必须字段存在
+        let open_price = self.open_price.clone().ok_or("Missing open_price")?;
+        let high_price = self.high_price.clone().ok_or("Missing high_price")?;
+        let low_price = self.low_price.clone().ok_or("Missing low_price")?;
+        let close_price = self.close_price.clone().ok_or("Missing close_price")?;
+
+        let volume = self.volume.clone().unwrap_or_else(|| T::zero());
+        let amount = self.amount.clone().unwrap_or_else(|| T::zero());
+        let trades = self.trades.unwrap_or(0);
         // 构建 BaseBar，对应 Java 版本的 build 方法
         BaseBar::new(
-            self.time_period.unwrap_or(Duration::ZERO),
-            self.end_time.unwrap_or_else(|| OffsetDateTime::now_utc()),
-            self.open_price.clone(),
-            self.high_price.clone(),
-            self.low_price.clone(),
-            self.close_price.clone(),
-            self.volume.clone().unwrap_or_else(|| T::zero()),
-            self.amount.clone().unwrap_or_else(|| T::zero()),
-            self.trades.clone().unwrap_or_else(|| 0),
+            time_period,
+            end_time,
+            open_price,
+            high_price,
+            low_price,
+            close_price,
+            volume,
+            amount,
+            trades,
         )
     }
 
