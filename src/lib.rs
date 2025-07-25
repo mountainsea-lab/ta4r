@@ -24,5 +24,5 @@
  */
 
 pub mod bar;
+pub mod indicators;
 pub mod num;
-// pub mod indicators;

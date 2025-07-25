@@ -138,9 +138,9 @@ where
 
         // 计算索引
         let (begin_index, end_index) = if self.bars.is_empty() {
-            (-1, -1)
+            (None, None)
         } else {
-            (0, (self.bars.len() - 1) as i32)
+            (Some(0), Some(self.bars.len() - 1))
         };
 
         // 创建 BaseBarSeries

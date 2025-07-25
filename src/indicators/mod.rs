@@ -2,13 +2,13 @@ use crate::bar::types::BarSeries;
 use crate::indicators::types::{IndicatorError, IndicatorIterator};
 use crate::num::TrNum;
 
-pub mod types;
 mod abstract_indicator;
 mod cached_indicator;
-mod recursive_cached_indicator;
+pub mod types;
+// mod recursive_cached_indicator;
 
 mod numeric;
-mod helpers;
+// mod helpers;
 
 pub trait Indicator: Clone {
     type Num: TrNum + 'static;
@@ -22,9 +22,7 @@ pub trait Indicator: Clone {
     fn get_value(&self, index: usize) -> Result<Self::Num, IndicatorError>;
 
     /// 返回该指标依赖的 BarSeries 引用
-    // fn get_bar_series(&self) -> Self::Series;
     fn get_bar_series(&self) -> &Self::Series<'_>;
-
 
     /// 返回在多少根 bar 之前该指标是不稳定的（计算值不可靠）
     fn get_count_of_unstable_bars(&self) -> usize;
@@ -44,10 +42,20 @@ pub trait Indicator: Clone {
     where
         Self: Sized,
     {
-        IndicatorIterator {
-            indicator: self,
-            index: self.get_bar_series().get_begin_index(),
-            end: self.get_bar_series().get_end_index(),
+        match (
+            self.get_bar_series().get_begin_index(),
+            self.get_bar_series().get_end_index(),
+        ) {
+            (Some(begin), Some(end)) => IndicatorIterator {
+                indicator: self,
+                index: begin,
+                end,
+            },
+            _ => IndicatorIterator {
+                indicator: self,
+                index: 1, // 空迭代器起始大于结束
+                end: 0,
+            },
         }
     }
 }

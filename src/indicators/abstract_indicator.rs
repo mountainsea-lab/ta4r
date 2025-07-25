@@ -1,35 +1,58 @@
 use crate::bar::types::BarSeries;
+use crate::indicators::Indicator;
+use crate::indicators::types::IndicatorIterator;
 use crate::num::TrNum;
+use std::marker::PhantomData;
 
-pub struct AbstractIndicator<'a, T, S>
+#[derive(Clone)]
+pub struct BaseIndicator<'a, T, S>
 where
     T: TrNum + 'static,
     S: BarSeries<'a, T>,
 {
-    // 持有的 BarSeries 引用
-    bar_series: &'a S,
-
-    // 日志记录器通常 Rust 里使用宏，不用存储字段，这里不必定义log字段
-    // 如果需要日志，可用 log crate 等宏调用
-
-    // 可能会在后续加入其他公共字段，比如缓存大小、状态等
+    series: &'a S,
+    _marker: PhantomData<T>,
 }
 
-impl<'a, T, S> AbstractIndicator<'a, T, S>
+impl<'a, T, S> BaseIndicator<'a, T, S>
 where
     T: TrNum + 'static,
     S: BarSeries<'a, T>,
 {
-    /// 构造函数
-    pub fn new(bar_series: &'a S) -> Self {
-        Self { bar_series }
+    pub fn new(series: &'a S) -> Self {
+        Self {
+            series,
+            _marker: Default::default(),
+        }
     }
 
-    /// 暴露 bar_series 引用
-    pub fn bar_series(&self) -> &'a S {
-        self.bar_series
+    pub fn get_bar_series(&self) -> &'a S {
+        self.series
     }
 
-    // 后续可以继续添加基础的辅助方法，比如
-    // fn to_string(&self) -> String { ... }
+    pub fn is_stable_at(&self, index: usize, unstable_count: usize) -> bool {
+        index >= unstable_count
+    }
+
+    pub fn is_stable(&self, unstable_count: usize) -> bool {
+        self.series.get_bar_count() >= unstable_count
+    }
+
+    pub fn iter<I>(&'a self, indicator: &'a I) -> IndicatorIterator<'a, I>
+    where
+        I: Indicator<Num = T, Series<'a> = S>,
+    {
+        match (self.series.get_begin_index(), self.series.get_end_index()) {
+            (Some(begin), Some(end)) if begin <= end => IndicatorIterator {
+                indicator,
+                index: begin,
+                end,
+            },
+            _ => IndicatorIterator {
+                indicator,
+                index: 1, // 让 index > end，表示空迭代器
+                end: 0,
+            },
+        }
+    }
 }

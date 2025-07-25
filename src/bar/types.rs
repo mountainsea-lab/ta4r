@@ -104,20 +104,13 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
 
     /// 返回序列的第一个 bar
     fn get_first_bar(&self) -> Option<&Self::Bar> {
-        if self.get_begin_index() >= 0 {
-            self.get_bar(self.get_begin_index() as usize)
-        } else {
-            None
-        }
+        self.get_begin_index()
+            .and_then(|begin_index| self.get_bar(begin_index))
     }
 
-    /// 返回序列的最后一个 bar
     fn get_last_bar(&self) -> Option<&Self::Bar> {
-        if self.get_end_index() >= 0 {
-            self.get_bar(self.get_end_index() as usize)
-        } else {
-            None
-        }
+        self.get_end_index()
+            .and_then(|end_index| self.get_bar(end_index))
     }
 
     /// 返回序列中 bar 的数量
@@ -137,10 +130,10 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
     fn get_bar_data(&self) -> &[Self::Bar];
 
     /// 返回序列的开始索引
-    fn get_begin_index(&self) -> i32;
+    fn get_begin_index(&self) -> Option<usize>;
 
     /// 返回序列的结束索引
-    fn get_end_index(&self) -> i32;
+    fn get_end_index(&self) -> Option<usize>;
 
     /// 返回序列周期的描述（例如 "from 2014-01-21T12:00:00Z to 2014-01-21T12:15:00Z"）
     /// 时间为 UTC
