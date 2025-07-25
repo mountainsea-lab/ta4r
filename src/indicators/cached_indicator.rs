@@ -12,10 +12,10 @@ where
     S: BarSeries<'a, T>,
     F: Fn(&Self, usize) -> Result<T, IndicatorError> + Clone,
 {
-    base: BaseIndicator<'a, T, S>,
+    pub(crate) base: BaseIndicator<'a, T, S>,
 
     results: Vec<Option<T>>,
-    highest_result_index: isize, // -1 表示空缓存
+    pub highest_result_index: isize, // -1 表示空缓存
 
     calculate_fn: F,
 }

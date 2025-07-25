@@ -4,8 +4,8 @@ use crate::num::TrNum;
 
 mod abstract_indicator;
 mod cached_indicator;
+mod recursive_cached_indicator;
 pub mod types;
-// mod recursive_cached_indicator;
 
 mod numeric;
 // mod helpers;
