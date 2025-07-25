@@ -42,9 +42,9 @@ pub struct BaseBarSeriesCore<T: TrNum> {
     /// 数值工厂
     num_factory: Arc<T::Factory>, // 用智能指针包裹
     /// 序列开始索引
-    series_begin_index: i32,
+    series_begin_index: Option<usize>,
     /// 序列结束索引
-    series_end_index: i32,
+    series_end_index: Option<usize>,
     /// 最大 Bar 数量
     maximum_bar_count: usize,
     /// 已移除的 Bar 数量
@@ -64,25 +64,35 @@ impl<T: TrNum> BaseBarSeriesCore<T> {
     pub fn new(
         name: String,
         bars: Vec<BaseBar<T>>,
-        series_begin_index: i32,
-        series_end_index: i32,
+        series_begin_index: Option<usize>,
+        series_end_index: Option<usize>,
         constrained: bool,
         num_factory: Arc<T::Factory>,
     ) -> Result<Self, String> {
-        // 验证索引
-        if !bars.is_empty() {
-            if series_end_index < series_begin_index - 1 {
-                return Err("End index must be >= to begin index - 1".to_string());
-            }
-            if series_end_index >= bars.len() as i32 {
-                return Err("End index must be < to the bar list size".to_string());
-            }
-        }
-
         let (begin_index, end_index, is_constrained) = if bars.is_empty() {
-            (-1, -1, false)
+            (None, None, false)
         } else {
-            (series_begin_index, series_end_index, constrained)
+            let bar_len = bars.len();
+
+            // 验证索引
+            let begin = series_begin_index.unwrap_or(0);
+            let end = series_end_index.unwrap_or(bar_len - 1);
+
+            if end + 1 < begin {
+                return Err(format!(
+                    "End index must be >= begin index - 1 (begin={}, end={})",
+                    begin, end
+                ));
+            }
+
+            if end >= bar_len {
+                return Err(format!(
+                    "End index must be < bar list size (end={}, len={})",
+                    end, bar_len
+                ));
+            }
+
+            (Some(begin), Some(end), constrained)
         };
 
         Ok(BaseBarSeriesCore {
@@ -108,7 +118,9 @@ impl<T: TrNum> BaseBarSeriesCore<T> {
         self.removed_bars_count += bars_to_remove;
 
         if !self.constrained {
-            self.series_begin_index += bars_to_remove as i32;
+            self.series_begin_index = self
+                .series_begin_index
+                .map(|idx| idx.saturating_add(bars_to_remove));
         }
     }
 
@@ -122,8 +134,8 @@ impl<T: TrNum> BaseBarSeries<T> {
     pub fn new(
         name: String,
         bars: Vec<BaseBar<T>>,
-        begin_index: i32,
-        end_index: i32,
+        begin_index: Option<usize>,
+        end_index: Option<usize>,
         constrained: bool,
         num_factory: Arc<T::Factory>,
         bar_builder_factory: BarBuilderFactories<T>,
@@ -184,14 +196,22 @@ where
     }
 
     fn get_bar_count(&self) -> usize {
-        if self.core.series_end_index < 0 {
-            return 0;
+        // 如果 series_end_index 或 series_begin_index 任何一个是 None，说明无效或者空序列，直接返回 0
+        let end_index = match self.core.series_end_index {
+            Some(e) => e,
+            None => return 0,
+        };
+        let begin_index = match self.core.series_begin_index {
+            Some(b) => b,
+            None => return 0,
+        };
+
+        let start_index = std::cmp::max(self.core.removed_bars_count, begin_index);
+        if end_index < start_index {
+            0
+        } else {
+            end_index - start_index + 1
         }
-        let start_index = std::cmp::max(
-            self.core.removed_bars_count as i32,
-            self.core.series_begin_index,
-        );
-        (self.core.series_end_index - start_index + 1) as usize
     }
 
     fn is_empty(&self) -> bool {
@@ -202,11 +222,11 @@ where
         &self.core.bars
     }
 
-    fn get_begin_index(&self) -> i32 {
+    fn get_begin_index(&self) -> Option<usize> {
         self.core.series_begin_index
     }
 
-    fn get_end_index(&self) -> i32 {
+    fn get_end_index(&self) -> Option<usize> {
         self.core.series_end_index
     }
 
@@ -240,12 +260,15 @@ where
 
         self.core.bars.push(bar);
 
-        if self.core.series_begin_index == -1 {
-            self.core.series_begin_index = 0;
-            self.core.series_end_index = 0;
-        } else if !self.core.constrained {
-            self.core.series_end_index = (self.core.bars.len() as i32) - 1;
+        if self.core.series_begin_index.is_none() {
+            self.core.series_begin_index = Some(0);
         }
+
+        // 这里 series_end_index 可能是 None，需要处理：
+        self.core.series_end_index = Some(match self.core.series_end_index {
+            Some(end) => end.saturating_add(1),
+            None => 0,
+        });
 
         self.core.remove_exceeding_bars();
     }
@@ -278,7 +301,7 @@ where
             let start = start_index.saturating_sub(self.core.removed_bars_count);
             let end = std::cmp::min(
                 end_index.saturating_sub(self.core.removed_bars_count),
-                self.get_end_index() as usize + 1,
+                self.get_end_index().map(|i| i + 1).unwrap_or(0),
             );
 
             let sub_bars = BaseBarSeriesCore::cut_bars(&self.core.bars, start, end);
@@ -304,7 +327,7 @@ impl<T: TrNum> fmt::Display for BaseBarSeries<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "BaseBarSeries{{name: {}, bars: {}, begin: {}, end: {}}}",
+            "BaseBarSeries{{name: {}, bars: {}, begin: {:?}, end: {:?}}}",
             self.core.name,
             self.core.bars.len(),
             self.core.series_begin_index,
