@@ -25,4 +25,4 @@
 
 pub mod bar;
 pub mod num;
-// pub mod indicators;
+pub mod indicators;
