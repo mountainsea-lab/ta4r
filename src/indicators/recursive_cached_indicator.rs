@@ -7,7 +7,6 @@ use crate::num::TrNum;
 const RECURSION_THRESHOLD: usize = 100;
 
 /// 递归缓存指标
-#[derive(Clone)]
 pub struct RecursiveCachedIndicator<'a, T, S, F>
 where
     T: TrNum + 'static,
@@ -38,19 +37,28 @@ where
         }
     }
 
-    pub fn get_value(&mut self, index: usize) -> Result<T, IndicatorError> {
+    pub fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         let series = self.inner.base.get_bar_series();
 
         if let Some(end_index) = series.get_end_index() {
             if index <= end_index {
-                let start_index = std::cmp::max(
-                    series.get_removed_bars_count(),
-                    self.inner.highest_result_index.max(0) as usize,
-                );
+                let removed_bars_count = series.get_removed_bars_count();
+
+                let highest_result_index = *self.inner.highest_result_index.borrow();
+
+                let highest_result_index_usize = if highest_result_index < 0 {
+                    0
+                } else {
+                    highest_result_index as usize
+                };
+
+                let start_index = std::cmp::max(removed_bars_count, highest_result_index_usize);
 
                 if index > start_index + RECURSION_THRESHOLD {
                     for prev_index in start_index..index {
-                        let _ = self.inner.get_value(prev_index)?;
+                        // 这里调用 inner.get_value(&self, usize) 也是不可变借用，
+                        // 内部用 RefCell 管理可变性，没问题
+                        self.inner.get_value(prev_index)?;
                     }
                 }
             }
