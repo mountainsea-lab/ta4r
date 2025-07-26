@@ -4,13 +4,13 @@ use crate::num::TrNum;
 
 mod abstract_indicator;
 mod cached_indicator;
-mod recursive_cached_indicator;
+// mod recursive_cached_indicator;
 pub mod types;
 
-mod helpers;
+// mod helpers;
 mod numeric;
 
-pub trait Indicator: Clone {
+pub trait Indicator {
     type Num: TrNum + 'static;
 
     /// GAT 返回绑定生命周期的系列

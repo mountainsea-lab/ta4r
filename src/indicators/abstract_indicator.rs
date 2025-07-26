@@ -4,7 +4,6 @@ use crate::indicators::types::IndicatorIterator;
 use crate::num::TrNum;
 use std::marker::PhantomData;
 
-#[derive(Clone)]
 pub struct BaseIndicator<'a, T, S>
 where
     T: TrNum + 'static,

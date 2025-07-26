@@ -28,26 +28,23 @@ where
     }
 }
 
+
 impl<'a, T, S> Indicator for ConstantIndicator<'a, T, S>
-where
-    T: TrNum + Clone,
-    S: BarSeries<'a, T>,
-{
-    type Num = T;
-    type Series<'b>
-        = S
     where
-        Self: 'b;
+        T: TrNum + 'static,
+        S: BarSeries<'a, T>,
+    {
+        type Num = T;
+        type Series<'b> = S where Self: 'b;
+        fn get_value(&self, _index: usize) -> Result<T, IndicatorError> {
+            Ok(self.value.clone())
+        }
 
-    fn get_value(&self, _index: usize) -> Result<T, IndicatorError> {
-        Ok(self.value.clone())
-    }
+        fn get_bar_series(&self) -> &Self::Series<'_> {
+            self.base.get_bar_series()
+        }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.base.get_bar_series()
-    }
-
-    fn get_count_of_unstable_bars(&self) -> usize {
-        0
-    }
+        fn get_count_of_unstable_bars(&self) -> usize {
+            0
+        }
 }

@@ -1,4 +1,5 @@
 use crate::indicators::Indicator;
+use crate::num::TrNum;
 use thiserror::Error;
 
 ///===========================base sturct types======================
@@ -12,6 +13,12 @@ pub enum IndicatorError {
 
     #[error("Other error: {message}")]
     Other { message: String },
+}
+
+// 二元运算符定义
+pub enum BinaryOp<T: TrNum> {
+    Simple(fn(&T, &T) -> T),
+    Fallible(fn(&T, &T) -> Result<T, IndicatorError>),
 }
 
 /// ========================tools=============================
