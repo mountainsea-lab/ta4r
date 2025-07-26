@@ -71,8 +71,8 @@ where
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
         let first: &I = left.as_ref();
-        let l = left.into_indicator(first)?;
-        let r = right.into_indicator(first)?;
+        let l = left.as_indicator(first)?;
+        let r = right.as_indicator(first)?;
         Ok(BinaryOperation::new_simple(l, r, op))
     }
 
@@ -90,8 +90,8 @@ where
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
         let first: &I = left.as_ref();
-        let l = left.into_indicator(first)?;
-        let r = right.into_indicator(first)?;
+        let l = left.as_indicator(first)?;
+        let r = right.as_indicator(first)?;
         Ok(BinaryOperation::new_fallible(l, r, op))
     }
 

@@ -103,7 +103,7 @@ where
     type IndicatorType: Indicator<Num = T> + Clone + 'a;
 
     /// 传入第一个指标，用于获取 BarSeries 以构造 ConstantIndicator
-    fn into_indicator(&self, first: &'a I) -> Result<Self::IndicatorType, IndicatorError>;
+    fn as_indicator(&self, first: &'a I) -> Result<Self::IndicatorType, IndicatorError>;
 }
 
 /// 对数字常量NumConstant实现，通过第一个指标获取 BarSeries 构造 ConstantIndicator
@@ -116,7 +116,7 @@ where
 {
     type IndicatorType = ConstantIndicator<'a, T, S>;
 
-    fn into_indicator(&self, first: &'a I) -> Result<Self::IndicatorType, IndicatorError> {
+    fn as_indicator(&self, first: &'a I) -> Result<Self::IndicatorType, IndicatorError> {
         let series = first.get_bar_series(); // &S
         let factory_ref: &T::Factory = series.factory_ref(); // 封装了解 deref
 
@@ -138,7 +138,7 @@ where
 {
     type IndicatorType = I;
 
-    fn into_indicator(&self, _first: &'a I) -> Result<Self::IndicatorType, IndicatorError> {
+    fn as_indicator(&self, _first: &'a I) -> Result<Self::IndicatorType, IndicatorError> {
         Ok(self.clone())
     }
 }
