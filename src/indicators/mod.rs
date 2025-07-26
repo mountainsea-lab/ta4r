@@ -1,7 +1,8 @@
 use crate::bar::types::BarSeries;
 use crate::indicators::helpers::constant_indicator::ConstantIndicator;
-use crate::indicators::types::{IndicatorError, IndicatorIterator, NumConstant};
+use crate::indicators::types::{IndicatorError, IndicatorIterator, NumConst};
 use crate::num::TrNum;
+use crate::num::types::NumError;
 
 mod abstract_indicator;
 mod cached_indicator;
@@ -60,40 +61,84 @@ pub trait Indicator: Clone {
     }
 }
 
-/// 定义辅助 Trait 来做从输入到 Indicator 的转换
-pub trait IntoIndicator<'a, T, S>
+// /// 定义辅助 Trait 来做从输入到 Indicator 的转换
+// pub trait IntoIndicator<'a, T, S>
+// where
+//     T: TrNum + 'static,
+//     S: for<'any> BarSeries<'any, T> + 'a,
+// {
+//     type IndicatorType: Indicator<Num = T> + Clone;
+//
+//     fn into_indicator(&self, series: &'a S) -> Self::IndicatorType;
+// }
+//
+// /// 只为 NumConstant 实现 IntoIndicator，避免与 Indicator 冲突
+// impl<'a, T, S> IntoIndicator<'a, T, S> for NumConstant<T>
+// where
+//     T: TrNum + Clone + 'static,
+//     S: for<'any> BarSeries<'any, T> + 'a,
+// {
+//     type IndicatorType = ConstantIndicator<'a, T, S>;
+//
+//     fn into_indicator(&self, series: &'a S) -> Self::IndicatorType {
+//         ConstantIndicator::new(series, self.0.clone())
+//     }
+// }
+
+/// 转换为数字类型 trait定义
+pub trait ToNumber<T>
+where
+    T: TrNum + Clone + 'static,
+{
+    fn to_number(&self, factory: &T::Factory) -> Result<T, NumError>;
+}
+
+/// 类型转换为指标统一约束 trait 主要作用数字类型自动转换为指标类型
+pub trait IntoIndicator<'a, T, S, I>
 where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T> + 'a,
+    I: Indicator<Num = T> + Clone + 'a,
 {
-    type IndicatorType: Indicator<Num = T> + Clone;
+    type IndicatorType: Indicator<Num = T> + Clone + 'a;
 
-    fn into_indicator(&self, series: &'a S) -> Self::IndicatorType;
+    /// 传入第一个指标，用于获取 BarSeries 以构造 ConstantIndicator
+    fn into_indicator(&self, first: &'a I) -> Result<Self::IndicatorType, IndicatorError>;
 }
 
-/// 只为 NumConstant 实现 IntoIndicator，避免与 Indicator 冲突
-impl<'a, T, S> IntoIndicator<'a, T, S> for NumConstant<T>
+/// 对数字常量NumConstant实现，通过第一个指标获取 BarSeries 构造 ConstantIndicator
+impl<'a, T, S, I, N> IntoIndicator<'a, T, S, I> for NumConst<N>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T> + 'a,
+    I: Indicator<Num = T, Series<'a> = S> + Clone + 'a,
+    N: ToNumber<T> + Clone,
 {
     type IndicatorType = ConstantIndicator<'a, T, S>;
 
-    fn into_indicator(&self, series: &'a S) -> Self::IndicatorType {
-        ConstantIndicator::new(series, self.0.clone())
+    fn into_indicator(&self, first: &'a I) -> Result<Self::IndicatorType, IndicatorError> {
+        let series = first.get_bar_series(); // &S
+        let factory_ref: &T::Factory = series.factory_ref(); // 封装了解 deref
+
+        let value = self
+            .0
+            .to_number(factory_ref)
+            .map_err(IndicatorError::NumError)?;
+
+        Ok(ConstantIndicator::new(series, value))
     }
 }
 
 /// 对于已经是指标的，直接返回自己
-impl<'a, T, S, I> IntoIndicator<'a, T, S> for I
+impl<'a, T, S, I> IntoIndicator<'a, T, S, I> for I
 where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T> + 'a,
-    I: Indicator<Num = T> + Clone,
+    I: Indicator<Num = T> + Clone + 'a,
 {
     type IndicatorType = I;
 
-    fn into_indicator(&self, _series: &'a S) -> Self::IndicatorType {
-        self.clone()
+    fn into_indicator(&self, _first: &'a I) -> Result<Self::IndicatorType, IndicatorError> {
+        Ok(self.clone())
     }
 }

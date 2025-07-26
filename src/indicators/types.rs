@@ -1,6 +1,6 @@
-use crate::indicators::Indicator;
-use crate::num::TrNum;
+use crate::indicators::{Indicator, ToNumber};
 use crate::num::types::NumError;
+use crate::num::{NumFactory, TrNum};
 use thiserror::Error;
 
 ///===========================base sturct types======================
@@ -26,8 +26,29 @@ pub enum BinaryOp<T: TrNum> {
     Fallible(fn(&T, &T) -> Result<T, IndicatorError>),
 }
 
-// 新建包装类型，明确为数值常量用 数字转常量指标
-pub struct NumConstant<T>(pub T);
+/// 数字包装类型 NumConst<T>
+#[derive(Clone, Debug)]
+pub struct NumConst<T>(pub T);
+
+/// 转换数字类型的实现，针对包装类型内部具体数字类型的转换
+impl<T> ToNumber<T> for NumConst<i64>
+where
+    T: TrNum + Clone + 'static,
+{
+    fn to_number(&self, factory: &T::Factory) -> Result<T, NumError> {
+        Ok(factory.num_of_i64(self.0))
+    }
+}
+
+/// 针对 &str 的实现
+impl<T> ToNumber<T> for NumConst<&str>
+where
+    T: TrNum + Clone + 'static,
+{
+    fn to_number(&self, factory: &T::Factory) -> Result<T, NumError> {
+        factory.num_of_str(self.0)
+    }
+}
 
 /// ========================tools=============================
 pub type IndicatorResult<T> = Result<T, IndicatorError>;

@@ -173,6 +173,10 @@ where
         self.core.num_factory.clone()
     }
 
+    fn factory_ref(&self) -> &T::Factory {
+        self.core.num_factory.as_ref()
+    }
+
     fn bar_builder(&mut self) -> Self::Builder<'_> {
         let factory = self.bar_builder_factory.clone(); // 避免双借用
         factory.create_bar_builder(self)

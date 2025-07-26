@@ -3,79 +3,7 @@ use crate::indicators::types::{BinaryOp, IndicatorError};
 use crate::indicators::{Indicator, IntoIndicator};
 use crate::num::TrNum;
 use std::marker::PhantomData;
-// pub struct BinaryOperation<I, J, F>
-// where
-//     I: Indicator,
-//     J: Indicator<Num = I::Num>,
-//     F: Fn(I::Num, I::Num) -> I::Num + Copy,
-// {
-//     left: I,
-//     right: J,
-//     operator: F,
-// }
-//
-// impl<I, J, F> BinaryOperation<I, J, F>
-// where
-//     I: Indicator,
-//     J: Indicator<Num = I::Num>,
-//     F: Fn(I::Num, I::Num) -> I::Num + Copy,
-// {
-//     pub fn new(left: I, right: J, operator: F) -> Self {
-//         Self { left, right, operator }
-//     }
-//
-//     pub fn sum(left: I, right: J) -> Self {
-//         Self::new(left, right, |a, b| a.plus(&b))
-//     }
-//
-//     pub fn difference(left: I, right: J) -> Self {
-//         Self::new(left, right, |a, b| a.minus(&b))
-//     }
-//
-//     pub fn product(left: I, right: J) -> Self {
-//         Self::new(left, right, |a, b| a.multiplied_by(&b))
-//     }
-//
-//     pub fn quotient(left: I, right: J) -> Self {
-//         Self::new(left, right, |a, b| a.divided_by(&b))
-//     }
-//
-//     pub fn min(left: I, right: J) -> Self {
-//         Self::new(left, right, |a, b| a.min(&b))
-//     }
-//
-//     pub fn max(left: I, right: J) -> Self {
-//         Self::new(left, right, |a, b| a.max(&b))
-//     }
-// }
-//
-// impl<I, J, F> Indicator for BinaryOperation<I, J, F>
-// where
-//     I: Indicator,
-//     J: Indicator<Num = I::Num>,
-//     F: Fn(I::Num, I::Num) -> I::Num + Copy,
-// {
-//     type Num = I::Num;
-//     type Series<'a> = I::Series<'a> where I: 'a;
-//
-//     fn get_value(&self, index: usize) -> Result<Self::Num, IndicatorError> {
-//         let left_val = self.left.get_value(index)?;
-//         let right_val = self.right.get_value(index)?;
-//         Ok((self.operator)(left_val, right_val))
-//     }
-//
-//     fn get_bar_series(&self) -> &Self::Series<'_> {
-//         self.left.get_bar_series()
-//     }
-//
-//     fn get_count_of_unstable_bars(&self) -> usize {
-//         0
-//     }
-// }
 
-// 关于 series 字段
-// 由于 GAT 绑定生命周期，通常 `series` 应该是引用，且生命周期和 BinaryOperation 绑定
-// 这里示范更简单的实现，series 改成引用，结构体带生命周期参数
 pub struct BinaryOperation<T, L, R>
 where
     T: TrNum,
@@ -85,7 +13,7 @@ where
     left: L,
     right: R,
     operator: BinaryOp<T>,
-    _marker: PhantomData<T>,
+    _marker: PhantomData<T>, // 关联泛型，避免编译器报未使用泛型错误
 }
 
 impl<T, L, R> Clone for BinaryOperation<T, L, R>
@@ -128,145 +56,136 @@ where
             _marker: PhantomData,
         }
     }
+
+    /// 工厂方法模板代码,辅助方法，减少重复
+    fn from_simple_op<'a, S, I, LI, RI>(
+        left: &'a LI,
+        right: &'a RI,
+        op: fn(&T, &T) -> T,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
+    where
+        T: TrNum + 'static,
+        S: for<'any> BarSeries<'any, T> + 'a,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+    {
+        let first: &I = left.as_ref();
+        let l = left.into_indicator(first)?;
+        let r = right.into_indicator(first)?;
+        Ok(BinaryOperation::new_simple(l, r, op))
+    }
+
+    /// 工厂方法模板代码,辅助方法，减少重复
+    fn from_fallible_op<'a, S, I, LI, RI>(
+        left: &'a LI,
+        right: &'a RI,
+        op: fn(&T, &T) -> Result<T, IndicatorError>,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
+    where
+        T: TrNum + 'static,
+        S: for<'any> BarSeries<'any, T> + 'a,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+    {
+        let first: &I = left.as_ref();
+        let l = left.into_indicator(first)?;
+        let r = right.into_indicator(first)?;
+        Ok(BinaryOperation::new_fallible(l, r, op))
+    }
+
     // 工厂方法：左右输入更灵活，自动转成指标
-    pub fn sum<'a, S, LI, RI>(
-        left: LI,
-        right: RI,
-        series: &'a S,
-    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    pub fn sum<'a, LI, RI, S, I>(
+        left: &'a LI,
+        right: &'a RI,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
+        T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        LI: IntoIndicator<'a, T, S>,
-        RI: IntoIndicator<'a, T, S>,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
-        let l = left.into_indicator(series);
-        let r = right.into_indicator(series);
-        BinaryOperation::new_simple(l, r, |a, b| a.plus(b))
+        BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.plus(b))
     }
 
-
-    // 差值 left - right
-    pub fn difference<'a, S, LI, RI>(
-        left: LI,
-        right: RI,
-        series: &'a S,
-    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    /// 差值 left - right
+    pub fn difference<'a, LI, RI, S, I>(
+        left: &'a LI,
+        right: &'a RI,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
+        T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        LI: IntoIndicator<'a, T, S>,
-        RI: IntoIndicator<'a, T, S>,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
-        let l = left.into_indicator(series);
-        let r = right.into_indicator(series);
-        BinaryOperation::new_simple(l, r, |a, b| a.minus(b))
+        BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.minus(b))
     }
 
-    // 乘积 left * right
-    pub fn product<'a, S, LI, RI>(
-        left: LI,
-        right: RI,
-        series: &'a S,
-    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    /// 乘积 left * right
+    pub fn product<'a, LI, RI, S, I>(
+        left: &'a LI,
+        right: &'a RI,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
+        T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        LI: IntoIndicator<'a, T, S>,
-        RI: IntoIndicator<'a, T, S>,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
-        let l = left.into_indicator(series);
-        let r = right.into_indicator(series);
-        BinaryOperation::new_simple(l, r, |a, b| a.multiplied_by(b))
+        BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.multiplied_by(b))
     }
 
-    // 商 left / right
-    pub fn quotient<'a, S, LI, RI>(
-        left: LI,
-        right: RI,
-        series: &'a S,
-    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    /// 商 left / right
+    pub fn quotient<'a, LI, RI, S, I>(
+        left: &'a LI,
+        right: &'a RI,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
+        T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        LI: IntoIndicator<'a, T, S>,
-        RI: IntoIndicator<'a, T, S>,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
-        let l = left.into_indicator(series);
-        let r = right.into_indicator(series);
-        BinaryOperation::new_fallible(l, r, |a, b| a.divided_by(b).map_err(IndicatorError::NumError))
+        BinaryOperation::<T, L, R>::from_fallible_op(left, right, |a, b| {
+            a.divided_by(b).map_err(IndicatorError::NumError)
+        })
     }
 
-    // 最小值
-    pub fn min<'a, S, LI, RI>(
-        left: LI,
-        right: RI,
-        series: &'a S,
-    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    /// 最小值
+    pub fn min<'a, LI, RI, S, I>(
+        left: &'a LI,
+        right: &'a RI,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
+        T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        LI: IntoIndicator<'a, T, S>,
-        RI: IntoIndicator<'a, T, S>,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
-        let l = left.into_indicator(series);
-        let r = right.into_indicator(series);
-        BinaryOperation::new_simple(l, r, |a, b| a.min(b))
+        BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.min(b))
     }
 
-    // 最大值
-    pub fn max<'a, S, LI, RI>(
-        left: LI,
-        right: RI,
-        series: &'a S,
-    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    /// 最大值
+    pub fn max<'a, LI, RI, S, I>(
+        left: &'a LI,
+        right: &'a RI,
+    ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
+        T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        LI: IntoIndicator<'a, T, S>,
-        RI: IntoIndicator<'a, T, S>,
+        I: Indicator<Num = T> + Clone + 'a,
+        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
-        let l = left.into_indicator(series);
-        let r = right.into_indicator(series);
-        BinaryOperation::new_simple(l, r, |a, b| a.max(b))
+        BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.max(b))
     }
-
-
-    // pub fn sum(left: L, right: R) -> Self {
-    //     fn plus<T: TrNum>(a: &T, b: &T) -> T {
-    //         a.plus(b)
-    //     }
-    //     Self::new_simple(left, right, plus)
-    // }
-    //
-    // pub fn difference(left: L, right: R) -> Self {
-    //     fn minus<T: TrNum>(a: &T, b: &T) -> T {
-    //         a.minus(b)
-    //     }
-    //     Self::new_simple(left, right, minus)
-    // }
-    //
-    // pub fn product(left: L, right: R) -> Self {
-    //     fn multiply<T: TrNum>(a: &T, b: &T) -> T {
-    //         a.multiplied_by(b)
-    //     }
-    //     Self::new_simple(left, right, multiply)
-    // }
-    //
-    // pub fn quotient(left: L, right: R) -> Self {
-    //     fn divide<T: TrNum>(a: &T, b: &T) -> Result<T, IndicatorError> {
-    //         a.divided_by(b).map_err(IndicatorError::NumError)
-    //     }
-    //     Self::new_fallible(left, right, divide)
-    // }
-    //
-    // pub fn min(left: L, right: R) -> Self {
-    //     fn min_fn<T: TrNum>(a: &T, b: &T) -> T {
-    //         a.min(b)
-    //     }
-    //     Self::new_simple(left, right, min_fn)
-    // }
-    //
-    // pub fn max(left: L, right: R) -> Self {
-    //     fn max_fn<T: TrNum>(a: &T, b: &T) -> T {
-    //         a.max(b)
-    //     }
-    //     Self::new_simple(left, right, max_fn)
-    // }
 
     pub fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         let left_val = self.left.get_value(index)?;
@@ -284,7 +203,6 @@ where
         )
     }
 }
-
 
 impl<T, L, R> Indicator for BinaryOperation<T, L, R>
 where

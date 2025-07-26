@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::num::{NumFactory, TrNum};
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
@@ -87,6 +88,8 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
 
     /// 返回生成此 BarSeries 中可用数字的工厂
     fn num_factory(&self) -> Arc<Self::NumFactory>;
+    ///  BarSeries 中可用数字的工厂便捷访问
+    fn factory_ref(&self) -> &T::Factory;
 
     /// 返回生成兼容 bar 的构建器，生命周期和 self 绑定
     fn bar_builder(&mut self) -> Self::Builder<'_>;
