@@ -1,5 +1,6 @@
 use crate::bar::types::BarSeries;
-use crate::indicators::types::{IndicatorError, IndicatorIterator};
+use crate::indicators::helpers::constant_indicator::ConstantIndicator;
+use crate::indicators::types::{IndicatorError, IndicatorIterator, NumConstant};
 use crate::num::TrNum;
 
 mod abstract_indicator;
@@ -9,7 +10,7 @@ mod numeric;
 mod recursive_cached_indicator;
 pub mod types;
 
-pub trait Indicator {
+pub trait Indicator: Clone {
     type Num: TrNum + 'static;
 
     /// GAT 返回绑定生命周期的系列
@@ -56,5 +57,43 @@ pub trait Indicator {
                 end: 0,
             },
         }
+    }
+}
+
+// 定义辅助 Trait 来做从输入到 Indicator 的转换
+pub trait IntoIndicator<'a, T, S>
+where
+    T: TrNum + 'static,
+    for<'any> S: BarSeries<'any, T>,
+{
+    type IndicatorType: Indicator<Num = T>;
+
+    fn into_indicator(self, series: &'a S) -> Self::IndicatorType;
+}
+
+// 只为 NumConstant 实现 IntoIndicator，避免与 Indicator 冲突
+impl<'a, T, S> IntoIndicator<'a, T, S> for NumConstant<T>
+where
+    T: TrNum + Clone + 'static,
+    for<'any> S: BarSeries<'any, T> + 'a, // 这里同样
+{
+    type IndicatorType = ConstantIndicator<'a, T, S>;
+
+    fn into_indicator(self, series: &'a S) -> Self::IndicatorType {
+        ConstantIndicator::new(series, self.0)
+    }
+}
+
+// 对于已经是指标的，直接返回自己
+impl<'a, T, S, I> IntoIndicator<'a, T, S> for I
+where
+    T: TrNum + 'static,
+    for<'any> S: BarSeries<'any, T>, // 这里同样
+    I: Indicator<Num = T>,
+{
+    type IndicatorType = I;
+
+    fn into_indicator(self, _series: &'a S) -> Self::IndicatorType {
+        self
     }
 }

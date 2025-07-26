@@ -285,6 +285,22 @@ where
     calculate_fn: F,
 }
 
+impl<'a, T, S, F> Clone for CachedIndicator<'a, T, S, F>
+where
+    T: TrNum + Clone + 'static,
+    S: BarSeries<'a, T>,
+    F: Fn(&Self, usize) -> Result<T, IndicatorError> + Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            results: RefCell::new(self.results.borrow().clone()),
+            highest_result_index: RefCell::new(*self.highest_result_index.borrow()),
+            calculate_fn: self.calculate_fn.clone(),
+        }
+    }
+}
+
 impl<'a, T, S, F> CachedIndicator<'a, T, S, F>
 where
     T: TrNum + 'static,

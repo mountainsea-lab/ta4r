@@ -13,6 +13,19 @@ where
     _marker: PhantomData<T>,
 }
 
+impl<'a, T, S> Clone for BaseIndicator<'a, T, S>
+where
+    T: TrNum + 'static,
+    S: BarSeries<'a, T>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            series: self.series,
+            _marker: PhantomData,
+        }
+    }
+}
+
 impl<'a, T, S> BaseIndicator<'a, T, S>
 where
     T: TrNum + 'static,

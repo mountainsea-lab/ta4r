@@ -1,5 +1,6 @@
-use crate::indicators::Indicator;
+use crate::bar::types::BarSeries;
 use crate::indicators::types::{BinaryOp, IndicatorError};
+use crate::indicators::{Indicator, IntoIndicator};
 use crate::num::TrNum;
 use std::marker::PhantomData;
 // pub struct BinaryOperation<I, J, F>
@@ -110,48 +111,74 @@ where
             _marker: PhantomData,
         }
     }
-
-    pub fn sum(left: L, right: R) -> Self {
-        fn plus<T: TrNum>(a: &T, b: &T) -> T {
-            a.plus(b)
-        }
-        Self::new_simple(left, right, plus)
+    // 工厂方法：左右输入更灵活，自动转成指标
+    pub fn sum<'a, S, LI, RI>(
+        left: LI,
+        right: RI,
+    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    where
+        S: for<'any> BarSeries<'any, T> + 'a,
+        LI: Indicator<Num = T, Series<'a> = S> + IntoIndicator<'a, T, S> + 'static,
+        RI: Indicator<Num = T, Series<'a> = S> + IntoIndicator<'a, T, S> + 'static,
+    {
+        let series = left.get_bar_series();
+        let l = left.into_indicator(series);
+        let r = right.into_indicator(series);
+        BinaryOperation::new_simple(l, r, |a, b| a.plus(b))
     }
 
-    pub fn difference(left: L, right: R) -> Self {
-        fn minus<T: TrNum>(a: &T, b: &T) -> T {
-            a.minus(b)
-        }
-        Self::new_simple(left, right, minus)
-    }
-
-    pub fn product(left: L, right: R) -> Self {
-        fn multiply<T: TrNum>(a: &T, b: &T) -> T {
-            a.multiplied_by(b)
-        }
-        Self::new_simple(left, right, multiply)
-    }
-
-    pub fn quotient(left: L, right: R) -> Self {
-        fn divide<T: TrNum>(a: &T, b: &T) -> Result<T, IndicatorError> {
-            a.divided_by(b).map_err(IndicatorError::NumError)
-        }
-        Self::new_fallible(left, right, divide)
-    }
-
-    pub fn min(left: L, right: R) -> Self {
-        fn min_fn<T: TrNum>(a: &T, b: &T) -> T {
-            a.min(b)
-        }
-        Self::new_simple(left, right, min_fn)
-    }
-
-    pub fn max(left: L, right: R) -> Self {
-        fn max_fn<T: TrNum>(a: &T, b: &T) -> T {
-            a.max(b)
-        }
-        Self::new_simple(left, right, max_fn)
-    }
+    // pub fn difference<'a, S, LI, RI>(left: LI, right: RI) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    // where
+    //     S: for<'any> BarSeries<'any, T>,
+    //     LI: Indicator<Num = T> + IntoIndicator<'a, T, S>,
+    //     RI: IntoIndicator<'a, T, S>,
+    // {
+    //     let series = left.get_bar_series();
+    //     let l = left.into_indicator(series);
+    //     let r = right.into_indicator(series);
+    //     BinaryOperation::new_simple(l, r, |a, b| a.minus(b))
+    // }
+    // pub fn sum(left: L, right: R) -> Self {
+    //     fn plus<T: TrNum>(a: &T, b: &T) -> T {
+    //         a.plus(b)
+    //     }
+    //     Self::new_simple(left, right, plus)
+    // }
+    //
+    // pub fn difference(left: L, right: R) -> Self {
+    //     fn minus<T: TrNum>(a: &T, b: &T) -> T {
+    //         a.minus(b)
+    //     }
+    //     Self::new_simple(left, right, minus)
+    // }
+    //
+    // pub fn product(left: L, right: R) -> Self {
+    //     fn multiply<T: TrNum>(a: &T, b: &T) -> T {
+    //         a.multiplied_by(b)
+    //     }
+    //     Self::new_simple(left, right, multiply)
+    // }
+    //
+    // pub fn quotient(left: L, right: R) -> Self {
+    //     fn divide<T: TrNum>(a: &T, b: &T) -> Result<T, IndicatorError> {
+    //         a.divided_by(b).map_err(IndicatorError::NumError)
+    //     }
+    //     Self::new_fallible(left, right, divide)
+    // }
+    //
+    // pub fn min(left: L, right: R) -> Self {
+    //     fn min_fn<T: TrNum>(a: &T, b: &T) -> T {
+    //         a.min(b)
+    //     }
+    //     Self::new_simple(left, right, min_fn)
+    // }
+    //
+    // pub fn max(left: L, right: R) -> Self {
+    //     fn max_fn<T: TrNum>(a: &T, b: &T) -> T {
+    //         a.max(b)
+    //     }
+    //     Self::new_simple(left, right, max_fn)
+    // }
 
     pub fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         let left_val = self.left.get_value(index)?;
@@ -169,6 +196,7 @@ where
         )
     }
 }
+
 
 impl<T, L, R> Indicator for BinaryOperation<T, L, R>
 where

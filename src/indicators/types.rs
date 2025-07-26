@@ -25,6 +25,9 @@ pub enum BinaryOp<T: TrNum> {
     Fallible(fn(&T, &T) -> Result<T, IndicatorError>),
 }
 
+// 新建包装类型，明确为数值常量用 数字转常量指标
+pub struct NumConstant<T>(pub T);
+
 /// ========================tools=============================
 pub type IndicatorResult<T> = Result<T, IndicatorError>;
 

@@ -14,6 +14,19 @@ where
     value: T,
 }
 
+impl<'a, T, S> Clone for ConstantIndicator<'a, T, S>
+where
+    T: TrNum + Clone + 'static,
+    S: BarSeries<'a, T>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            value: self.value.clone(),
+        }
+    }
+}
+
 impl<'a, T, S> ConstantIndicator<'a, T, S>
 where
     T: TrNum + 'static,
