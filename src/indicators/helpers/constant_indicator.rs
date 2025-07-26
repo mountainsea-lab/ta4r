@@ -5,7 +5,6 @@ use crate::indicators::types::IndicatorError;
 use crate::num::TrNum;
 
 /// 常数指标：所有索引返回同一个值
-#[derive(Clone)]
 pub struct ConstantIndicator<'a, T, S>
 where
     T: TrNum + 'static,
@@ -28,23 +27,25 @@ where
     }
 }
 
-
 impl<'a, T, S> Indicator for ConstantIndicator<'a, T, S>
+where
+    T: TrNum + 'static,
+    S: for<'any> BarSeries<'any, T>,
+{
+    type Num = T;
+    type Series<'b>
+        = S
     where
-        T: TrNum + 'static,
-        S: BarSeries<'a, T>,
-    {
-        type Num = T;
-        type Series<'b> = S where Self: 'b;
-        fn get_value(&self, _index: usize) -> Result<T, IndicatorError> {
-            Ok(self.value.clone())
-        }
+        Self: 'b;
+    fn get_value(&self, _index: usize) -> Result<T, IndicatorError> {
+        Ok(self.value.clone())
+    }
 
-        fn get_bar_series(&self) -> &Self::Series<'_> {
-            self.base.get_bar_series()
-        }
+    fn get_bar_series(&self) -> &Self::Series<'_> {
+        self.base.get_bar_series()
+    }
 
-        fn get_count_of_unstable_bars(&self) -> usize {
-            0
-        }
+    fn get_count_of_unstable_bars(&self) -> usize {
+        0
+    }
 }

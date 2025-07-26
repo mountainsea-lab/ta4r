@@ -4,11 +4,10 @@ use crate::num::TrNum;
 
 mod abstract_indicator;
 mod cached_indicator;
+mod helpers;
+mod numeric;
 mod recursive_cached_indicator;
 pub mod types;
-
-// mod helpers;
-mod numeric;
 
 pub trait Indicator {
     type Num: TrNum + 'static;
