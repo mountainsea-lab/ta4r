@@ -88,6 +88,23 @@ where
     _marker: PhantomData<T>,
 }
 
+impl<T, L, R> Clone for BinaryOperation<T, L, R>
+where
+    T: TrNum + Clone,
+    L: Indicator<Num = T> + Clone,
+    R: Indicator<Num = T> + Clone,
+    BinaryOp<T>: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            left: self.left.clone(),
+            right: self.right.clone(),
+            operator: self.operator.clone(),
+            _marker: PhantomData,
+        }
+    }
+}
+
 impl<T, L, R> BinaryOperation<T, L, R>
 where
     T: TrNum + 'static,
@@ -115,29 +132,100 @@ where
     pub fn sum<'a, S, LI, RI>(
         left: LI,
         right: RI,
+        series: &'a S,
     ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
     where
         S: for<'any> BarSeries<'any, T> + 'a,
-        LI: Indicator<Num = T, Series<'a> = S> + IntoIndicator<'a, T, S> + 'static,
-        RI: Indicator<Num = T, Series<'a> = S> + IntoIndicator<'a, T, S> + 'static,
+        LI: IntoIndicator<'a, T, S>,
+        RI: IntoIndicator<'a, T, S>,
     {
-        let series = left.get_bar_series();
         let l = left.into_indicator(series);
         let r = right.into_indicator(series);
         BinaryOperation::new_simple(l, r, |a, b| a.plus(b))
     }
 
-    // pub fn difference<'a, S, LI, RI>(left: LI, right: RI) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
-    // where
-    //     S: for<'any> BarSeries<'any, T>,
-    //     LI: Indicator<Num = T> + IntoIndicator<'a, T, S>,
-    //     RI: IntoIndicator<'a, T, S>,
-    // {
-    //     let series = left.get_bar_series();
-    //     let l = left.into_indicator(series);
-    //     let r = right.into_indicator(series);
-    //     BinaryOperation::new_simple(l, r, |a, b| a.minus(b))
-    // }
+
+    // 差值 left - right
+    pub fn difference<'a, S, LI, RI>(
+        left: LI,
+        right: RI,
+        series: &'a S,
+    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    where
+        S: for<'any> BarSeries<'any, T> + 'a,
+        LI: IntoIndicator<'a, T, S>,
+        RI: IntoIndicator<'a, T, S>,
+    {
+        let l = left.into_indicator(series);
+        let r = right.into_indicator(series);
+        BinaryOperation::new_simple(l, r, |a, b| a.minus(b))
+    }
+
+    // 乘积 left * right
+    pub fn product<'a, S, LI, RI>(
+        left: LI,
+        right: RI,
+        series: &'a S,
+    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    where
+        S: for<'any> BarSeries<'any, T> + 'a,
+        LI: IntoIndicator<'a, T, S>,
+        RI: IntoIndicator<'a, T, S>,
+    {
+        let l = left.into_indicator(series);
+        let r = right.into_indicator(series);
+        BinaryOperation::new_simple(l, r, |a, b| a.multiplied_by(b))
+    }
+
+    // 商 left / right
+    pub fn quotient<'a, S, LI, RI>(
+        left: LI,
+        right: RI,
+        series: &'a S,
+    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    where
+        S: for<'any> BarSeries<'any, T> + 'a,
+        LI: IntoIndicator<'a, T, S>,
+        RI: IntoIndicator<'a, T, S>,
+    {
+        let l = left.into_indicator(series);
+        let r = right.into_indicator(series);
+        BinaryOperation::new_fallible(l, r, |a, b| a.divided_by(b).map_err(IndicatorError::NumError))
+    }
+
+    // 最小值
+    pub fn min<'a, S, LI, RI>(
+        left: LI,
+        right: RI,
+        series: &'a S,
+    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    where
+        S: for<'any> BarSeries<'any, T> + 'a,
+        LI: IntoIndicator<'a, T, S>,
+        RI: IntoIndicator<'a, T, S>,
+    {
+        let l = left.into_indicator(series);
+        let r = right.into_indicator(series);
+        BinaryOperation::new_simple(l, r, |a, b| a.min(b))
+    }
+
+    // 最大值
+    pub fn max<'a, S, LI, RI>(
+        left: LI,
+        right: RI,
+        series: &'a S,
+    ) -> BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>
+    where
+        S: for<'any> BarSeries<'any, T> + 'a,
+        LI: IntoIndicator<'a, T, S>,
+        RI: IntoIndicator<'a, T, S>,
+    {
+        let l = left.into_indicator(series);
+        let r = right.into_indicator(series);
+        BinaryOperation::new_simple(l, r, |a, b| a.max(b))
+    }
+
+
     // pub fn sum(left: L, right: R) -> Self {
     //     fn plus<T: TrNum>(a: &T, b: &T) -> T {
     //         a.plus(b)

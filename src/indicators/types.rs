@@ -20,6 +20,7 @@ pub enum IndicatorError {
 }
 
 // 二元运算符定义
+#[derive(Clone, Copy)]
 pub enum BinaryOp<T: TrNum> {
     Simple(fn(&T, &T) -> T),
     Fallible(fn(&T, &T) -> Result<T, IndicatorError>),

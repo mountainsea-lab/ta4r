@@ -60,40 +60,40 @@ pub trait Indicator: Clone {
     }
 }
 
-// 定义辅助 Trait 来做从输入到 Indicator 的转换
+/// 定义辅助 Trait 来做从输入到 Indicator 的转换
 pub trait IntoIndicator<'a, T, S>
 where
     T: TrNum + 'static,
-    for<'any> S: BarSeries<'any, T>,
+    S: for<'any> BarSeries<'any, T> + 'a,
 {
-    type IndicatorType: Indicator<Num = T>;
+    type IndicatorType: Indicator<Num = T> + Clone;
 
-    fn into_indicator(self, series: &'a S) -> Self::IndicatorType;
+    fn into_indicator(&self, series: &'a S) -> Self::IndicatorType;
 }
 
-// 只为 NumConstant 实现 IntoIndicator，避免与 Indicator 冲突
+/// 只为 NumConstant 实现 IntoIndicator，避免与 Indicator 冲突
 impl<'a, T, S> IntoIndicator<'a, T, S> for NumConstant<T>
 where
     T: TrNum + Clone + 'static,
-    for<'any> S: BarSeries<'any, T> + 'a, // 这里同样
+    S: for<'any> BarSeries<'any, T> + 'a,
 {
     type IndicatorType = ConstantIndicator<'a, T, S>;
 
-    fn into_indicator(self, series: &'a S) -> Self::IndicatorType {
-        ConstantIndicator::new(series, self.0)
+    fn into_indicator(&self, series: &'a S) -> Self::IndicatorType {
+        ConstantIndicator::new(series, self.0.clone())
     }
 }
 
-// 对于已经是指标的，直接返回自己
+/// 对于已经是指标的，直接返回自己
 impl<'a, T, S, I> IntoIndicator<'a, T, S> for I
 where
     T: TrNum + 'static,
-    for<'any> S: BarSeries<'any, T>, // 这里同样
-    I: Indicator<Num = T>,
+    S: for<'any> BarSeries<'any, T> + 'a,
+    I: Indicator<Num = T> + Clone,
 {
     type IndicatorType = I;
 
-    fn into_indicator(self, _series: &'a S) -> Self::IndicatorType {
-        self
+    fn into_indicator(&self, _series: &'a S) -> Self::IndicatorType {
+        self.clone()
     }
 }
