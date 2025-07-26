@@ -7,8 +7,8 @@ mod cached_indicator;
 mod recursive_cached_indicator;
 pub mod types;
 
+mod helpers;
 mod numeric;
-// mod helpers;
 
 pub trait Indicator: Clone {
     type Num: TrNum + 'static;

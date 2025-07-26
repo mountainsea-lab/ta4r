@@ -1,26 +1,50 @@
+use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
+use crate::indicators::abstract_indicator::BaseIndicator;
+use crate::indicators::types::IndicatorError;
+use crate::num::TrNum;
 
-pub struct ConstantIndicator<Num, Series> {
-    value: Num,
-    series: Series,
+/// 常数指标：所有索引返回同一个值
+#[derive(Clone)]
+pub struct ConstantIndicator<'a, T, S>
+where
+    T: TrNum + 'static,
+    S: BarSeries<'a, T>,
+{
+    base: BaseIndicator<'a, T, S>,
+    value: T,
 }
 
-impl<Num, Series> ConstantIndicator<Num, Series> {
-    pub fn new(series: Series, value: Num) -> Self {
-        Self { value, series }
+impl<'a, T, S> ConstantIndicator<'a, T, S>
+where
+    T: TrNum + 'static,
+    S: BarSeries<'a, T>,
+{
+    pub fn new(series: &'a S, value: T) -> Self {
+        Self {
+            base: BaseIndicator::new(series),
+            value,
+        }
     }
 }
 
-impl<Num: Copy, Series> Indicator for ConstantIndicator<Num, Series> {
-    type Num = Num;
-    type Series<'a> = Series where Series: 'a;
+impl<'a, T, S> Indicator for ConstantIndicator<'a, T, S>
+where
+    T: TrNum + Clone,
+    S: BarSeries<'a, T>,
+{
+    type Num = T;
+    type Series<'b>
+        = S
+    where
+        Self: 'b;
 
-    fn get_value(&self, _index: usize) -> Self::Num {
-        self.value
+    fn get_value(&self, _index: usize) -> Result<T, IndicatorError> {
+        Ok(self.value.clone())
     }
 
     fn get_bar_series(&self) -> &Self::Series<'_> {
-        &self.series
+        self.base.get_bar_series()
     }
 
     fn get_count_of_unstable_bars(&self) -> usize {
