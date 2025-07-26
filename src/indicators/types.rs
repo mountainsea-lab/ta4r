@@ -1,5 +1,6 @@
 use crate::indicators::Indicator;
 use crate::num::TrNum;
+use crate::num::types::NumError;
 use thiserror::Error;
 
 ///===========================base sturct types======================
@@ -10,6 +11,9 @@ pub enum IndicatorError {
 
     #[error("Calculation error: {message}")]
     CalculationError { message: String },
+
+    #[error("Number error: {0}")]
+    NumError(#[from] NumError),
 
     #[error("Other error: {message}")]
     Other { message: String },
