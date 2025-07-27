@@ -142,3 +142,7 @@ where
         Ok(self.clone())
     }
 }
+
+pub trait OptionExt<T> {
+    fn or_invalid_index(self, index: usize, max: usize) -> Result<T, IndicatorError>;
+}

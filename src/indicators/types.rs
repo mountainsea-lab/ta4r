@@ -1,4 +1,4 @@
-use crate::indicators::{Indicator, ToNumber};
+use crate::indicators::{Indicator, OptionExt, ToNumber};
 use crate::num::types::NumError;
 use crate::num::{NumFactory, TrNum};
 use std::sync::Arc;
@@ -87,5 +87,11 @@ impl<'a, I: Indicator> Iterator for IndicatorIterator<'a, I> {
             self.index += 1;
             Some(result)
         }
+    }
+}
+
+impl<T> OptionExt<T> for Option<T> {
+    fn or_invalid_index(self, index: usize, max: usize) -> Result<T, IndicatorError> {
+        self.ok_or(IndicatorError::InvalidIndex { index, max })
     }
 }
