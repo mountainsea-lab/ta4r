@@ -106,7 +106,6 @@ impl<'a, T, S, C> IndicatorCalculator<'a, T, S> for RecursiveCalcWrapper<C>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    // S: for<'any> BarSeries<'any, T>,
     C: IndicatorCalculator<'a, T, S> + Clone,
 {
     fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
@@ -144,24 +143,40 @@ where
     C: IndicatorCalculator<'a, T, S> + Clone,
 {
     pub fn new(series: &'a S, calculator: C) -> Self {
+        Self::new_with_threshold(series, calculator, RECURSION_THRESHOLD)
+    }
+
+    pub fn new_with_threshold(series: &'a S, calculator: C, threshold: usize) -> Self {
         let wrapper = RecursiveCalcWrapper {
             inner: calculator,
-            threshold: RECURSION_THRESHOLD,
+            threshold,
         };
         Self {
             inner: CachedIndicator::new_from_series(series, wrapper),
         }
     }
 
-    pub fn new_from_indicator<I>(indicator: &'a I, calc: C, threshold: usize) -> Self
+    /// 从现有 Indicator 构造，使用默认阈值
+    pub fn from_indicator<I>(indicator: &'a I, calculator: C) -> Self
+    where
+        I: Indicator<Num = T, Series<'a> = S>,
+    {
+        Self::from_indicator_with_threshold(indicator, calculator, RECURSION_THRESHOLD)
+    }
+
+    /// 从现有 Indicator 构造，自定义阈值
+    pub fn from_indicator_with_threshold<I>(
+        indicator: &'a I,
+        calculator: C,
+        threshold: usize,
+    ) -> Self
     where
         I: Indicator<Num = T, Series<'a> = S>,
     {
         let wrapper = RecursiveCalcWrapper {
-            inner: calc,
+            inner: calculator,
             threshold,
         };
-
         let inner = CachedIndicator::new_from_indicator(indicator, wrapper);
         Self { inner }
     }
@@ -179,7 +194,7 @@ where
 
         let start = std::cmp::max(removed, if highest < 0 { 0 } else { highest as usize });
 
-        if index > start && (index - start) > RECURSION_THRESHOLD {
+        if index > start && (index - start) > self.inner.calculator.threshold {
             // 迭代计算避免深递归
             for i in start..index {
                 self.inner.get_cached_value(i)?;
