@@ -1,6 +1,7 @@
 use crate::indicators::{Indicator, ToNumber};
 use crate::num::types::NumError;
 use crate::num::{NumFactory, TrNum};
+use std::sync::Arc;
 use thiserror::Error;
 
 ///===========================base sturct types======================
@@ -26,10 +27,20 @@ pub enum BinaryOp<T: TrNum> {
     Fallible(fn(&T, &T) -> Result<T, IndicatorError>),
 }
 
-#[derive(Clone, Copy)]
 pub enum UnaryOp<T: TrNum> {
     Simple(fn(&T) -> T),
     Fallible(fn(&T) -> Result<T, IndicatorError>),
+    ClosureFallible(Arc<dyn Fn(&T) -> Result<T, IndicatorError> + Send + Sync>),
+}
+
+impl<T: TrNum> Clone for UnaryOp<T> {
+    fn clone(&self) -> Self {
+        match self {
+            UnaryOp::Simple(f) => UnaryOp::Simple(*f),
+            UnaryOp::Fallible(f) => UnaryOp::Fallible(*f),
+            UnaryOp::ClosureFallible(arc_fn) => UnaryOp::ClosureFallible(arc_fn.clone()),
+        }
+    }
 }
 
 /// 数字包装类型 NumConst<T>
