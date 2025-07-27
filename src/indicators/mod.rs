@@ -8,7 +8,7 @@ mod abstract_indicator;
 mod cached_indicator;
 mod helpers;
 mod numeric;
-// mod recursive_cached_indicator;
+mod recursive_cached_indicator;
 pub mod types;
 
 pub trait Indicator: Clone {
