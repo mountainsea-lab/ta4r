@@ -12,6 +12,9 @@ pub enum IndicatorError {
     #[error("Invalid index: {index} (max allowed: {max})")]
     InvalidIndex { index: usize, max: usize },
 
+    #[error("OutOfBounds index: {index}")]
+    OutOfBounds { index: usize },
+
     #[error("Calculation error: {message}")]
     CalculationError { message: String },
 
