@@ -26,6 +26,12 @@ pub enum BinaryOp<T: TrNum> {
     Fallible(fn(&T, &T) -> Result<T, IndicatorError>),
 }
 
+#[derive(Clone, Copy)]
+pub enum UnaryOp<T: TrNum> {
+    Simple(fn(&T) -> T),
+    Fallible(fn(&T) -> Result<T, IndicatorError>),
+}
+
 /// 数字包装类型 NumConst<T>
 #[derive(Clone, Debug)]
 pub struct NumConst<T>(pub T);
