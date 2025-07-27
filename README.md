@@ -120,3 +120,53 @@ pub mod impls;
 // 重新导出公共 API  
 pub use types::{TrNum, NumFactory};  
 pub use error::NumError;
+
+### 指标重构安排
+
+Answer
+基于您已经实现的Rust重构进度，您已经完成了ta4j Indicator模块的核心架构层。根据ta4j的原始实现结构，建议按以下顺序继续实现：
+
+1. 基础价格指标 (Price Indicators)
+   首先实现最基础的价格指标，这些是其他指标的构建基础：
+
+ClosePriceIndicator - 收盘价指标
+OpenPriceIndicator - 开盘价指标
+HighPriceIndicator - 最高价指标
+LowPriceIndicator - 最低价指标
+VolumeIndicator - 成交量指标
+2. 辅助指标 (Helper Indicators)
+   实现常用的辅助计算指标：
+
+TypicalPriceIndicator - 典型价格指标 TypicalPriceIndicator.java:52-58
+FixedIndicator - 固定值指标，用于测试 FixedIndicator.java:41-55
+GainIndicator - 涨幅指标 GainIndicator.java:52-61
+CrossIndicator - 交叉指标 CrossIndicator.java:57-70
+3. 简单移动平均指标
+   从最基础的移动平均开始：
+
+SMAIndicator - 简单移动平均
+WMAIndicator - 加权移动平均
+EMAIndicator - 指数移动平均
+4. 高级移动平均指标
+   实现更复杂的移动平均算法：
+
+TMAIndicator - 三角移动平均 TMAIndicator.java:54-65
+WildersMAIndicator - Wilder移动平均 WildersMAIndicator.java:24-30
+SGMAIndicator - Savitzky-Golay移动平均 SGMAIndicator.java:83-96
+5. 需要RecursiveCachedIndicator的指标
+   利用您已实现的RecursiveCachedIndicator：
+
+ParabolicSarIndicator ParabolicSarIndicator.java:47-65
+AccumulationDistributionIndicator AccumulationDistributionIndicator.java:48-61
+SuperTrendLowerBandIndicator SuperTrendLowerBandIndicator.java:66-79
+6. 复合指标
+   实现依赖多个其他指标的复合指标：
+
+ATRIndicator - 平均真实波幅 ATRIndicator.java:55-64
+CCIIndicator - 商品通道指数 CCIIndicator.java:53-71
+VWAPIndicator - 成交量加权平均价 VWAPIndicator.java:64-79
+7. 数值操作API
+   最后实现类似NumericIndicator的流式API NumericIndicator.java:110-126
+
+
+
