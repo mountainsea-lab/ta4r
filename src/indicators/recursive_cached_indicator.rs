@@ -58,13 +58,13 @@ where
                     for prev_index in start_index..index {
                         // 这里调用 inner.get_value(&self, usize) 也是不可变借用，
                         // 内部用 RefCell 管理可变性，没问题
-                        self.inner.get_value(prev_index)?;
+                        self.inner.get_cached_value(prev_index)?;
                     }
                 }
             }
         }
 
-        self.inner.get_value(index)
+        self.inner.get_cached_value(index)
     }
 
     pub fn get_bar_series(&self) -> &'a S {
