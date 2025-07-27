@@ -1,3 +1,5 @@
+use crate::bar::types::BarSeries;
+use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::{Indicator, OptionExt, ToNumber};
 use crate::num::types::NumError;
 use crate::num::{NumFactory, TrNum};
@@ -94,4 +96,13 @@ impl<T> OptionExt<T> for Option<T> {
     fn or_invalid_index(self, index: usize, max: usize) -> Result<T, IndicatorError> {
         self.ok_or(IndicatorError::InvalidIndex { index, max })
     }
+}
+
+/// IndicatorCalculator trait —— 不再引用 `CachedIndicator`，改为 `BaseIndicator`
+pub trait IndicatorCalculator<'a, T, S>
+where
+    T: TrNum + Clone + 'static,
+    S: BarSeries<'a, T>,
+{
+    fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError>;
 }
