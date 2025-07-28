@@ -86,15 +86,15 @@ where
     S: for<'any> BarSeries<'any, T>,
     I: Indicator<Num = T, Series<'a> = S> + 'a,
 {
-    /// 构造函数，传入一个 indicator 的引用和 bar_count
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
+    /// 标准构造器：传入 T 类型 multiplier（等价 Java 中 Num 类型）
+    pub fn new(indicator: &'a I, bar_count: usize, multiplier: i64) -> Self {
         let multiplier = indicator
             .get_bar_series()
             .num_factory()
-            .num_of_i64((2.0 / (bar_count as f64 + 1.0)) as i64);
+            .num_of_i64(multiplier);
 
         let calculator = BaseEmaCalculator {
-            indicator, // 传引用
+            indicator,
             multiplier: multiplier.clone(),
             _phantom: PhantomData,
         };
