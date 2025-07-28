@@ -16,6 +16,12 @@ impl AsRef<BoolNum> for BoolNum {
     }
 }
 
+impl From<bool> for BoolNum {
+    fn from(b: bool) -> Self {
+        BoolNum(b)
+    }
+}
+
 impl fmt::Debug for BoolNum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "BoolNum({})", self.0)

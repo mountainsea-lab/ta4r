@@ -1,5 +1,5 @@
 use crate::num::bool_num::BoolNum;
-use crate::num::{DecimalFactory, DoubleFactory, NumError, NumFactory, TrNum};
+use crate::num::{DecimalFactory, DoubleFactory, NumError, NumFactory};
 use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Copy)]

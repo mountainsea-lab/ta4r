@@ -1,1 +1,227 @@
+use crate::bar::types::BarSeries;
+use crate::indicators::Indicator;
+use crate::indicators::abstract_indicator::BaseIndicator;
+use crate::indicators::cached_indicator::CachedIndicator;
+use crate::indicators::types::{IndicatorCalculator, IndicatorError};
+use crate::num::TrNum;
+use std::marker::PhantomData;
 
+/// CrossCalculator 负责计算交叉逻辑 IU Indicator Up, IL Indicator Low
+pub struct CrossCalculator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    up: &'a IU,
+    low: &'a IL,
+    _phantom: PhantomData<(T, S)>,
+}
+
+impl<'a, T, S, IU, IL> Clone for CrossCalculator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            up: self.up,
+            low: self.low,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, T, S, IU, IL> CrossCalculator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    pub fn new(up: &'a IU, low: &'a IL) -> Self {
+        Self {
+            up,
+            low,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+// impl<'a, T, S, IU, IL> IndicatorCalculator<'a, T, S> for CrossCalculator<'a, T, S, IU, IL>
+// where
+//     T: TrNum + Clone + 'static,
+//     S: for<'any> BarSeries<'any, T>,
+//     IU: Indicator<Num = T, Series<'a> = S>,
+//     IL: Indicator<Num = T, Series<'a> = S>,
+// {
+//     fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
+//         // index=0 特殊处理
+//         if index == 0 {
+//             return Ok(BoolNum(false));
+//         }
+//
+//         let up_value = self.up.get_value(index)?;
+//         let low_value = self.low.get_value(index)?;
+//
+//         if up_value.is_greater_than_or_equal(&low_value) {
+//             return Ok(BoolNum(false));
+//         }
+//
+//         // 向前找到最后一个不相等的位置
+//         let mut i = index;
+//         while i > 0 {
+//             let up_i = self.up.get_value(i)?;
+//             let low_i = self.low.get_value(i)?;
+//             if !up_i.is_equal(&low_i) {
+//                 break;
+//             }
+//             i -= 1;
+//         }
+//
+//         let up_i = self.up.get_value(i)?;
+//         let low_i = self.low.get_value(i)?;
+//
+//         Ok(BoolNum(up_i.is_greater_than(&low_i)))
+//     }
+// }
+
+impl<'a, T, S, IU, IL> IndicatorCalculator<'a, T, S> for CrossCalculator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + From<bool> + 'static, // ✅ 新增 From<bool> 约束
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    fn calculate(
+        &self,
+        _base: &BaseIndicator<'a, T, S>,
+        index: usize,
+    ) -> Result<T, IndicatorError> {
+        // index = 0 特殊处理，无法判断是否穿越
+        if index == 0 {
+            return Ok(false.into());
+        }
+
+        let up_value = self.up.get_value(index)?;
+        let low_value = self.low.get_value(index)?;
+
+        // 当前 up 没有穿越 low
+        if up_value.is_greater_than_or_equal(&low_value) {
+            return Ok(false.into());
+        }
+
+        // 向前回溯，直到发现 up != low（用于忽略平值区间）
+        let mut i = index;
+        while i > 0 {
+            let prev_up = self.up.get_value(i - 1)?;
+            let prev_low = self.low.get_value(i - 1)?;
+            if !prev_up.is_equal(&prev_low) {
+                break;
+            }
+            i -= 1;
+        }
+
+        let prev_up = self.up.get_value(i - 1)?;
+        let prev_low = self.low.get_value(i - 1)?;
+
+        // 判断是否从上方穿越（即前一个 up > low，现在 up < low）
+        let crossed = prev_up.is_greater_than(&prev_low);
+        Ok(crossed.into()) // ✅ 返回 BoolNum 类型的 T
+    }
+}
+
+// CrossIndicator 结构体，缓存交叉指标结果
+pub struct CrossIndicator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + From<bool> + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    cached: CachedIndicator<'a, T, S, CrossCalculator<'a, T, S, IU, IL>>,
+    up: &'a IU,
+    low: &'a IL,
+}
+
+impl<'a, T, S, IU, IL> Clone for CrossIndicator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + From<bool> + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            cached: self.cached.clone(),
+            up: self.up,
+            low: self.low,
+        }
+    }
+}
+
+impl<'a, T, S, IU, IL> CrossIndicator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + From<bool> + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    pub fn new(up: &'a IU, low: &'a IL) -> Self {
+        let calculator = CrossCalculator::new(up, low);
+        let cached = CachedIndicator::new_from_indicator(up, calculator);
+        Self { cached, up, low }
+    }
+
+    pub fn get_up(&self) -> &'a IU {
+        self.up
+    }
+
+    pub fn get_low(&self) -> &'a IL {
+        self.low
+    }
+}
+
+impl<'a, T, S, IU, IL> Indicator for CrossIndicator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + From<bool> + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Series<'a> = S>,
+{
+    type Num = T;
+    type Series<'b>
+        = S
+    where
+        Self: 'b;
+
+    fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
+        self.cached.get_cached_value(index)
+    }
+
+    fn get_bar_series(&self) -> &Self::Series<'_> {
+        self.cached.get_bar_series()
+    }
+
+    fn get_count_of_unstable_bars(&self) -> usize {
+        0
+    }
+}
+
+impl<'a, T, S, IU, IL> std::fmt::Debug for CrossIndicator<'a, T, S, IU, IL>
+where
+    T: TrNum + Clone + From<bool> + 'static,
+    S: for<'any> BarSeries<'any, T>,
+    IU: Indicator<Num = T, Series<'a> = S> + std::fmt::Debug,
+    IL: Indicator<Num = T, Series<'a> = S> + std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CrossIndicator")
+            .field("up", self.up)
+            .field("low", self.low)
+            .finish()
+    }
+}

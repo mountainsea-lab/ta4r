@@ -23,8 +23,8 @@
  * SOFTWARE.
  */
 
-mod bool_num;
-mod bool_num_factory;
+pub mod bool_num;
+pub mod bool_num_factory;
 pub mod decimal_num;
 pub mod decimal_num_factory;
 pub mod double_num;
@@ -152,8 +152,17 @@ pub trait TrNum:
     /// 自定义 Decimal 类型转换
     fn to_decimal(&self) -> Option<Decimal>;
 
+    /// 判断是否相等（可自定义精度）
+    fn is_equal(&self, other: &Self) -> bool {
+        self == other
+    }
+
     /// 是否大于另一个数值
     fn is_greater_than(&self, other: &Self) -> bool {
         self > other
+    }
+    /// 是否大于或者等于另一个数值
+    fn is_greater_than_or_equal(&self, other: &Self) -> bool {
+        self >= other
     }
 }
