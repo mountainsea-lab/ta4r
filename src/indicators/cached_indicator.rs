@@ -64,6 +64,10 @@ where
         Self::new_from_series(indicator.get_bar_series(), calculator)
     }
 
+    pub fn calculator(&self) -> &C {
+        &self.calculator
+    }
+
     /// 调用计算函数，计算指定索引的指标值
     fn calculate(&self, index: usize) -> Result<T, IndicatorError> {
         self.calculator.calculate(&self.base, index)

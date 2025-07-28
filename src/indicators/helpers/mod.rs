@@ -6,6 +6,6 @@ mod gain_indicator;
 mod high_price_indicator;
 mod low_price_indicator;
 mod open_price_indicator;
+mod running_total_indicator;
 mod typical_price_indicator;
 mod volume_indicator;
-mod running_total_indicator;
