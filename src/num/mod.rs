@@ -149,4 +149,9 @@ pub trait TrNum:
 
     /// 自定义 Decimal 类型转换
     fn to_decimal(&self) -> Option<Decimal>;
+
+    /// 是否大于另一个数值
+    fn is_greater_than(&self, other: &Self) -> bool {
+        self > other
+    }
 }
