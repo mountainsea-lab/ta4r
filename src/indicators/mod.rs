@@ -5,6 +5,7 @@ use crate::num::TrNum;
 use crate::num::types::NumError;
 
 mod abstract_indicator;
+pub mod averages;
 mod cached_indicator;
 mod helpers;
 mod numeric;
