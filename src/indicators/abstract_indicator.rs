@@ -1,6 +1,6 @@
-use crate::bar::types::BarSeries;
+use crate::bar::types::{Bar, BarSeries};
 use crate::indicators::Indicator;
-use crate::indicators::types::IndicatorIterator;
+use crate::indicators::types::{IndicatorError, IndicatorIterator};
 use crate::num::TrNum;
 use std::marker::PhantomData;
 
@@ -66,5 +66,36 @@ where
                 end: 0,
             },
         }
+    }
+}
+
+impl<'a, T, S> Indicator for BaseIndicator<'a, T, S>
+where
+    T: TrNum + Clone + 'static,
+    S: for<'any> BarSeries<'any, T>,
+{
+    type Num = T;
+    type Series<'b>
+        = S
+    where
+        Self: 'b;
+
+    fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
+        let bar = self
+            .series
+            .get_bar(index)
+            .ok_or(IndicatorError::OutOfBounds { index })?;
+        let price = bar
+            .get_close_price()
+            .ok_or(IndicatorError::OutOfBounds { index })?;
+        Ok(price)
+    }
+
+    fn get_bar_series(&self) -> &Self::Series<'_> {
+        self.series
+    }
+
+    fn get_count_of_unstable_bars(&self) -> usize {
+        0
     }
 }
