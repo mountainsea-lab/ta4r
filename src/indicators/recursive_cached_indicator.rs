@@ -120,7 +120,7 @@ where
     S: BarSeries<'a, T>,
     C: IndicatorCalculator<'a, T, S> + Clone,
 {
-    pub(crate) inner: CachedIndicator<'a, T, S, RecursiveCalcWrapper<C>>,
+    pub(crate) cached: CachedIndicator<'a, T, S, RecursiveCalcWrapper<C>>,
 }
 
 impl<'a, T, S, C> Clone for RecursiveCachedIndicator<'a, T, S, C>
@@ -131,7 +131,7 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            inner: self.inner.clone(),
+            cached: self.cached.clone(),
         }
     }
 }
@@ -152,7 +152,7 @@ where
             threshold,
         };
         Self {
-            inner: CachedIndicator::new_from_series(series, wrapper),
+            cached: CachedIndicator::new_from_series(series, wrapper),
         }
     }
 
@@ -177,31 +177,31 @@ where
             inner: calculator,
             threshold,
         };
-        let inner = CachedIndicator::new_from_indicator(indicator, wrapper);
-        Self { inner }
+        let cached = CachedIndicator::new_from_indicator(indicator, wrapper);
+        Self { cached }
     }
 
     pub fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
-        let series = self.inner.base.get_bar_series();
+        let series = self.cached.base.get_bar_series();
 
         if series.get_bar_count() == 0 || index > series.get_end_index().unwrap_or(usize::MAX) {
             // 超出范围，直接计算
-            return self.inner.get_cached_value(index);
+            return self.cached.get_cached_value(index);
         }
 
         let removed = series.get_removed_bars_count();
-        let highest = *self.inner.highest_result_index.borrow();
+        let highest = *self.cached.highest_result_index.borrow();
 
         let start = std::cmp::max(removed, if highest < 0 { 0 } else { highest as usize });
 
-        if index > start && (index - start) > self.inner.calculator.threshold {
+        if index > start && (index - start) > self.cached.calculator.threshold {
             // 迭代计算避免深递归
             for i in start..index {
-                self.inner.get_cached_value(i)?;
+                self.cached.get_cached_value(i)?;
             }
         }
 
-        self.inner.get_cached_value(index)
+        self.cached.get_cached_value(index)
     }
 }
 
@@ -222,7 +222,7 @@ where
     }
 
     fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.inner.get_bar_series()
+        self.cached.get_bar_series()
     }
 
     fn get_count_of_unstable_bars(&self) -> usize {
