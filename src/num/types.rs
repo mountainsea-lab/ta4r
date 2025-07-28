@@ -55,6 +55,7 @@ pub enum NumberDelegate {
     Int(i64),
     Float(f64),
     Decimal(rust_decimal::Decimal),
+    Bool(bool),
     NaN,
     // 可以扩展更多
 }

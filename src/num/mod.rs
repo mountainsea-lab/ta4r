@@ -23,6 +23,8 @@
  * SOFTWARE.
  */
 
+mod bool_num;
+mod bool_num_factory;
 pub mod decimal_num;
 pub mod decimal_num_factory;
 pub mod double_num;
