@@ -51,44 +51,6 @@ where
     }
 }
 
-// impl<'a, T, S, IU, IL> IndicatorCalculator<'a, T, S> for CrossCalculator<'a, T, S, IU, IL>
-// where
-//     T: TrNum + Clone + 'static,
-//     S: for<'any> BarSeries<'any, T>,
-//     IU: Indicator<Num = T, Series<'a> = S>,
-//     IL: Indicator<Num = T, Series<'a> = S>,
-// {
-//     fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
-//         // index=0 特殊处理
-//         if index == 0 {
-//             return Ok(BoolNum(false));
-//         }
-//
-//         let up_value = self.up.get_value(index)?;
-//         let low_value = self.low.get_value(index)?;
-//
-//         if up_value.is_greater_than_or_equal(&low_value) {
-//             return Ok(BoolNum(false));
-//         }
-//
-//         // 向前找到最后一个不相等的位置
-//         let mut i = index;
-//         while i > 0 {
-//             let up_i = self.up.get_value(i)?;
-//             let low_i = self.low.get_value(i)?;
-//             if !up_i.is_equal(&low_i) {
-//                 break;
-//             }
-//             i -= 1;
-//         }
-//
-//         let up_i = self.up.get_value(i)?;
-//         let low_i = self.low.get_value(i)?;
-//
-//         Ok(BoolNum(up_i.is_greater_than(&low_i)))
-//     }
-// }
-
 impl<'a, T, S, IU, IL> IndicatorCalculator<'a, T, S> for CrossCalculator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static, // ✅ 新增 From<bool> 约束
