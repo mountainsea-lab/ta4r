@@ -284,3 +284,7 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
         }
     }
 }
+
+pub fn add_to_option<T: TrNum>(opt: &Option<T>, val: T) -> Option<T> {
+    Some(opt.clone().unwrap_or_else(T::zero) + val)
+}

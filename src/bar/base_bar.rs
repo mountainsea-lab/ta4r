@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 
+use crate::bar::builder::types::add_to_option;
 use crate::bar::types::Bar;
 use crate::num::TrNum;
 use std::fmt;
@@ -49,7 +50,7 @@ pub struct BaseBar<T: TrNum> {
     /// Bar 周期的总交易量
     pub volume: T,
     /// Bar 周期的总交易金额
-    pub amount: T,
+    pub amount: Option<T>,
     /// Bar 周期的交易次数
     pub trades: u64,
 }
@@ -64,7 +65,7 @@ impl<T: TrNum> BaseBar<T> {
         low_price: T,
         close_price: T,
         volume: T,
-        amount: T,
+        amount: Option<T>,
         trades: u64,
     ) -> Result<Self, String> {
         // 计算 begin_time = end_time - time_period
@@ -99,7 +100,7 @@ impl<T: TrNum> BaseBar<T> {
         low_price: Option<T>,
         close_price: Option<T>,
         volume: T,
-        amount: T,
+        amount: Option<T>,
         trades: u64,
     ) -> Result<Self, String> {
         // 实现与 Java 版本相同的复杂时间计算逻辑
@@ -197,7 +198,7 @@ impl<T: TrNum + 'static> Bar<T> for BaseBar<T> {
     }
 
     fn get_amount(&self) -> T {
-        self.amount.clone()
+        self.amount.clone().unwrap_or_else(T::zero)
     }
 
     fn get_trades(&self) -> u64 {
@@ -210,7 +211,8 @@ impl<T: TrNum + 'static> Bar<T> for BaseBar<T> {
 
         let trade_amount = trade_volume.multiplied_by(&trade_price);
         self.volume = self.volume.plus(&trade_volume);
-        self.amount = self.amount.plus(&trade_amount);
+        self.amount = add_to_option(&self.amount, trade_amount);
+
         self.trades += 1;
     }
 

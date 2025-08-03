@@ -173,7 +173,7 @@ where
         let close_price = self.close_price.clone().ok_or("Missing close_price")?;
 
         let volume = self.volume.clone().unwrap_or_else(|| T::zero());
-        let amount = self.amount.clone().unwrap_or_else(|| T::zero());
+        let amount = self.amount.clone();
         let trades = self.trades.unwrap_or(0);
         // 构建 BaseBar，对应 Java 版本的 build 方法
         BaseBar::new(

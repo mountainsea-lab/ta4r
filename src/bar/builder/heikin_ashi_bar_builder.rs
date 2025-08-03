@@ -136,10 +136,7 @@ where
                         .volume
                         .clone()
                         .ok_or("Missing volume")?,
-                    self.time_bar_builder
-                        .amount
-                        .clone()
-                        .unwrap_or_else(|| T::zero()),
+                    self.time_bar_builder.amount.clone(),
                     self.time_bar_builder.trades.unwrap_or(0),
                 );
             }

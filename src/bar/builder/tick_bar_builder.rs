@@ -25,7 +25,7 @@
 use crate::bar::base_bar::BaseBar;
 use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
 use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
-use crate::bar::builder::types::BarBuilderFactories;
+use crate::bar::builder::types::{BarBuilderFactories, add_to_option};
 use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
 use crate::num::decimal_num::DecimalNum;
@@ -52,7 +52,7 @@ pub struct TickBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
     close_price: Option<T>,
     volume: Option<T>,
     amount: Option<T>,
-    trades: Option<u64>,
+    trades: u64,
 }
 
 impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TickBarBuilder<'a, T, S> {
@@ -77,9 +77,9 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TickBarBuilder<'a, T, S> {
             high_price: None,
             low_price: None,
             close_price: None,
-            volume: Some(T::zero()),
-            amount: Some(T::zero()),
-            trades: Some(0u64),
+            volume: None,
+            amount: None,
+            trades: 0u64,
         }
     }
 
@@ -106,12 +106,12 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TickBarBuilder<'a, T, S> {
     fn reset(&mut self) {
         self.time_period = None;
         self.open_price = None;
-        self.high_price = Some(T::zero());
+        self.high_price = None;
         self.low_price = T::from_i64(i64::MAX);
         self.close_price = None;
-        self.volume = Some(T::zero());
-        self.amount = Some(T::zero());
-        self.trades = Some(0u64);
+        self.volume = None;
+        self.amount = None;
+        self.trades = 0u64;
     }
 }
 
@@ -189,18 +189,17 @@ where
     //     self
     // }
     fn volume(&mut self, volume: T) -> &mut Self {
-        let old_volume = self.volume.take();
-        self.volume = Some(old_volume.unwrap_or_else(|| volume.clone()) + volume);
+        self.volume = add_to_option(&self.volume, volume);
         self
     }
 
     fn amount(&mut self, amount: T) -> &mut Self {
-        self.amount = Some(amount);
+        self.amount = add_to_option(&self.amount, amount);
         self
     }
 
     fn trades(&mut self, trades: u64) -> &mut Self {
-        self.trades = Some(trades);
+        self.trades += trades;
         self
     }
 
@@ -215,8 +214,8 @@ where
         let close_price = self.close_price.clone().ok_or("Missing close_price")?;
 
         let volume = self.volume.clone().unwrap_or_else(|| T::zero());
-        let amount = self.amount.clone().unwrap_or_else(|| T::zero());
-        let trades = self.trades.unwrap_or(0);
+        let amount = self.amount.clone();
+        let trades = self.trades;
 
         BaseBar::new(
             time_period,
@@ -268,9 +267,10 @@ fn test_tick_bar_builder_add() {
     let now = OffsetDateTime::now_utc();
     let one_day = Duration::days(1);
 
+    // 获取可变的 builder
+    let mut builder = series.bar_builder();
     // Tick 1~5
-    series
-        .bar_builder()
+    builder
         .time_period(one_day)
         .end_time(now)
         .close_price(DecimalNum::from(1))
@@ -278,8 +278,7 @@ fn test_tick_bar_builder_add() {
         .add()
         .unwrap();
 
-    series
-        .bar_builder()
+    builder
         .time_period(one_day)
         .end_time(now + one_day)
         .close_price(DecimalNum::from(2))
@@ -287,8 +286,7 @@ fn test_tick_bar_builder_add() {
         .add()
         .unwrap();
 
-    series
-        .bar_builder()
+    builder
         .time_period(one_day)
         .end_time(now + one_day * 2)
         .close_price(DecimalNum::from(5))
@@ -297,8 +295,7 @@ fn test_tick_bar_builder_add() {
         .add()
         .unwrap();
 
-    series
-        .bar_builder()
+    builder
         .time_period(one_day)
         .end_time(now + one_day * 3)
         .close_price(DecimalNum::from(1))
@@ -306,8 +303,7 @@ fn test_tick_bar_builder_add() {
         .add()
         .unwrap();
 
-    series
-        .bar_builder()
+    builder
         .time_period(one_day)
         .end_time(now + one_day * 4)
         .close_price(DecimalNum::from(4))
@@ -327,7 +323,7 @@ fn test_tick_bar_builder_add() {
     assert_eq!(bar1.time_period, one_day * 5);
     assert_eq!(bar1.begin_time, now - one_day); // 可选：实现 begin_time 推断
     assert_eq!(bar1.end_time, now + one_day * 4);
-    assert_eq!(bar1.amount, DecimalNum::from(24));
+    assert_eq!(bar1.amount, Some(DecimalNum::from(24)));
     assert_eq!(bar1.trades, 10);
 
     // // Tick 6~10

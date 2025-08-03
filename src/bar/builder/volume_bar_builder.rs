@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 use crate::bar::base_bar::BaseBar;
+use crate::bar::builder::types::add_to_option;
 use crate::bar::types::{BarBuilder, BarSeries};
 use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
@@ -43,7 +44,7 @@ pub struct VolumeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
     low_price: Option<T>,
     close_price: Option<T>,
     volume: T,
-    amount: T,
+    amount: Option<T>,
     trades: u64,
 }
 
@@ -72,7 +73,7 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> VolumeBarBuilder<'a, T, S> {
             low_price: T::from_i64(i64::MAX),
             close_price: None,
             volume: T::zero(),
-            amount: T::zero(),
+            amount: None,
             trades: 0,
         }
     }
@@ -90,7 +91,7 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> VolumeBarBuilder<'a, T, S> {
         self.low_price = T::from_i64(i64::MAX);
         self.close_price = None;
         self.volume = T::zero();
-        self.amount = T::zero();
+        self.amount = None;
         self.trades = 0;
     }
 }
@@ -154,7 +155,7 @@ where
     }
 
     fn amount(&mut self, amt: T) -> &mut Self {
-        self.amount = self.amount.clone() + amt;
+        self.amount = add_to_option(&self.amount, amt);
         self
     }
 
@@ -173,6 +174,8 @@ where
         let low_price = self.low_price.clone().ok_or("Missing low_price")?;
         let close_price = self.close_price.clone().ok_or("Missing close_price")?;
 
+        let amount = self.amount.clone();
+
         BaseBar::new(
             time_period,
             end_time,
@@ -181,7 +184,7 @@ where
             low_price,
             close_price,
             self.volume.clone(),
-            self.amount.clone(),
+            amount,
             self.trades,
         )
     }
@@ -195,9 +198,9 @@ where
                 self.volume = self.volume_threshold.clone();
             }
 
-            if self.amount == T::zero() {
+            if self.amount.is_none() {
                 if let Some(price) = &self.close_price {
-                    self.amount = price.clone() * self.volume.clone();
+                    self.amount = Some(price.clone() * self.volume.clone());
                 }
             }
 
