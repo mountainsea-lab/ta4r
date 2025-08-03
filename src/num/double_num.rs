@@ -428,3 +428,18 @@ impl fmt::Debug for DoubleNum {
         write!(f, "DoubleNum({:.2})", self.delegate)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::num::double_num::DoubleNum;
+
+    #[test]
+    fn test_zero_equals() {
+        let double_num1 = DoubleNum::from_f32(-0.0).unwrap();
+
+        let double_num2 = DoubleNum::from_f32(0.0).unwrap();
+
+        assert_eq!(double_num1, double_num2);
+    }
+}
