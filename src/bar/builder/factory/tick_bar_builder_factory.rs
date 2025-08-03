@@ -27,20 +27,25 @@ use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::tick_bar_builder::TickBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use std::marker::PhantomData;
 
 /// TickBarBuilderFactory - 创建 TickBarBuilder 的工厂
 #[derive(Debug, Clone, Default)]
-pub struct TickBarBuilderFactory {
+pub struct TickBarBuilderFactory<T: TrNum> {
     tick_count: u64,
+    _phantom: PhantomData<T>,
 }
 
-impl TickBarBuilderFactory {
+impl<T: TrNum> TickBarBuilderFactory<T> {
     pub fn new(tick_count: u64) -> Self {
-        Self { tick_count }
+        Self {
+            tick_count,
+            _phantom: PhantomData,
+        }
     }
 }
 
-impl<T: TrNum + 'static> BarBuilderFactory<T> for TickBarBuilderFactory {
+impl<T: TrNum + 'static> BarBuilderFactory<T> for TickBarBuilderFactory<T> {
     type Series = BaseBarSeries<T>;
 
     type Builder<'a>

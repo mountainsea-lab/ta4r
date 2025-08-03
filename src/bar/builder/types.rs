@@ -36,7 +36,7 @@ use std::marker::PhantomData;
 #[derive(Clone)]
 pub enum BarBuilderFactories<T: TrNum> {
     TimeBarFactory(TimeBarBuilderFactory),
-    TickBarFactory(TickBarBuilderFactory),
+    TickBarFactory(TickBarBuilderFactory<T>),
     VolumeBarFactory(VolumeBarBuilderFactory),
     // 以后可能会有其他带T的变体
     _Phantom(PhantomData<T>),

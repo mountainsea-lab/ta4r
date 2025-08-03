@@ -23,8 +23,12 @@
  * SOFTWARE.
  */
 use crate::bar::base_bar::BaseBar;
-use crate::bar::types::{BarBuilder, BarSeries};
+use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
+use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
+use crate::bar::builder::types::BarBuilderFactories;
+use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
+use crate::num::decimal_num::DecimalNum;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
@@ -235,4 +239,143 @@ where
 
         Ok(())
     }
+}
+
+#[test]
+fn test_tick_bar_builder_add() {
+    use crate::num::decimal_num::DecimalNum;
+
+    use time::Duration;
+
+    let tick_factory = TickBarBuilderFactory::<DecimalNum>::new(5);
+    let mut series = BaseBarSeriesBuilder::<DecimalNum>::default()
+        .with_bar_builder_factory(BarBuilderFactories::TickBarFactory(tick_factory))
+        .build()
+        .unwrap();
+
+    let now = OffsetDateTime::now_utc();
+    let one_day = Duration::days(1);
+
+    // Tick 1~5
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now)
+        .close_price(DecimalNum::from(1))
+        .volume(DecimalNum::from(1))
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day)
+        .close_price(DecimalNum::from(2))
+        .volume(DecimalNum::from(1))
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 2)
+        .close_price(DecimalNum::from(5))
+        .volume(DecimalNum::from(1))
+        .trades(9)
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 3)
+        .close_price(DecimalNum::from(1))
+        .volume(DecimalNum::from(1))
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 4)
+        .close_price(DecimalNum::from(4))
+        .volume(DecimalNum::from(2))
+        .trades(1)
+        .add()
+        .unwrap();
+
+    assert_eq!(series.get_bar_count(), 1);
+    let bar1 = series.get_bar(0).unwrap();
+
+    assert_eq!(bar1.volume, DecimalNum::from(6));
+    assert_eq!(bar1.open_price, DecimalNum::from(1));
+    assert_eq!(bar1.close_price, DecimalNum::from(4));
+    assert_eq!(bar1.high_price, DecimalNum::from(5));
+    assert_eq!(bar1.low_price, DecimalNum::from(1));
+    assert_eq!(bar1.time_period, one_day * 5);
+    assert_eq!(bar1.begin_time, now - one_day); // 可选：实现 begin_time 推断
+    assert_eq!(bar1.end_time, now + one_day * 4);
+    assert_eq!(bar1.amount, DecimalNum::from(24));
+    assert_eq!(bar1.trades, 10);
+
+    // Tick 6~10
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 5)
+        .close_price(DecimalNum::from(2))
+        .volume(DecimalNum::from(1))
+        .amount(DecimalNum::from(24))
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 6)
+        .close_price(DecimalNum::from(3))
+        .volume(DecimalNum::from(1))
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 7)
+        .close_price(DecimalNum::from(6))
+        .volume(DecimalNum::from(2))
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 8)
+        .close_price(DecimalNum::from(2))
+        .volume(DecimalNum::from(1))
+        .add()
+        .unwrap();
+
+    series
+        .bar_builder()
+        .time_period(one_day)
+        .end_time(now + one_day * 9)
+        .close_price(DecimalNum::from(5))
+        .volume(DecimalNum::from(2))
+        .trades(100)
+        .add()
+        .unwrap();
+
+    assert_eq!(series.get_bar_count(), 2);
+    let bar2 = series.get_bar(1).unwrap();
+    assert_eq!(bar2.volume, DecimalNum::from(7));
+    assert_eq!(bar2.open_price, DecimalNum::from(2));
+    assert_eq!(bar2.close_price, DecimalNum::from(5));
+    assert_eq!(bar2.high_price, DecimalNum::from(6));
+    assert_eq!(bar2.low_price, DecimalNum::from(2));
+    assert_eq!(bar2.time_period, one_day * 5);
+    assert_eq!(bar2.begin_time, now + one_day * 4); // or +5 - 1d，视 begin_time 逻辑
+    assert_eq!(bar2.end_time, now + one_day * 9);
+    assert_eq!(bar2.amount, DecimalNum::from(24));
+    assert_eq!(bar2.trades, 100);
 }
