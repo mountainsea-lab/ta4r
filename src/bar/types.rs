@@ -165,7 +165,7 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
     /// 如果向序列添加新 bar 使得 bar 数量超过最大 bar 计数，
     /// 则序列中的第一个 bar 将自动移除，确保不超过最大 bar 计数。
     /// bar 序列的索引不会改变。
-    fn set_maximum_bar_count(&mut self, maximum_bar_count: usize);
+    fn set_maximum_bar_count(&mut self, maximum_bar_count: usize) -> Result<(), String>;
 
     /// 返回已移除的 bar 数量
     fn get_removed_bars_count(&self) -> usize;
@@ -176,14 +176,14 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
     /// endIndex 如果尚未初始化则设置为 0，或者如果它匹配序列的末尾则递增
     /// 超出的 bar 将被移除
     fn add_bar(&mut self, bar: Self::Bar) {
-        self.add_bar_with_replace(bar, false);
+        let _ = self.add_bar_with_replace(bar, false);
     }
 
     /// 在序列末尾添加 bar
     ///
     /// replace: true 表示替换最新的 bar。一些交易所在相应期间内
     /// 连续提供新的 bar 数据，例如在 1 分钟持续时间内每 1 秒
-    fn add_bar_with_replace(&mut self, bar: Self::Bar, replace: bool);
+    fn add_bar_with_replace(&mut self, bar: Self::Bar, replace: bool) -> Result<(), String>;
 
     /// 添加交易并更新最后一个 bar 的收盘价
     fn add_trade_with_numbers(&mut self, trade_volume: i64, trade_price: i64) {

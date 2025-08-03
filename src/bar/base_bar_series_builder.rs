@@ -156,7 +156,7 @@ where
 
         // 设置最大 Bar 数量
         if self.max_bar_count != usize::MAX {
-            series.set_maximum_bar_count(self.max_bar_count);
+            let _ = series.set_maximum_bar_count(self.max_bar_count);
         }
 
         Ok(series)

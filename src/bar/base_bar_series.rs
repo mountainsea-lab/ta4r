@@ -24,8 +24,7 @@
  */
 use crate::bar::base_bar::BaseBar;
 use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
-use crate::bar::builder::time_bar_builder::TimeBarBuilder;
-use crate::bar::builder::types::BarBuilderFactories;
+use crate::bar::builder::types::{BarBuilderFactories, BarBuilders};
 use crate::bar::types::{Bar, BarBuilderFactory, BarSeries, BarSeriesBuilder};
 use crate::num::{NumFactory, TrNum};
 use std::fmt;
@@ -117,11 +116,9 @@ impl<T: TrNum> BaseBarSeriesCore<T> {
         self.bars.drain(0..bars_to_remove);
         self.removed_bars_count += bars_to_remove;
 
-        if !self.constrained {
-            self.series_begin_index = self
-                .series_begin_index
-                .map(|idx| idx.saturating_add(bars_to_remove));
-        }
+        self.series_begin_index = self
+            .series_begin_index
+            .map(|idx| idx.saturating_add(bars_to_remove));
     }
 
     /// 切割 Bar 列表为子集
@@ -161,7 +158,7 @@ where
 
     // 关联类型 Builder 改成带生命周期参数的 GAT
     type Builder<'b>
-        = TimeBarBuilder<'b, T, Self>
+        = BarBuilders<'b, T>
     where
         Self: 'b;
 
@@ -187,15 +184,15 @@ where
     }
 
     fn get_bar(&self, index: usize) -> Option<&Self::Bar> {
-        let inner_index = if index >= self.core.removed_bars_count {
-            index - self.core.removed_bars_count
-        } else {
-            if self.core.bars.is_empty() {
-                return None;
-            }
-            0 // 返回第一个可用的 Bar，对应 ta4j 的行为
-        };
+        if self.core.bars.is_empty() {
+            return None;
+        }
 
+        if index < self.core.removed_bars_count {
+            return None; // 索引已被移除，返回 None 更合逻辑
+        }
+
+        let inner_index = index - self.core.removed_bars_count;
         self.core.bars.get(inner_index)
     }
 
@@ -238,24 +235,25 @@ where
         self.core.maximum_bar_count
     }
 
-    fn set_maximum_bar_count(&mut self, maximum_bar_count: usize) {
+    fn set_maximum_bar_count(&mut self, maximum_bar_count: usize) -> Result<(), String> {
         if self.core.constrained {
-            panic!("Cannot set a maximum bar count on a constrained bar series");
+            return Err("Cannot set a maximum bar count on a constrained bar series".into());
         }
         if maximum_bar_count == 0 {
-            panic!("Maximum bar count must be strictly positive");
+            return Err("Maximum bar count must be strictly positive".into());
         }
         self.core.maximum_bar_count = maximum_bar_count;
         self.core.remove_exceeding_bars();
+        Ok(())
     }
 
     fn get_removed_bars_count(&self) -> usize {
         self.core.removed_bars_count
     }
 
-    fn add_bar_with_replace(&mut self, bar: Self::Bar, replace: bool) {
+    fn add_bar_with_replace(&mut self, bar: Self::Bar, replace: bool) -> Result<(), String> {
         if self.core.constrained {
-            panic!("Cannot add a bar to a constrained bar series");
+            return Err("Cannot add a bar to a constrained bar series".into());
         }
 
         if replace && !self.core.bars.is_empty() {
@@ -268,13 +266,13 @@ where
             self.core.series_begin_index = Some(0);
         }
 
-        // 这里 series_end_index 可能是 None，需要处理：
         self.core.series_end_index = Some(match self.core.series_end_index {
             Some(end) => end.saturating_add(1),
             None => 0,
         });
 
         self.core.remove_exceeding_bars();
+        Ok(())
     }
 
     fn add_trade(&mut self, trade_volume: T, trade_price: T) {
