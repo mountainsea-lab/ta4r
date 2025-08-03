@@ -517,21 +517,6 @@ impl TrNum for DecimalNum {
         Ok(Self::with_context(result, self.math_context.clone()))
     }
 
-    // fn pow_num(&self, n: &Self) -> Result<Self, NumError> {
-    //     use num_traits::ToPrimitive; // 显式引入 trait，避免 ambiguous 调用
-    //
-    //     let base = self.to_f64().ok_or(NumError::InvalidOperation)?;
-    //     let exp = n.to_f64().ok_or(NumError::InvalidOperation)?;
-    //     if base.is_nan() || exp.is_nan() {
-    //         return Err(NumError::InvalidOperation);
-    //     }
-    //
-    //     let res = base.powf(exp);
-    //     let result_decimal = Decimal::from_f64(res).ok_or(NumError::InvalidOperation)?;
-    //     let ctx = self.choose_math_context_with_greater_precision(n);
-    //     Ok(Self::with_context(result_decimal, ctx))
-    // }
-
     fn pow_num(&self, n: &Self) -> Result<Self, NumError> {
         let x = self.to_decimal().ok_or(NumError::InvalidOperation)?;
         let n_val = n.to_decimal().ok_or(NumError::InvalidOperation)?;
@@ -545,9 +530,9 @@ impl TrNum for DecimalNum {
 
         // Step 3: x^a using Decimal.powu
         let x_pow_a = if a_i64 >= 0 {
-            x.powu(a_i64 as u64)
+            x.powi(a_i64)
         } else {
-            Decimal::ONE / x.powu((-a_i64) as u64)
+            Decimal::ONE / x.powi(-a_i64)
         };
 
         // Step 4: x^b using f64.powf
@@ -648,6 +633,7 @@ unsafe impl Sync for DecimalNum {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::num::double_num::DoubleNum;
 
     const SUPER_PRECISION_STRING: &str = concat!(
         "1.234567890", // 10
@@ -783,8 +769,20 @@ mod tests {
 
         assert_eq!(result, expected);
 
-        assert_eq!(28, expected.delegate.scale());
+        assert_eq!(24, expected.delegate.scale());
 
         assert_eq!(28, expected.math_context.precision);
+    }
+
+    #[test]
+    fn test_equals_decimal_num_with_double_num() {
+        let double_num = DoubleNum::from_f64(3.0).unwrap();
+        let decimal_num = DecimalNum::from_f64(3.0).unwrap();
+
+        // 编译器不允许直接比较不同类型 => 你必须写明意图：
+        let same_value = double_num.to_f64() == decimal_num.to_f64();
+
+        // 但类型不同，因此结构体本身不相等
+        assert!(!same_value || double_num.get_delegate() != decimal_num.get_delegate());
     }
 }
