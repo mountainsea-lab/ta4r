@@ -468,7 +468,7 @@ impl TrNum for DecimalNum {
 
     fn plus(&self, augend: &Self) -> Self {
         let ctx = self.choose_math_context_with_greater_precision(augend);
-        let result = self.delegate - augend.delegate;
+        let result = self.delegate + augend.delegate;
         Self::with_context(result, ctx)
     }
 
