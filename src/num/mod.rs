@@ -32,7 +32,6 @@ pub mod double_num_factory;
 pub mod nan;
 pub mod nan_factory;
 pub mod types;
-mod dashu_num;
 
 use crate::num::types::{NumError, NumberDelegate};
 use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
