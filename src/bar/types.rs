@@ -50,16 +50,16 @@ pub trait Bar<T: TrNum + 'static> {
 pub trait BarBuilder<T: TrNum + 'static> {
     type Bar: Bar<T>;
 
-    fn time_period(self, period: Duration) -> Self;
-    fn begin_time(self, time: OffsetDateTime) -> Self;
-    fn end_time(self, time: OffsetDateTime) -> Self;
-    fn open_price(self, price: T) -> Self;
-    fn high_price(self, price: T) -> Self;
-    fn low_price(self, price: T) -> Self;
-    fn close_price(self, price: T) -> Self;
-    fn volume(self, volume: T) -> Self;
-    fn amount(self, amount: T) -> Self;
-    fn trades(self, trades: u64) -> Self;
+    fn time_period(&mut self, period: Duration) -> &mut Self;
+    fn begin_time(&mut self, time: OffsetDateTime) -> &mut Self;
+    fn end_time(&mut self, time: OffsetDateTime) -> &mut Self;
+    fn open_price(&mut self, price: T) -> &mut Self;
+    fn high_price(&mut self, price: T) -> &mut Self;
+    fn low_price(&mut self, price: T) -> &mut Self;
+    fn close_price(&mut self, price: T) -> &mut Self;
+    fn volume(&mut self, volume: T) -> &mut Self;
+    fn amount(&mut self, amount: T) -> &mut Self;
+    fn trades(&mut self, trades: u64) -> &mut Self;
     fn build(&self) -> Result<Self::Bar, String>;
     /**
      * Builds bar with {@link #build()} and adds it to series

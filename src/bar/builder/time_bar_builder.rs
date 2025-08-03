@@ -112,52 +112,52 @@ where
 {
     type Bar = BaseBar<T>;
 
-    fn time_period(mut self, time_period: Duration) -> Self {
+    fn time_period(&mut self, time_period: Duration) -> &mut Self {
         self.time_period = Some(time_period);
         self
     }
 
-    fn begin_time(mut self, begin_time: OffsetDateTime) -> Self {
+    fn begin_time(&mut self, begin_time: OffsetDateTime) -> &mut Self {
         self.begin_time = Some(begin_time);
         self
     }
 
-    fn end_time(mut self, end_time: OffsetDateTime) -> Self {
+    fn end_time(&mut self, end_time: OffsetDateTime) -> &mut Self {
         self.end_time = Some(end_time);
         self
     }
 
-    fn open_price(mut self, open_price: T) -> Self {
+    fn open_price(&mut self, open_price: T) -> &mut Self {
         self.open_price = Some(open_price);
         self
     }
 
-    fn high_price(mut self, high_price: T) -> Self {
+    fn high_price(&mut self, high_price: T) -> &mut Self {
         self.high_price = Some(high_price);
         self
     }
 
-    fn low_price(mut self, low_price: T) -> Self {
+    fn low_price(&mut self, low_price: T) -> &mut Self {
         self.low_price = Some(low_price);
         self
     }
 
-    fn close_price(mut self, close_price: T) -> Self {
+    fn close_price(&mut self, close_price: T) -> &mut Self {
         self.close_price = Some(close_price);
         self
     }
 
-    fn volume(mut self, volume: T) -> Self {
+    fn volume(&mut self, volume: T) -> &mut Self {
         self.volume = Some(volume);
         self
     }
 
-    fn amount(mut self, amount: T) -> Self {
+    fn amount(&mut self, amount: T) -> &mut Self {
         self.amount = Some(amount);
         self
     }
 
-    fn trades(mut self, trades: u64) -> Self {
+    fn trades(&mut self, trades: u64) -> &mut Self {
         self.trades = Some(trades);
         self
     }

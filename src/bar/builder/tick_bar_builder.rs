@@ -120,7 +120,7 @@ where
     S: BarSeries<'a, T, Bar = BaseBar<T>>,
 {
     type Bar = BaseBar<T>;
-    fn time_period(mut self, time_period: Duration) -> Self {
+    fn time_period(&mut self, time_period: Duration) -> &mut Self {
         self.time_period = match self.time_period {
             Some(existing) => Some(existing + time_period),
             None => Some(time_period),
@@ -128,28 +128,28 @@ where
         self
     }
 
-    fn begin_time(self, _time: OffsetDateTime) -> Self {
+    fn begin_time(&mut self, _time: OffsetDateTime) -> &mut Self {
         panic!("TickBar can only be built from closePrice");
     }
 
-    fn end_time(mut self, end_time: OffsetDateTime) -> Self {
+    fn end_time(&mut self, end_time: OffsetDateTime) -> &mut Self {
         self.end_time = Some(end_time);
         self
     }
 
-    fn open_price(self, _open_price: T) -> Self {
+    fn open_price(&mut self, _open_price: T) -> &mut Self {
         panic!("TickBar can only be built from closePrice");
     }
 
-    fn high_price(self, _high_price: T) -> Self {
+    fn high_price(&mut self, _high_price: T) -> &mut Self {
         panic!("TickBar can only be built from closePrice");
     }
 
-    fn low_price(self, _low_price: T) -> Self {
+    fn low_price(&mut self, _low_price: T) -> &mut Self {
         panic!("TickBar can only be built from closePrice");
     }
 
-    fn close_price(mut self, tick_price: T) -> Self {
+    fn close_price(&mut self, tick_price: T) -> &mut Self {
         // move 一次 tick_price，拆成多个变量避免多次 clone
         let price = tick_price;
 
@@ -184,17 +184,22 @@ where
         self
     }
 
-    fn volume(mut self, volume: T) -> Self {
-        self.volume = Some(self.volume.map_or(volume.clone(), |v| v + volume));
+    // fn volume(&mut self, volume: T) -> &mut Self {
+    //     self.volume = Some(self.volume.map_or(volume.clone(), |v| v + volume));
+    //     self
+    // }
+    fn volume(&mut self, volume: T) -> &mut Self {
+        let old_volume = self.volume.take();
+        self.volume = Some(old_volume.unwrap_or_else(|| volume.clone()) + volume);
         self
     }
 
-    fn amount(mut self, amount: T) -> Self {
+    fn amount(&mut self, amount: T) -> &mut Self {
         self.amount = Some(amount);
         self
     }
 
-    fn trades(mut self, trades: u64) -> Self {
+    fn trades(&mut self, trades: u64) -> &mut Self {
         self.trades = Some(trades);
         self
     }
@@ -230,6 +235,13 @@ where
         self.passed_ticks_count += 1;
 
         if self.passed_ticks_count % self.tick_count == 0 {
+            // 计算 amount，如果为空且 volume 和 close_price 都有值
+            if self.amount.is_none() {
+                if let (Some(close_price), Some(volume)) = (&self.close_price, &self.volume) {
+                    self.amount = Some(close_price.clone() * volume.clone());
+                }
+            }
+
             let bar = self.build()?;
             if let Some(ref mut series) = self.bar_series {
                 series.add_bar(bar);
@@ -317,7 +329,7 @@ fn test_tick_bar_builder_add() {
     assert_eq!(bar1.end_time, now + one_day * 4);
     assert_eq!(bar1.amount, DecimalNum::from(24));
     assert_eq!(bar1.trades, 10);
-    //
+
     // // Tick 6~10
     // series
     //     .bar_builder()

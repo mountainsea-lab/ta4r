@@ -100,33 +100,33 @@ where
 {
     type Bar = BaseBar<T>;
 
-    fn time_period(mut self, time_period: Duration) -> Self {
+    fn time_period(&mut self, time_period: Duration) -> &mut Self {
         self.time_period = Some(self.time_period.unwrap_or(Duration::ZERO) + time_period);
         self
     }
 
-    fn begin_time(self, _: OffsetDateTime) -> Self {
+    fn begin_time(&mut self, _: OffsetDateTime) -> &mut Self {
         panic!("VolumeBar can only be built from closePrice");
     }
 
-    fn end_time(mut self, end_time: OffsetDateTime) -> Self {
+    fn end_time(&mut self, end_time: OffsetDateTime) -> &mut Self {
         self.end_time = Some(end_time);
         self
     }
 
-    fn open_price(self, _: T) -> Self {
+    fn open_price(&mut self, _: T) -> &mut Self {
         panic!("VolumeBar can only be built from closePrice");
     }
 
-    fn high_price(self, _: T) -> Self {
+    fn high_price(&mut self, _: T) -> &mut Self {
         panic!("VolumeBar can only be built from closePrice");
     }
 
-    fn low_price(self, _: T) -> Self {
+    fn low_price(&mut self, _: T) -> &mut Self {
         panic!("VolumeBar can only be built from closePrice");
     }
 
-    fn close_price(mut self, price: T) -> Self {
+    fn close_price(&mut self, price: T) -> &mut Self {
         self.close_price = Some(price.clone());
 
         if self.open_price.is_none() {
@@ -148,17 +148,17 @@ where
         self
     }
 
-    fn volume(mut self, vol: T) -> Self {
-        self.volume = self.volume + vol;
+    fn volume(&mut self, vol: T) -> &mut Self {
+        self.volume = self.volume.clone() + vol;
         self
     }
 
-    fn amount(mut self, amt: T) -> Self {
-        self.amount = self.amount + amt;
+    fn amount(&mut self, amt: T) -> &mut Self {
+        self.amount = self.amount.clone() + amt;
         self
     }
 
-    fn trades(mut self, trades: u64) -> Self {
+    fn trades(&mut self, trades: u64) -> &mut Self {
         self.trades += trades;
         self
     }

@@ -98,83 +98,173 @@ pub enum BarBuilders<'a, T: TrNum + 'static> {
 impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
     type Bar = BaseBar<T>;
 
-    fn time_period(self, period: Duration) -> Self {
+    fn time_period(&mut self, period: Duration) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.time_period(period)),
-            Self::Tick(b) => Self::Tick(b.time_period(period)),
-            Self::Volume(b) => Self::Volume(b.time_period(period)),
+            Self::Time(b) => {
+                b.time_period(period);
+                self
+            }
+            Self::Tick(b) => {
+                b.time_period(period);
+                self
+            }
+            Self::Volume(b) => {
+                b.time_period(period);
+                self
+            }
         }
     }
 
-    fn begin_time(self, time: OffsetDateTime) -> Self {
+    fn begin_time(&mut self, time: OffsetDateTime) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.begin_time(time)),
-            Self::Tick(b) => Self::Tick(b.begin_time(time)),
-            Self::Volume(b) => Self::Volume(b.begin_time(time)),
+            Self::Time(b) => {
+                b.begin_time(time);
+                self
+            }
+            Self::Tick(b) => {
+                b.begin_time(time);
+                self
+            }
+            Self::Volume(b) => {
+                b.begin_time(time);
+                self
+            }
         }
     }
 
-    fn end_time(self, time: OffsetDateTime) -> Self {
+    fn end_time(&mut self, time: OffsetDateTime) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.end_time(time)),
-            Self::Tick(b) => Self::Tick(b.end_time(time)),
-            Self::Volume(b) => Self::Volume(b.end_time(time)),
+            Self::Time(b) => {
+                b.end_time(time);
+                self
+            }
+            Self::Tick(b) => {
+                b.end_time(time);
+                self
+            }
+            Self::Volume(b) => {
+                b.end_time(time);
+                self
+            }
         }
     }
 
-    fn open_price(self, price: T) -> Self {
+    fn open_price(&mut self, price: T) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.open_price(price)),
-            Self::Tick(b) => Self::Tick(b.open_price(price)),
-            Self::Volume(b) => Self::Volume(b.open_price(price)),
+            Self::Time(b) => {
+                b.open_price(price);
+                self
+            }
+            Self::Tick(b) => {
+                b.open_price(price);
+                self
+            }
+            Self::Volume(b) => {
+                b.open_price(price);
+                self
+            }
         }
     }
 
-    fn high_price(self, price: T) -> Self {
+    fn high_price(&mut self, price: T) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.high_price(price)),
-            Self::Tick(b) => Self::Tick(b.high_price(price)),
-            Self::Volume(b) => Self::Volume(b.high_price(price)),
+            Self::Time(b) => {
+                b.high_price(price);
+                self
+            }
+            Self::Tick(b) => {
+                b.high_price(price);
+                self
+            }
+            Self::Volume(b) => {
+                b.high_price(price);
+                self
+            }
         }
     }
 
-    fn low_price(self, price: T) -> Self {
+    fn low_price(&mut self, price: T) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.low_price(price)),
-            Self::Tick(b) => Self::Tick(b.low_price(price)),
-            Self::Volume(b) => Self::Volume(b.low_price(price)),
+            Self::Time(b) => {
+                b.low_price(price);
+                self
+            }
+            Self::Tick(b) => {
+                b.low_price(price);
+                self
+            }
+            Self::Volume(b) => {
+                b.low_price(price);
+                self
+            }
         }
     }
 
-    fn close_price(self, price: T) -> Self {
+    fn close_price(&mut self, price: T) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.close_price(price)),
-            Self::Tick(b) => Self::Tick(b.close_price(price)),
-            Self::Volume(b) => Self::Volume(b.close_price(price)),
+            Self::Time(b) => {
+                b.close_price(price);
+                self
+            }
+            Self::Tick(b) => {
+                b.close_price(price);
+                self
+            }
+            Self::Volume(b) => {
+                b.close_price(price);
+                self
+            }
         }
     }
 
-    fn volume(self, volume: T) -> Self {
+    fn volume(&mut self, volume: T) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.volume(volume)),
-            Self::Tick(b) => Self::Tick(b.volume(volume)),
-            Self::Volume(b) => Self::Volume(b.volume(volume)),
+            Self::Time(b) => {
+                b.volume(volume);
+                self
+            }
+            Self::Tick(b) => {
+                b.volume(volume);
+                self
+            }
+            Self::Volume(b) => {
+                b.volume(volume);
+                self
+            }
         }
     }
 
-    fn amount(self, amount: T) -> Self {
+    fn amount(&mut self, amount: T) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.amount(amount)),
-            Self::Tick(b) => Self::Tick(b.amount(amount)),
-            Self::Volume(b) => Self::Volume(b.amount(amount)),
+            Self::Time(b) => {
+                b.amount(amount);
+                self
+            }
+            Self::Tick(b) => {
+                b.amount(amount);
+                self
+            }
+            Self::Volume(b) => {
+                b.amount(amount);
+                self
+            }
         }
     }
 
-    fn trades(self, trades: u64) -> Self {
+    fn trades(&mut self, trades: u64) -> &mut Self {
         match self {
-            Self::Time(b) => Self::Time(b.trades(trades)),
-            Self::Tick(b) => Self::Tick(b.trades(trades)),
-            Self::Volume(b) => Self::Volume(b.trades(trades)),
+            Self::Time(b) => {
+                b.trades(trades);
+                self
+            }
+            Self::Tick(b) => {
+                b.trades(trades);
+                self
+            }
+            Self::Volume(b) => {
+                b.trades(trades);
+                self
+            }
         }
     }
 
