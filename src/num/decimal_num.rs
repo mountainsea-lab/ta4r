@@ -27,6 +27,7 @@ use crate::num::TrNum;
 use crate::num::decimal_num_factory::DecimalNumFactory;
 use crate::num::types::{MathContext, NumError, NumberDelegate};
 use num_traits::Num;
+use num_traits::real::Real;
 use rust_decimal::prelude::*;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
@@ -516,19 +517,54 @@ impl TrNum for DecimalNum {
         Ok(Self::with_context(result, self.math_context.clone()))
     }
 
-    fn pow_num(&self, n: &Self) -> Result<Self, NumError> {
-        use num_traits::ToPrimitive; // 显式引入 trait，避免 ambiguous 调用
+    // fn pow_num(&self, n: &Self) -> Result<Self, NumError> {
+    //     use num_traits::ToPrimitive; // 显式引入 trait，避免 ambiguous 调用
+    //
+    //     let base = self.to_f64().ok_or(NumError::InvalidOperation)?;
+    //     let exp = n.to_f64().ok_or(NumError::InvalidOperation)?;
+    //     if base.is_nan() || exp.is_nan() {
+    //         return Err(NumError::InvalidOperation);
+    //     }
+    //
+    //     let res = base.powf(exp);
+    //     let result_decimal = Decimal::from_f64(res).ok_or(NumError::InvalidOperation)?;
+    //     let ctx = self.choose_math_context_with_greater_precision(n);
+    //     Ok(Self::with_context(result_decimal, ctx))
+    // }
 
-        let base = self.to_f64().ok_or(NumError::InvalidOperation)?;
-        let exp = n.to_f64().ok_or(NumError::InvalidOperation)?;
-        if base.is_nan() || exp.is_nan() {
+    fn pow_num(&self, n: &Self) -> Result<Self, NumError> {
+        let x = self.to_decimal().ok_or(NumError::InvalidOperation)?;
+        let n_val = n.to_decimal().ok_or(NumError::InvalidOperation)?;
+
+        // Step 1: split n = a + b
+        let a = n_val.trunc(); // integer part
+        let b = n_val - a; // fractional part
+
+        // Step 2: convert a to i64
+        let a_i64 = a.to_i64().ok_or(NumError::InvalidOperation)?;
+
+        // Step 3: x^a using Decimal.powu
+        let x_pow_a = if a_i64 >= 0 {
+            x.powu(a_i64 as u64)
+        } else {
+            Decimal::ONE / x.powu((-a_i64) as u64)
+        };
+
+        // Step 4: x^b using f64.powf
+        let b_f64 = b.to_f64().ok_or(NumError::InvalidOperation)?;
+        let x_f64 = x.to_f64().ok_or(NumError::InvalidOperation)?;
+        if x_f64.is_nan() || b_f64.is_nan() {
             return Err(NumError::InvalidOperation);
         }
+        let x_pow_b_f64 = x_f64.powf(b_f64);
+        let x_pow_b = Decimal::from_f64(x_pow_b_f64).ok_or(NumError::InvalidOperation)?;
 
-        let res = base.powf(exp);
-        let result_decimal = Decimal::from_f64(res).ok_or(NumError::InvalidOperation)?;
+        // Step 5: final result = x^a * x^b
+        let result = x_pow_a * x_pow_b;
+
+        // Step 6: create new DecimalNum with adjusted MathContext
         let ctx = self.choose_math_context_with_greater_precision(n);
-        Ok(Self::with_context(result_decimal, ctx))
+        Ok(Self::with_context(result, ctx))
     }
 
     fn log(&self) -> Result<Self, NumError> {
@@ -608,3 +644,147 @@ impl TrNum for DecimalNum {
 // Additional Send + Sync implementations
 unsafe impl Send for DecimalNum {}
 unsafe impl Sync for DecimalNum {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SUPER_PRECISION_STRING: &str = concat!(
+        "1.234567890", // 10
+        "1234567890",  // 20
+        "1234567890",  // 30
+        "1234567890",  // 40
+        "1234567890",  // 50
+        "1234567890",  // 60
+        "1234567890",  // 70
+        "1234567890",  // 80
+        "1234567890",  // 90
+        "1234567890",  // 100
+        "1234567890",  // 110
+        "1234567890"   // 120
+    );
+
+    const SUPER_PRECISION_LARGE_STRING: &str = concat!(
+        "1234567890", // 10
+        "1234567890", // 20
+        "1234567890", // 30
+        "1234567890", // 40
+        "1234567890", // 50
+        "1234567890", // 60
+        "1234567890", // 70
+        "1234567890", // 80
+        "1234567890", // 90
+        "1234567890", // 100
+        "1234567890", // 110
+        "1234567890"  // 120
+    );
+
+    /// Truncate a decimal string to max precision digits (significant digits),
+    /// to fit into rust_decimal (28–29 digits).
+    ///
+    /// Examples:
+    /// - Input: "1.2345678901234567890123456789012345", max_digits = 29
+    /// - Output: "1.23456789012345678901234567890"
+    pub fn truncate_to_decimal_precision(s: &str, max_digits: usize) -> String {
+        let (significand, exponent) = match s.find('.') {
+            Some(dot_index) => {
+                let int_part = &s[..dot_index];
+                let frac_part = &s[dot_index + 1..];
+                let total_digits = int_part.trim_start_matches('0').len() + frac_part.len();
+
+                if total_digits <= max_digits {
+                    (s.to_string(), 0)
+                } else {
+                    // Truncate fractional part
+                    let digits_needed =
+                        max_digits.saturating_sub(int_part.trim_start_matches('0').len());
+                    let truncated_frac = &frac_part[..digits_needed.min(frac_part.len())];
+                    (format!("{}.{}", int_part, truncated_frac), 0)
+                }
+            }
+            None => {
+                // Pure integer: trim leading zeros and cut if too long
+                let int_part = s.trim_start_matches('0');
+                if int_part.len() <= max_digits {
+                    (int_part.to_string(), 0)
+                } else {
+                    (int_part[..max_digits].to_string(), 0)
+                }
+            }
+        };
+
+        significand.trim_end_matches('.').to_string()
+    }
+
+    #[test]
+    fn test_truncate_to_decimal_precision() {
+        let s = "1.234567890123456789012345678901234567890";
+        let truncated = truncate_to_decimal_precision(s, 29);
+        assert_eq!(truncated, "1.23456789012345678901234567890");
+
+        let s2 = "1234567890123456789012345678901234567890";
+        let truncated2 = truncate_to_decimal_precision(s2, 29);
+        assert_eq!(truncated2, "12345678901234567890123456789");
+
+        let s3 = "0.000000000000000000000000000000123456789";
+        let truncated3 = truncate_to_decimal_precision(s3, 29);
+        assert_eq!(truncated3, "0.00000000000000000000000000000"); // Leading zeros still count
+    }
+
+    /// 测试计算溢出异常情况
+    #[test]
+    fn test_pow_overflow_exponent() {
+        // 指数非常大，转成 i64 会失败，pow_num 返回 Err(InvalidOperation)
+        let x = DecimalNum::from_str("2").expect("Failed to parse base");
+
+        // 截断到小数点后29位（假设这是你定义的函数）
+        let truncated = truncate_to_decimal_precision(SUPER_PRECISION_LARGE_STRING, 19);
+
+        let n = DecimalNum::from_str(&truncated).expect("Failed to parse exponent");
+
+        let result = x.pow_num(&n);
+
+        assert!(matches!(result, Err(NumError::InvalidOperation)));
+    }
+
+    /// 截断字符串数字到小数点后 `precision` 位，
+    /// 返回截断后的字符串（不做四舍五入，只是截断）。
+    fn truncate_decimal_precision(s: &str, precision: usize) -> String {
+        if let Some(dot_pos) = s.find('.') {
+            let max_len = dot_pos + 1 + precision;
+            if s.len() > max_len {
+                s[..max_len].to_string()
+            } else {
+                s.to_string()
+            }
+        } else {
+            s.to_string()
+        }
+    }
+
+    #[test]
+    fn test_pow_large_base_truncated() {
+        use std::str::FromStr;
+
+        // 截断到28位小数（rust_decimal默认精度限制）
+        let truncated_str = truncate_decimal_precision(SUPER_PRECISION_STRING, 28);
+
+        let base = DecimalNum::from_str(&truncated_str).expect("parse base failed");
+        // 将指数改小，避免powu溢出。50是示例，可以根据需要调整
+        let exponent = DecimalNum::from_str("50").expect("parse exponent failed");
+
+        let result = base.pow_num(&exponent).expect("pow_num failed");
+        // 或者
+        dbg!(&result); // 用 Debug 格式打印，带文件行号信息
+        // 预期值需要你先用高精度工具（比如Java BigDecimal）算出对应的结果，
+        // 并且按28位小数截断或四舍五入后写入这里
+        let expected_str = "37648.602554115224992759750255"; // 示例，需替换成真实值
+        let expected = DecimalNum::from_str(expected_str).expect("parse expected failed");
+
+        assert_eq!(result, expected);
+
+        assert_eq!(28, expected.delegate.scale());
+
+        assert_eq!(28, expected.math_context.precision);
+    }
+}

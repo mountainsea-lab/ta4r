@@ -34,7 +34,7 @@ pub struct MathContext {
 }
 
 impl MathContext {
-    pub const DEFAULT_PRECISION: u32 = 32;
+    pub const DEFAULT_PRECISION: u32 = 28;
     pub fn new(precision: u32, rounding_mode: RoundingStrategy) -> Self {
         Self {
             precision,
