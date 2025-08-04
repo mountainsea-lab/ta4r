@@ -23,12 +23,15 @@
  * SOFTWARE.
  */
 use crate::bar::base_bar::BaseBar;
-use crate::bar::types::{BarBuilder, BarSeries};
+use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
 use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
+use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
+use crate::bar::builder::factory::time_bar_builder_factory::TimeBarBuilderFactory;
+use crate::bar::builder::types::BarBuilderFactories;
 
 /// TimeBarBuilder 结构体 - 使用泛型参数避免动态分发
 #[derive(Debug)]
@@ -207,4 +210,54 @@ where
 
         Ok(())
     }
+}
+
+
+#[test]
+fn test_time_bar_builder_build() {
+    use crate::num::decimal_num::DecimalNum;
+    use time::{Duration, OffsetDateTime};
+
+    // 构造时间
+    let begin_time = OffsetDateTime::parse("2014-06-25T00:00:00Z", &time::format_description::well_known::Rfc3339).unwrap();
+    let end_time = OffsetDateTime::parse("2014-06-25T01:00:00Z", &time::format_description::well_known::Rfc3339).unwrap();
+    let duration = end_time - begin_time;
+
+    // 创建 TimeBarBuilderFactory 并构造 bar_series
+    let time_factory = TimeBarBuilderFactory::<DecimalNum>::new();
+    let mut series = BaseBarSeriesBuilder::<DecimalNum>::default()
+        .with_bar_builder_factory(BarBuilderFactories::TimeBarFactory(time_factory))
+        .build()
+        .unwrap();
+
+    // 获取 builder
+    let mut builder = series.bar_builder();
+
+    builder
+        .time_period(duration)
+        .end_time(end_time)
+        .open_price(DecimalNum::from(101))
+        .high_price(DecimalNum::from(103))
+        .low_price(DecimalNum::from(100))
+        .close_price(DecimalNum::from(102))
+        .trades(4)
+        .volume(DecimalNum::from(40))
+        .amount(DecimalNum::from(4020))
+        .add()
+        .unwrap();
+
+    // 验证结果
+    assert_eq!(series.get_bar_count(), 1);
+    let bar = series.get_bar(0).unwrap();
+
+    assert_eq!(bar.time_period, duration);
+    assert_eq!(bar.begin_time, begin_time);
+    assert_eq!(bar.end_time, end_time);
+    assert_eq!(bar.open_price, Some(DecimalNum::from(101)));
+    assert_eq!(bar.high_price, Some(DecimalNum::from(103)));
+    assert_eq!(bar.low_price, Some(DecimalNum::from(100)));
+    assert_eq!(bar.close_price, Some(DecimalNum::from(102)));
+    assert_eq!(bar.volume, DecimalNum::from(40));
+    assert_eq!(bar.amount, Some(DecimalNum::from(4020)));
+    assert_eq!(bar.trades, 4);
 }
