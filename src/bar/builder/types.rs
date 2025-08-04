@@ -39,12 +39,19 @@ use time::{Duration, OffsetDateTime};
 // 枚举包装不同的 BarBuilderFactory 实现
 #[derive(Clone)]
 pub enum BarBuilderFactories<T: TrNum> {
-    TimeBarFactory(TimeBarBuilderFactory),
+    TimeBarFactory(TimeBarBuilderFactory<T>),
     TickBarFactory(TickBarBuilderFactory<T>),
-    VolumeBarFactory(VolumeBarBuilderFactory),
+    VolumeBarFactory(VolumeBarBuilderFactory<T>),
     // 以后可能会有其他带T的变体
     _Phantom(PhantomData<T>),
 }
+
+impl<T: TrNum> Default for BarBuilderFactories<T> {
+    fn default() -> Self {
+        BarBuilderFactories::_Phantom(PhantomData)
+    }
+}
+
 impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
     // 这里使用枚举自身作为 Series 的 F 类型参数
     type Series = BaseBarSeries<T>;
@@ -55,14 +62,15 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
 
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a> {
         match self {
-            BarBuilderFactories::TimeBarFactory(_) => {
-                let factory = series.num_factory();
-                BarBuilders::Time(TimeBarBuilder::new_with_factory(factory).bind_to(series))
+            BarBuilderFactories::TimeBarFactory(factory) => {
+                BarBuilders::Time(factory.create_bar_builder(series))
             }
             BarBuilderFactories::TickBarFactory(factory) => {
                 BarBuilders::Tick(factory.create_bar_builder(series))
             }
-            //         // BarBuilderFactories::Other(factory) => factory.create_bar_builder(series),
+            BarBuilderFactories::VolumeBarFactory(factory) => {
+                BarBuilders::Volume(factory.create_bar_builder(series))
+            }
             _ => unreachable!("Unsupported BarBuilderFactories variant"),
         }
     }

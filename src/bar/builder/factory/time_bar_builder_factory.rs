@@ -23,15 +23,14 @@
  * SOFTWARE.
  */
 
-use std::marker::PhantomData;
 use crate::bar::base_bar_series::BaseBarSeries;
-use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
 use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use std::marker::PhantomData;
 
 /// TimeBarBuilderFactory - 创建 TimeBarBuilder 的工厂
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct TimeBarBuilderFactory<T: TrNum> {
     _phantom: PhantomData<T>,
 }
@@ -43,6 +42,13 @@ impl<T: TrNum> TimeBarBuilderFactory<T> {
         }
     }
 }
+
+impl<T: TrNum> Default for TimeBarBuilderFactory<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: TrNum + 'static> BarBuilderFactory<T> for TimeBarBuilderFactory<T> {
     type Series = BaseBarSeries<T>;
     // GAT 的合法实现写法（注意这里声明了一个 GAT）

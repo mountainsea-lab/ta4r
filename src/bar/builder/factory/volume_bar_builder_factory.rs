@@ -22,24 +22,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::volume_bar_builder::VolumeBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use std::marker::PhantomData;
 
 /// VolumeBarBuilderFactory - 创建 VolumeBarBuilder 的工厂（单例复用）
 #[derive(Debug, Clone)]
-pub struct VolumeBarBuilderFactory {
+pub struct VolumeBarBuilderFactory<T: TrNum> {
     volume_threshold: i64,
+    _phantom: PhantomData<T>,
 }
 
-impl VolumeBarBuilderFactory {
-    pub fn new(volume_threshold: i64) -> Self {
-        Self { volume_threshold }
+impl<T: TrNum> Default for VolumeBarBuilderFactory<T> {
+    fn default() -> Self {
+        Self {
+            volume_threshold: 1,
+            _phantom: PhantomData,
+        }
     }
 }
 
-impl<T: TrNum + 'static> BarBuilderFactory<T> for VolumeBarBuilderFactory {
+impl<T: TrNum> VolumeBarBuilderFactory<T> {
+    pub fn new(volume_threshold: i64) -> Self {
+        Self {
+            volume_threshold,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T: TrNum + 'static> BarBuilderFactory<T> for VolumeBarBuilderFactory<T> {
     type Series = BaseBarSeries<T>;
     type Builder<'a>
         = VolumeBarBuilder<'a, T, BaseBarSeries<T>>
@@ -48,6 +63,6 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for VolumeBarBuilderFactory {
 
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a> {
         let factory = series.num_factory();
-        VolumeBarBuilder::new_with_factory(factory, self.volume_threshold.clone()).bind_to(series)
+        VolumeBarBuilder::new_with_factory(factory, self.volume_threshold).bind_to(series)
     }
 }

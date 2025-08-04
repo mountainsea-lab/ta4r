@@ -40,6 +40,15 @@ pub struct DecimalNum {
     math_context: MathContext,
 }
 
+impl Default for DecimalNum {
+    fn default() -> Self {
+        Self {
+            delegate: Decimal::ZERO, // 这里以零值为例，具体取决于 Decimal 类型
+            math_context: MathContext::default(), // 或你自定义的默认上下文
+        }
+    }
+}
+
 impl DecimalNum {
     /// 默认构造器，使用默认 MathContext
     pub fn new<T: Into<Decimal>>(val: T) -> Self {

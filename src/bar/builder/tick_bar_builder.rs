@@ -329,7 +329,6 @@ fn test_tick_bar_builder_add() {
     // ---- 第二组 Tick (6~10) ----
     {
         let mut builder = series.bar_builder();
-        let mut builder = series.bar_builder();
 
         // Tick 6~10
         builder

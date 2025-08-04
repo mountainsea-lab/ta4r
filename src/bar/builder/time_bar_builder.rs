@@ -23,15 +23,16 @@
  * SOFTWARE.
  */
 use crate::bar::base_bar::BaseBar;
+use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
+use crate::bar::builder::factory::time_bar_builder_factory::TimeBarBuilderFactory;
+use crate::bar::builder::types::BarBuilderFactories;
 use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
 use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
-use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
-use crate::bar::builder::factory::time_bar_builder_factory::TimeBarBuilderFactory;
-use crate::bar::builder::types::BarBuilderFactories;
+use time_macros::datetime;
 
 /// TimeBarBuilder 结构体 - 使用泛型参数避免动态分发
 #[derive(Debug)]
@@ -212,15 +213,13 @@ where
     }
 }
 
-
 #[test]
 fn test_time_bar_builder_build() {
     use crate::num::decimal_num::DecimalNum;
-    use time::{Duration, OffsetDateTime};
-
     // 构造时间
-    let begin_time = OffsetDateTime::parse("2014-06-25T00:00:00Z", &time::format_description::well_known::Rfc3339).unwrap();
-    let end_time = OffsetDateTime::parse("2014-06-25T01:00:00Z", &time::format_description::well_known::Rfc3339).unwrap();
+
+    let begin_time = datetime!(2014-06-25 00:00:00 UTC);
+    let end_time = datetime!(2014-06-25 01:00:00 UTC);
     let duration = end_time - begin_time;
 
     // 创建 TimeBarBuilderFactory 并构造 bar_series

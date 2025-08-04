@@ -59,7 +59,7 @@ impl BaseBarSeriesBuilder<DecimalNum> {
             max_bar_count: usize::MAX,
             num_factory: Arc::new(DecimalNumFactory::instance()),
             bar_builder_factory: Some(BarBuilderFactories::TimeBarFactory(
-                TimeBarBuilderFactory::default(),
+                TimeBarBuilderFactory::<DecimalNum>::default(),
             )),
         }
     }
@@ -121,6 +121,7 @@ impl<T> BarSeriesBuilder<T> for BaseBarSeriesBuilder<T>
 where
     T: TrNum + 'static,
     T::Factory: NumFactory<T>,
+    // TimeBarBuilderFactory<T>: Default,
 {
     type BarSeries = BaseBarSeries<T>;
 
@@ -133,7 +134,7 @@ where
 
         // 确定 Bar 构建器工厂
         let bar_builder_factory = self.bar_builder_factory.unwrap_or_else(|| {
-            BarBuilderFactories::TimeBarFactory(TimeBarBuilderFactory::default())
+            BarBuilderFactories::TimeBarFactory(TimeBarBuilderFactory::<T>::default())
         });
 
         // 计算索引
