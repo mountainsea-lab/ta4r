@@ -81,6 +81,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for VolumeBarBuilderFactory<T> {
         //     let locked = shared_series.lock().unwrap();
         //     locked.num_factory()
         // };
+
         VolumeBarBuilder::new_with_factory(num_factory, self.volume_threshold)
             .bind_shared(shared_series)
     }

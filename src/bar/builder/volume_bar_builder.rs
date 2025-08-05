@@ -239,7 +239,7 @@ where
     }
 }
 
-///
+
 #[test]
 fn test_volume_bar_builder_add_mut() {
     use time::{Duration, OffsetDateTime};
@@ -339,6 +339,9 @@ fn test_volume_bar_builder_add_mut() {
     assert_eq!(bar2.end_time, now + one_day * 6);
 }
 
+/// 注意：如果使用 `bar_builder_shared(shared_series)` 构造 builder，
+/// 请不要在外部提前持有 `shared_series.lock()`，
+/// 否则在 builder.add() 内部可能造成死锁。
 #[test]
 fn test_volume_bar_builder_add_shared() {
     use std::sync::Arc;
