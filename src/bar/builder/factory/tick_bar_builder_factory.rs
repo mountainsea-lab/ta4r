@@ -28,6 +28,7 @@ use crate::bar::builder::tick_bar_builder::TickBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
 
 /// TickBarBuilderFactory - 创建 TickBarBuilder 的工厂
 #[derive(Debug, Clone, Default)]
@@ -56,5 +57,12 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for TickBarBuilderFactory<T> {
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a> {
         let factory = series.num_factory();
         TickBarBuilder::new_with_factory(factory, self.tick_count).bind_to(series)
+    }
+
+    fn create_bar_builder_arc(&self, series: Arc<Mutex<Self::Series>>) -> Self::Builder<'static>
+    where
+        Self::Series: 'static
+    {
+        todo!()
     }
 }

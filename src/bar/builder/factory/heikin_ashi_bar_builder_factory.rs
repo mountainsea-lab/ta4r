@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 
+use std::sync::{Arc, Mutex};
 use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::heikin_ashi_bar_builder::HeikinAshiBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
@@ -41,5 +42,12 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for HeikinAshiBarBuilderFactory {
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a> {
         let factory = series.num_factory();
         HeikinAshiBarBuilder::new_with_factory(factory).bind_to(series)
+    }
+
+    fn create_bar_builder_arc(&self, series: Arc<Mutex<Self::Series>>) -> Self::Builder<'static>
+    where
+        Self::Series: 'static
+    {
+        todo!()
     }
 }

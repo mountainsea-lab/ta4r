@@ -28,6 +28,7 @@ use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
 
 /// TimeBarBuilderFactory - 创建 TimeBarBuilder 的工厂
 #[derive(Debug, Clone)]
@@ -60,5 +61,12 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for TimeBarBuilderFactory<T> {
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a> {
         let factory = series.num_factory();
         TimeBarBuilder::new_with_factory(factory).bind_to(series)
+    }
+
+    fn create_bar_builder_arc(&self, series: Arc<Mutex<Self::Series>>) -> Self::Builder<'static>
+    where
+        Self::Series: 'static
+    {
+        todo!()
     }
 }

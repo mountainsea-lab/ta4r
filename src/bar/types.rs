@@ -24,7 +24,7 @@
  */
 
 use crate::num::{NumFactory, TrNum};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
 
 // Bar trait - 对应 ta4j 的 Bar 接口
@@ -74,6 +74,12 @@ pub trait BarBuilderFactory<T: TrNum + 'static> {
     where
         Self::Series: 'a;
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a>;
+    fn create_bar_builder_arc(
+        &self,
+        series: Arc<Mutex<Self::Series>>,
+    ) -> Self::Builder<'static>
+    where
+        Self::Series: 'static;
 }
 
 // BarSeries trait - 对应 ta4j 的 BarSeries 接口
@@ -93,6 +99,11 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
 
     /// 返回生成兼容 bar 的构建器，生命周期和 self 绑定
     fn bar_builder(&mut self) -> Self::Builder<'_>;
+
+    /// 基于 Arc<Mutex<Self>> 返回一个构建器，适用于多线程共享调用
+    fn bar_builder_arc(arc_self: Arc<Mutex<Self>>) -> Self::Builder<'static>
+    where
+        Self: Sized + 'static;
 
     /// 返回序列的名称
     fn get_name(&self) -> &str;

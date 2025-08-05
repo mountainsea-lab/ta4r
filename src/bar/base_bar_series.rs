@@ -29,7 +29,7 @@ use crate::bar::types::{Bar, BarBuilderFactory, BarSeries, BarSeriesBuilder};
 use crate::num::{NumFactory, TrNum};
 use std::fmt;
 use std::fmt::Debug;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 /// BaseBarSeries 结构体 - 使用泛型参数避免动态分发
 #[derive(Debug)]
@@ -177,6 +177,13 @@ where
     fn bar_builder(&mut self) -> Self::Builder<'_> {
         let factory = self.bar_builder_factory.clone(); // 避免双借用
         factory.create_bar_builder(self)
+    }
+
+    fn bar_builder_arc(arc_self: Arc<Mutex<Self>>) -> Self::Builder<'static>
+    where
+        Self: Sized + 'static
+    {
+        todo!()
     }
 
     fn get_name(&self) -> &str {

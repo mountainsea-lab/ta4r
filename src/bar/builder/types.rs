@@ -34,7 +34,15 @@ use crate::bar::types::{BarBuilder, BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
 use std::fmt;
 use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
+
+/// BarSeries类型封装两种引用方式
+#[derive(Debug)]
+pub enum BarSeriesRef<'a, S> {
+    Mut(&'a mut S),
+    Shared(Arc<Mutex<S>>),
+}
 
 // 枚举包装不同的 BarBuilderFactory 实现
 #[derive(Clone)]
@@ -73,6 +81,13 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
             }
             _ => unreachable!("Unsupported BarBuilderFactories variant"),
         }
+    }
+
+    fn create_bar_builder_arc(&self, series: Arc<Mutex<Self::Series>>) -> Self::Builder<'static>
+    where
+        Self::Series: 'static
+    {
+        todo!()
     }
 }
 
