@@ -148,6 +148,10 @@ impl<T: TrNum> BaseBarSeries<T> {
             bar_builder_factory,
         })
     }
+
+    pub(crate) fn into_shared(self) -> Arc<Mutex<Self>> {
+        Arc::new(Mutex::new(self))
+    }
 }
 
 impl<'a, T: TrNum + 'static> BarSeries<'a, T> for BaseBarSeries<T>
@@ -179,11 +183,12 @@ where
         factory.create_bar_builder(self)
     }
 
-    fn bar_builder_arc(arc_self: Arc<Mutex<Self>>) -> Self::Builder<'static>
+    fn bar_builder_shared(&mut self, shared_series: Arc<Mutex<Self>>) -> Self::Builder<'static>
     where
-        Self: Sized + 'static
+        Self: Sized + 'static,
     {
-        todo!()
+        let factory = self.bar_builder_factory.clone(); // 避免双借用
+        factory.create_bar_builder_shared(self.num_factory(), shared_series)
     }
 
     fn get_name(&self) -> &str {

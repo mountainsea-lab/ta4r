@@ -83,11 +83,26 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
         }
     }
 
-    fn create_bar_builder_arc(&self, series: Arc<Mutex<Self::Series>>) -> Self::Builder<'static>
+    fn create_bar_builder_shared(
+        &self,
+        num_factory: Arc<T::Factory>,
+        shared_series: Arc<Mutex<Self::Series>>,
+    ) -> Self::Builder<'static>
     where
-        Self::Series: 'static
+        Self::Series: 'static,
     {
-        todo!()
+        match self {
+            BarBuilderFactories::TimeBarFactory(factory) => {
+                BarBuilders::Time(factory.create_bar_builder_shared(num_factory, shared_series))
+            }
+            BarBuilderFactories::TickBarFactory(factory) => {
+                BarBuilders::Tick(factory.create_bar_builder_shared(num_factory, shared_series))
+            }
+            BarBuilderFactories::VolumeBarFactory(factory) => {
+                BarBuilders::Volume(factory.create_bar_builder_shared(num_factory, shared_series))
+            }
+            _ => unreachable!("Unsupported BarBuilderFactories variant"),
+        }
     }
 }
 

@@ -23,16 +23,17 @@
  * SOFTWARE.
  */
 
-use std::sync::{Arc, Mutex};
-use time::{Duration, OffsetDateTime};
 use crate::bar::base_bar::BaseBar;
-use crate::bar::builder::types::{add_to_option, BarBuilderFactories, BarSeriesRef};
+use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
+use crate::bar::builder::factory::volume_bar_builder_factory::VolumeBarBuilderFactory;
+use crate::bar::builder::types::{BarBuilderFactories, BarSeriesRef, add_to_option};
 use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
 use crate::num::{NumFactory, TrNum};
-use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
-use crate::bar::builder::factory::volume_bar_builder_factory::VolumeBarBuilderFactory;
+use num_traits::FromPrimitive;
+use std::sync::{Arc, Mutex};
+use time::{Duration, OffsetDateTime};
 
 // #[derive(Debug)]
 // pub struct VolumeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
@@ -402,27 +403,23 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> VolumeBarBuilder<'a, T, S> {
         }
     }
 
-    /// 绑定可变引用的 BarSeries
-    pub fn bind_to(&mut self, series: &'a mut S) -> &mut Self {
+    pub fn bind_to(mut self, series: &'a mut S) -> Self {
         self.bar_series = Some(BarSeriesRef::Mut(series));
         self
     }
 
-    /// 绑定 Arc<Mutex<S>>
-    pub fn bind_shared(&mut self, series: Arc<Mutex<S>>) -> &mut Self {
+    pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
         self.bar_series = Some(BarSeriesRef::Shared(series));
         self
     }
 
     // ❗ 保留 self.volume 和 self.end_time
     fn reset(&mut self) {
-
         self.time_period = None;
         self.open_price = None;
         self.high_price = Some(T::zero());
         self.low_price = T::from_i64(i64::MAX);
         self.close_price = None;
-
     }
 
     /// 统一访问 BarSeries 的方法，屏蔽可变引用和锁的差异
@@ -439,9 +436,6 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> VolumeBarBuilder<'a, T, S> {
             None => Err("No bound bar_series".to_string()),
         }
     }
-
-
-
 }
 impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> BarBuilder<T> for VolumeBarBuilder<'a, T, S>
 where
@@ -564,40 +558,22 @@ where
 
         Ok(())
     }
-
 }
 
+///
 #[test]
-fn test_volume_bar_builder_add() {
-    use crate::num::decimal_num::DecimalNum;
-    use std::sync::{Arc, Mutex};
+fn test_volume_bar_builder_add_mut() {
     use time::{Duration, OffsetDateTime};
-
-    let factory = VolumeBarBuilderFactory::<DoubleNum>::new(4.into());
-    let series = BaseBarSeriesBuilder::<DoubleNum>::default()
-        .with_bar_builder_factory(BarBuilderFactories::VolumeBarFactory(factory))
-        .build()
-        .unwrap();
-
-    // 用 Arc<Mutex> 包装 series
-    let shared_series = Arc::new(Mutex::new(series));
 
     let now = OffsetDateTime::now_utc();
     let one_day = Duration::days(1);
 
-    // 创建 builder 并传入 Arc<Mutex<series>>
-    let mut builder = {
-        let num_factory = {
-            let locked = shared_series.lock().unwrap();
-            Arc::clone(&locked.num_factory())
-        };
-        VolumeBarBuilder {
-            num_factory,
-            volume_threshold: 4.into(),
-            bar_series: Some(Arc::clone(&shared_series)),
-        }
-    };
-    let mut builder = shared_series.lock().unwrap().bar_builder();
+    let factory = VolumeBarBuilderFactory::<DoubleNum>::new(4.into());
+    let mut series = BaseBarSeriesBuilder::<DoubleNum>::default()
+        .with_bar_builder_factory(BarBuilderFactories::VolumeBarFactory(factory))
+        .build()
+        .unwrap();
+    let mut builder = series.bar_builder();
 
     // -------- First bar: aggregate to volume 4 --------
     builder
@@ -634,6 +610,7 @@ fn test_volume_bar_builder_add() {
         .add()
         .unwrap();
 
+    // assert_eq!(series.get_bar_count(), 1); 非共享barSeries无法中间过程自由获取
     // -------- Second bar: aggregate next volume 4 --------
     builder
         .time_period(one_day)
@@ -659,12 +636,9 @@ fn test_volume_bar_builder_add() {
         .add()
         .unwrap();
 
-    // 断言通过锁访问 series 内部状态
-    let locked_series = shared_series.lock().unwrap();
+    let bar1 = series.get_bar(0).unwrap();
 
-    let bar1 = locked_series.get_bar(0).unwrap();
-
-    assert_eq!(bar1.volume, DecimalNum::from(4));
+    assert_eq!(bar1.volume, DoubleNum::from_f64(4.0).unwrap());
     assert_eq!(bar1.open_price, Some(1.into()));
     assert_eq!(bar1.close_price, Some(4.into()));
     assert_eq!(bar1.high_price, Some(5.into()));
@@ -673,9 +647,10 @@ fn test_volume_bar_builder_add() {
     assert_eq!(bar1.begin_time, now - one_day); // same as Java behavior
     assert_eq!(bar1.end_time, now + one_day * 3);
 
-    let bar2 = locked_series.get_bar(1).unwrap();
+    assert_eq!(series.get_bar_count(), 2);
+    let bar2 = series.get_bar(1).unwrap();
 
-    assert_eq!(bar2.volume, DecimalNum::from(4));
+    assert_eq!(bar2.volume, DoubleNum::from_f64(4.0).unwrap());
     assert_eq!(bar2.open_price, Some(2.into()));
     assert_eq!(bar2.close_price, Some(6.into()));
     assert_eq!(bar2.high_price, Some(6.into()));
@@ -685,4 +660,115 @@ fn test_volume_bar_builder_add() {
     assert_eq!(bar2.end_time, now + one_day * 6);
 }
 
+#[test]
+fn test_volume_bar_builder_add_shared() {
+    use std::sync::Arc;
+    use time::{Duration, OffsetDateTime};
 
+    let now = OffsetDateTime::now_utc();
+    let one_day = Duration::days(1);
+
+    let factory = VolumeBarBuilderFactory::<DoubleNum>::new(4.into());
+    let mut series = BaseBarSeriesBuilder::<DoubleNum>::default()
+        .with_bar_builder_factory(BarBuilderFactories::VolumeBarFactory(factory))
+        .build()
+        .unwrap();
+
+    // 1. 转成共享指针
+    let shared_series = series.into_shared();
+
+    // 2. 不提前持锁，直接通过临时锁获取 builder
+    let mut builder = {
+        let mut locked = shared_series.lock().unwrap();
+        locked.bar_builder_shared(Arc::clone(&shared_series))
+    }; // 🔓 locked dropped here, 锁立即释放，避免死锁
+
+    // -------- First bar: aggregate to volume 4 --------
+    builder
+        .time_period(one_day)
+        .end_time(now)
+        .close_price(1.into())
+        .volume(1.into())
+        .add()
+        .unwrap();
+
+    builder
+        .time_period(one_day)
+        .end_time(now + one_day)
+        .close_price(2.into())
+        .volume(1.into())
+        .add()
+        .unwrap();
+
+    builder
+        .time_period(one_day)
+        .end_time(now + one_day * 2)
+        .close_price(5.into())
+        .volume(1.into())
+        .add()
+        .unwrap();
+
+    builder
+        .time_period(one_day)
+        .end_time(now + one_day * 3)
+        .close_price(4.into())
+        .volume(2.into())
+        .add()
+        .unwrap();
+
+    // 🔄 只在验证时临时加锁
+    {
+        let guard = shared_series.lock().unwrap();
+        assert_eq!(guard.get_bar_count(), 1);
+        let bar1 = guard.get_bar(0).unwrap();
+
+        assert_eq!(bar1.volume, DoubleNum::from_f64(4.0).unwrap());
+        assert_eq!(bar1.open_price, Some(1.into()));
+        assert_eq!(bar1.close_price, Some(4.into()));
+        assert_eq!(bar1.high_price, Some(5.into()));
+        assert_eq!(bar1.low_price, Some(1.into()));
+        assert_eq!(bar1.time_period, one_day * 4);
+        assert_eq!(bar1.begin_time, now - one_day);
+        assert_eq!(bar1.end_time, now + one_day * 3);
+    }
+
+    // -------- Second bar: aggregate next volume 4 --------
+    builder
+        .time_period(one_day)
+        .end_time(now + one_day * 4)
+        .close_price(2.into())
+        .volume(1.into())
+        .add()
+        .unwrap();
+
+    builder
+        .time_period(one_day)
+        .end_time(now + one_day * 5)
+        .close_price(3.into())
+        .volume(1.into())
+        .add()
+        .unwrap();
+
+    builder
+        .time_period(one_day)
+        .end_time(now + one_day * 6)
+        .close_price(6.into())
+        .volume(1.into())
+        .add()
+        .unwrap();
+
+    {
+        let guard = shared_series.lock().unwrap();
+        assert_eq!(guard.get_bar_count(), 2);
+        let bar2 = guard.get_bar(1).unwrap();
+
+        assert_eq!(bar2.volume, DoubleNum::from_f64(4.0).unwrap());
+        assert_eq!(bar2.open_price, Some(2.into()));
+        assert_eq!(bar2.close_price, Some(6.into()));
+        assert_eq!(bar2.high_price, Some(6.into()));
+        assert_eq!(bar2.low_price, Some(2.into()));
+        assert_eq!(bar2.time_period, one_day * 3);
+        assert_eq!(bar2.begin_time, now + one_day * 3);
+        assert_eq!(bar2.end_time, now + one_day * 6);
+    }
+}

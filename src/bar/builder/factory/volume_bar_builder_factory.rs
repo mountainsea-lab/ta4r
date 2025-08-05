@@ -29,7 +29,6 @@ use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use crate::bar::builder::types::BarSeriesRef;
 
 /// VolumeBarBuilderFactory - 创建 VolumeBarBuilder 的工厂（单例复用）
 #[derive(Debug, Clone)]
@@ -68,29 +67,21 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for VolumeBarBuilderFactory<T> {
         VolumeBarBuilder::new_with_factory(factory, self.volume_threshold).bind_to(series)
     }
 
-    fn create_bar_builder_arc(&self, series: Arc<Mutex<Self::Series>>) -> Self::Builder<'static>
+    fn create_bar_builder_shared(
+        &self,
+        num_factory: Arc<T::Factory>,
+        shared_series: Arc<Mutex<Self::Series>>,
+    ) -> Self::Builder<'static>
     where
-        Self::Series: 'static
+        Self::Series: 'static,
     {
-        // 注意这里构造的是 'static 生命周期的 builder
-        let num_factory = {
-            let locked = series.lock().unwrap();
-            Arc::clone(&locked.num_factory())
-        };
-
-        VolumeBarBuilder {
-            num_factory,
-            volume_threshold: self.volume_threshold,
-            bar_series: Some(BarSeriesRef::Shared(series)),
-            time_period: None,
-            end_time: None,
-            open_price: None,
-            high_price: None,
-            low_price: None,
-            close_price: None,
-            volume: T::zero(),
-            amount: None,
-            trades: 0,
-        }
+        // 这里从shared_series获取会造成死锁 TODO后续看通过设计方式避免? 目前传参解决
+        // let factory = {
+        //     // 临时持锁只为获取num_factory(Arc)，立即释放锁
+        //     let locked = shared_series.lock().unwrap();
+        //     locked.num_factory()
+        // };
+        VolumeBarBuilder::new_with_factory(num_factory, self.volume_threshold)
+            .bind_shared(shared_series)
     }
 }

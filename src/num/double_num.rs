@@ -283,6 +283,37 @@ impl FromPrimitive for DoubleNum {
     }
 }
 
+// -- 自动 into 实现
+impl From<i32> for DoubleNum {
+    fn from(n: i32) -> Self {
+        DoubleNum::from_i32(n).unwrap()
+    }
+}
+
+impl From<i64> for DoubleNum {
+    fn from(n: i64) -> Self {
+        DoubleNum::from_i64(n).unwrap()
+    }
+}
+
+impl From<u32> for DoubleNum {
+    fn from(n: u32) -> Self {
+        DoubleNum::from_u32(n).unwrap()
+    }
+}
+
+impl From<u64> for DoubleNum {
+    fn from(n: u64) -> Self {
+        DoubleNum::from_u64(n).unwrap()
+    }
+}
+
+impl From<f64> for DoubleNum {
+    fn from(n: f64) -> Self {
+        DoubleNum::from_f64(n).unwrap()
+    }
+}
+
 impl Neg for DoubleNum {
     type Output = Self;
 

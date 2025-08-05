@@ -74,9 +74,10 @@ pub trait BarBuilderFactory<T: TrNum + 'static> {
     where
         Self::Series: 'a;
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a>;
-    fn create_bar_builder_arc(
+    fn create_bar_builder_shared(
         &self,
-        series: Arc<Mutex<Self::Series>>,
+        num_factory: Arc<T::Factory>,
+        shared_series: Arc<Mutex<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static;
@@ -100,8 +101,8 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
     /// 返回生成兼容 bar 的构建器，生命周期和 self 绑定
     fn bar_builder(&mut self) -> Self::Builder<'_>;
 
-    /// 基于 Arc<Mutex<Self>> 返回一个构建器，适用于多线程共享调用
-    fn bar_builder_arc(arc_self: Arc<Mutex<Self>>) -> Self::Builder<'static>
+    /// 基于 Arc<Mutex<Self>> 返回一个构建器，适用于多线程共享调用 create_bar_builder_shared
+    fn bar_builder_shared(&mut self, shared_series: Arc<Mutex<Self>>) -> Self::Builder<'static>
     where
         Self: Sized + 'static;
 

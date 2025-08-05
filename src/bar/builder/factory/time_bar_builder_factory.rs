@@ -63,9 +63,13 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for TimeBarBuilderFactory<T> {
         TimeBarBuilder::new_with_factory(factory).bind_to(series)
     }
 
-    fn create_bar_builder_arc(&self, series: Arc<Mutex<Self::Series>>) -> Self::Builder<'static>
+    fn create_bar_builder_shared(
+        &self,
+        num_factory: Arc<T::Factory>,
+        shared_series: Arc<Mutex<Self::Series>>,
+    ) -> Self::Builder<'static>
     where
-        Self::Series: 'static
+        Self::Series: 'static,
     {
         todo!()
     }
