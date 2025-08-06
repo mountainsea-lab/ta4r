@@ -26,7 +26,7 @@ use crate::bar::base_bar::BaseBar;
 use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::types::{BarBuilder, BarSeries};
 use crate::num::{NumFactory, TrNum};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
 
 /// Heikin-Ashi Bar 构建器
@@ -161,6 +161,11 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> HeikinAshiBarBuilder<'a, T, S>
     }
     pub fn bind_to(mut self, series: &'a mut S) -> Self {
         self.time_bar_builder = self.time_bar_builder.bind_to(series);
+        self
+    }
+
+    pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
+        self.time_bar_builder = self.time_bar_builder.bind_shared(series);
         self
     }
 

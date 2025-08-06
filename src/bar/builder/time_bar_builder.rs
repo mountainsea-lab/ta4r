@@ -25,12 +25,12 @@
 use crate::bar::base_bar::BaseBar;
 use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
 use crate::bar::builder::factory::time_bar_builder_factory::TimeBarBuilderFactory;
-use crate::bar::builder::types::BarBuilderFactories;
+use crate::bar::builder::types::{BarBuilderFactories, BarSeriesRef};
 use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
 use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
 use time_macros::datetime;
 
@@ -40,7 +40,7 @@ pub struct TimeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
     /// 数值工厂
     pub num_factory: Arc<T::Factory>,
     /// 绑定的 BarSeries（可选，使用泛型参数）
-    pub bar_series: Option<&'a mut S>,
+    pub(crate) bar_series: Option<BarSeriesRef<'a, S>>,
 
     // Bar 构建字段
     pub time_period: Option<Duration>,
@@ -91,21 +91,29 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TimeBarBuilder<'a, T, S> {
         }
     }
 
-    /// 绑定到 BarSeries，返回新的类型化构建器
-    pub fn bind_to(self, bar_series: &'a mut S) -> TimeBarBuilder<'a, T, S> {
-        TimeBarBuilder {
-            num_factory: self.num_factory,
-            bar_series: Some(bar_series),
-            time_period: self.time_period,
-            begin_time: self.begin_time,
-            end_time: self.end_time,
-            open_price: self.open_price,
-            high_price: self.high_price,
-            low_price: self.low_price,
-            close_price: self.close_price,
-            volume: self.volume,
-            amount: self.amount,
-            trades: self.trades,
+    /// 绑定到 BarSeries
+    pub fn bind_to(mut self, series: &'a mut S) -> Self {
+        self.bar_series = Some(BarSeriesRef::Mut(series));
+        self
+    }
+
+    pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
+        self.bar_series = Some(BarSeriesRef::Shared(series));
+        self
+    }
+
+    /// 统一访问 BarSeries 的方法，屏蔽可变引用和锁的差异
+    fn with_series<F, R>(&mut self, f: F) -> Result<R, String>
+    where
+        F: FnOnce(&mut S) -> R,
+    {
+        match &mut self.bar_series {
+            Some(BarSeriesRef::Mut(series)) => Ok(f(*series)),
+            Some(BarSeriesRef::Shared(arc_mutex)) => {
+                let mut locked = arc_mutex.lock().map_err(|_| "Failed to lock bar_series")?;
+                Ok(f(&mut *locked))
+            }
+            None => Err("No bound bar_series".to_string()),
         }
     }
 }
@@ -205,9 +213,9 @@ where
 
         let bar = self.build()?;
 
-        if let Some(series) = self.bar_series.as_mut() {
+        self.with_series(|series| {
             series.add_bar(bar);
-        }
+        })?;
 
         Ok(())
     }

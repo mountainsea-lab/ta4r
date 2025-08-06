@@ -188,7 +188,7 @@ where
         Self: Sized + 'static,
     {
         let factory = self.bar_builder_factory.clone(); // 避免双借用
-        factory.create_bar_builder_shared(self.num_factory(), shared_series)
+        factory.create_bar_builder_shared(shared_series)
     }
 
     fn get_name(&self) -> &str {

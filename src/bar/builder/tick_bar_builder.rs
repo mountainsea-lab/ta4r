@@ -25,11 +25,11 @@
 use crate::bar::base_bar::BaseBar;
 use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
 use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
-use crate::bar::builder::types::{BarBuilderFactories, add_to_option};
+use crate::bar::builder::types::{BarBuilderFactories, BarSeriesRef, add_to_option};
 use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
 use crate::num::decimal_num::DecimalNum;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
 
 /// TickBarBuilder 结构体 - 使用泛型参数避免动态分发
@@ -41,8 +41,7 @@ pub struct TickBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
     tick_count: u64,
     /// 当前已处理的交易次数
     passed_ticks_count: u64,
-    /// 绑定的 BarSeries（可选，使用泛型参数）
-    bar_series: Option<&'a mut S>,
+    pub(crate) bar_series: Option<BarSeriesRef<'a, S>>,
     // Bar 构建字段
     time_period: Option<Duration>,
     end_time: Option<OffsetDateTime>,
@@ -83,23 +82,15 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TickBarBuilder<'a, T, S> {
         }
     }
 
-    /// 绑定到 BarSeries，返回新的类型化构建器
-    pub fn bind_to(self, bar_series: &'a mut S) -> TickBarBuilder<'a, T, S> {
-        TickBarBuilder {
-            num_factory: self.num_factory,
-            tick_count: self.tick_count,
-            passed_ticks_count: self.passed_ticks_count,
-            bar_series: Some(bar_series),
-            time_period: self.time_period,
-            end_time: self.end_time,
-            open_price: self.open_price,
-            high_price: self.high_price,
-            low_price: self.low_price,
-            close_price: self.close_price,
-            volume: self.volume,
-            amount: self.amount,
-            trades: self.trades,
-        }
+    /// 绑定到 BarSeries
+    pub fn bind_to(mut self, series: &'a mut S) -> Self {
+        self.bar_series = Some(BarSeriesRef::Mut(series));
+        self
+    }
+
+    pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
+        self.bar_series = Some(BarSeriesRef::Shared(series));
+        self
     }
 
     /// 重置构建器状态
@@ -112,6 +103,21 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TickBarBuilder<'a, T, S> {
         self.volume = None;
         self.amount = None;
         self.trades = 0u64;
+    }
+
+    /// 统一访问 BarSeries 的方法，屏蔽可变引用和锁的差异
+    fn with_series<F, R>(&mut self, f: F) -> Result<R, String>
+    where
+        F: FnOnce(&mut S) -> R,
+    {
+        match &mut self.bar_series {
+            Some(BarSeriesRef::Mut(series)) => Ok(f(*series)),
+            Some(BarSeriesRef::Shared(arc_mutex)) => {
+                let mut locked = arc_mutex.lock().map_err(|_| "Failed to lock bar_series")?;
+                Ok(f(&mut *locked))
+            }
+            None => Err("No bound bar_series".to_string()),
+        }
     }
 }
 
@@ -184,10 +190,6 @@ where
         self
     }
 
-    // fn volume(&mut self, volume: T) -> &mut Self {
-    //     self.volume = Some(self.volume.map_or(volume.clone(), |v| v + volume));
-    //     self
-    // }
     fn volume(&mut self, volume: T) -> &mut Self {
         self.volume = add_to_option(&self.volume, volume);
         self
@@ -242,9 +244,11 @@ where
             }
 
             let bar = self.build()?;
-            if let Some(ref mut series) = self.bar_series {
+
+            self.with_series(|series| {
                 series.add_bar(bar);
-            }
+            })?;
+
             self.reset();
         }
 

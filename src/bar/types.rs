@@ -76,7 +76,6 @@ pub trait BarBuilderFactory<T: TrNum + 'static> {
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a>;
     fn create_bar_builder_shared(
         &self,
-        num_factory: Arc<T::Factory>,
         shared_series: Arc<Mutex<Self::Series>>,
     ) -> Self::Builder<'static>
     where

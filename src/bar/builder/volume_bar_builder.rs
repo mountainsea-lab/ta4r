@@ -145,6 +145,9 @@ where
     }
 
     fn low_price(&mut self, _: T) -> &mut Self {
+        // 忽略调用，仅返回 self（可以在 debug 模式下打印 warning）
+        log::warn!("VolumeBarBuilder does not support begin_time");
+        self
         panic!("VolumeBar can only be built from closePrice");
     }
 
@@ -238,7 +241,6 @@ where
         Ok(())
     }
 }
-
 
 #[test]
 fn test_volume_bar_builder_add_mut() {
