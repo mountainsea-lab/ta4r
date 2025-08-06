@@ -61,18 +61,19 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for TickBarBuilderFactory<T> {
 
     fn create_bar_builder_shared(
         &self,
+        num_factory: Arc<T::Factory>,
         shared_series: Arc<Mutex<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static,
     {
         // 注意使用调用方不能再调用前就持有锁，否则后续调用链shared_series锁操作会死锁
-        let factory = {
-            // 临时持锁只为获取num_factory(Arc)，立即释放锁
-            let locked = shared_series.lock().unwrap();
-            locked.num_factory()
-        };
+        // let factory = {
+        //     // 临时持锁只为获取num_factory(Arc)，立即释放锁
+        //     let locked = shared_series.lock().unwrap();
+        //     locked.num_factory()
+        // };
 
-        TickBarBuilder::new_with_factory(factory, self.tick_count).bind_shared(shared_series)
+        TickBarBuilder::new_with_factory(num_factory, self.tick_count).bind_shared(shared_series)
     }
 }
