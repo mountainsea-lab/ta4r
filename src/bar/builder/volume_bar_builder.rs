@@ -128,7 +128,9 @@ where
     }
 
     fn begin_time(&mut self, _: OffsetDateTime) -> &mut Self {
-        panic!("VolumeBar can only be built from closePrice");
+        // 忽略调用，仅返回 self（可以在 debug 模式下打印 warning）
+        log::warn!("VolumeBar can only be built from closePrice, begin_time is unused");
+        self
     }
 
     fn end_time(&mut self, end_time: OffsetDateTime) -> &mut Self {
@@ -137,18 +139,21 @@ where
     }
 
     fn open_price(&mut self, _: T) -> &mut Self {
-        panic!("VolumeBar can only be built from closePrice");
+        // 忽略调用，仅返回 self（可以在 debug 模式下打印 warning）
+        log::warn!("VolumeBar can only be built from closePrice, open_price is unused");
+        self
     }
 
     fn high_price(&mut self, _: T) -> &mut Self {
-        panic!("VolumeBar can only be built from closePrice");
+        // 忽略调用，仅返回 self（可以在 debug 模式下打印 warning）
+        log::warn!("VolumeBar can only be built from closePrice, high_price is unused");
+        self
     }
 
     fn low_price(&mut self, _: T) -> &mut Self {
         // 忽略调用，仅返回 self（可以在 debug 模式下打印 warning）
-        log::warn!("VolumeBarBuilder does not support begin_time");
+        log::warn!("VolumeBar can only be built from closePrice, low_price is unused");
         self
-        panic!("VolumeBar can only be built from closePrice");
     }
 
     fn close_price(&mut self, price: T) -> &mut Self {
