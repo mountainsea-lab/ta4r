@@ -83,6 +83,10 @@ impl NumFactory<NaN> for NaNFactory {
         NaN
     }
 
+    fn num_of_f64(&self, val: f64) -> NaN {
+        NaN
+    }
+
     fn produces(&self, num: &NaN) -> bool {
         num.is_nan()
     }

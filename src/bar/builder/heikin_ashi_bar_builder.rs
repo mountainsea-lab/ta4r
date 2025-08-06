@@ -179,3 +179,148 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> HeikinAshiBarBuilder<'a, T, S>
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bar::base_bar_series::BaseBarSeries;
+    use crate::bar::types::Bar;
+    use crate::num::decimal_num::DecimalNum;
+    use crate::num::decimal_num_factory::DecimalNumFactory;
+    use crate::num::double_num::DoubleNum;
+    use crate::num::double_num_factory::DoubleNumFactory;
+    use std::sync::Arc;
+    use time::Duration;
+    use time_macros::datetime;
+
+    #[derive(Clone)]
+    enum NumFactoryKind {
+        DoubleFactory,
+        DecimalFactory,
+    }
+
+    impl NumFactoryKind {
+        fn name(&self) -> &'static str {
+            match self {
+                NumFactoryKind::DoubleFactory => "DoubleNumFactory",
+                NumFactoryKind::DecimalFactory => "DecimalNumFactory",
+            }
+        }
+
+        fn factory_double() -> Arc<DoubleNumFactory> {
+            Arc::new(DoubleNumFactory::instance())
+        }
+
+        fn factory_decimal() -> Arc<DecimalNumFactory> {
+            Arc::new(DecimalNumFactory::instance())
+        }
+    }
+
+    #[test]
+    fn test_heikin_ashi_bar_builder_all() {
+        println!("Running test for DoubleNumFactory");
+        test_heikin_ashi_for::<DoubleNum>(NumFactoryKind::factory_double());
+
+        println!("Running test for DecimalNumFactory");
+        test_heikin_ashi_for::<DecimalNum>(NumFactoryKind::factory_decimal());
+    }
+
+    fn test_heikin_ashi_for<T>(num_factory: Arc<T::Factory>)
+    where
+        T: TrNum + 'static,
+    {
+        let price_open = num_factory.num_of_i64(100);
+        let price_high = num_factory.num_of_i64(110);
+        let price_low = num_factory.num_of_i64(95);
+        let price_close = num_factory.num_of_i64(105);
+        let volume = num_factory.num_of_i64(10);
+        let amount = num_factory.num_of_i64(1000);
+        let trades = 1;
+
+        println!("Price open: {}", price_open);
+        println!("Price high: {}", price_high);
+        println!("Price low: {}", price_low);
+        println!("Price close: {}", price_close);
+        println!("Volume: {}", volume);
+        println!("Amount: {}", amount);
+
+        // 这里写你具体的 HeikinAshiBarBuilder 测试逻辑
+
+        let time_period = Duration::hours(1);
+        let end_time = datetime!(2014-01-01 01:00:00 UTC);
+
+        let input_bar = BaseBar::new(
+            time_period,
+            end_time,
+            price_open.clone(),
+            price_high.clone(),
+            price_low.clone(),
+            price_close.clone(),
+            volume.clone(),
+            Some(amount.clone()),
+            trades,
+        )
+        .unwrap();
+
+        // ✅ Case 1: 无前一 HA 数据，应返回与原始 bar 相同的字段
+        let bar1 =
+            HeikinAshiBarBuilder::<T, BaseBarSeries<T>>::new_with_factory(Arc::clone(&num_factory))
+                .time_period(time_period)
+                .end_time(end_time)
+                .open_price(price_open.clone())
+                .high_price(price_high.clone())
+                .low_price(price_low.clone())
+                .close_price(price_close.clone())
+                .volume(volume.clone())
+                .amount(amount.clone())
+                .trades(trades)
+                .build()
+                .unwrap();
+
+        assert_eq!(bar1.get_open_price(), Some(price_open.clone()));
+        assert_eq!(bar1.get_high_price(), Some(price_high.clone()));
+        assert_eq!(bar1.get_low_price(), Some(price_low.clone()));
+        assert_eq!(bar1.get_close_price(), Some(price_close.clone()));
+
+        // ✅ Case 2: 有前一 HA 数据，计算 HA open/close/high/low
+        let prev_ha_open = num_factory.num_of_f64(100.0);
+        let prev_ha_close = num_factory.num_of_f64(105.0);
+
+        let expected_ha_close = price_open
+            .add_ref(&price_high)
+            .add_ref(&price_low)
+            .add_ref(&price_close)
+            .divided_by_ref(&num_factory.num_of_i64(4))
+            .unwrap();
+
+        let expected_ha_open = prev_ha_open
+            .add_ref(&prev_ha_close)
+            .divided_by_ref(&num_factory.num_of_i64(2))
+            .unwrap();
+
+        let expected_ha_high = price_high.max(&expected_ha_open).max(&expected_ha_close);
+
+        let expected_ha_low = price_low.min(&expected_ha_open).min(&expected_ha_close);
+
+        let ha_bar =
+            HeikinAshiBarBuilder::<T, BaseBarSeries<T>>::new_with_factory(Arc::clone(&num_factory))
+                .previous_heikin_ashi_open_price(prev_ha_open)
+                .previous_heikin_ashi_close_price(prev_ha_close)
+                .time_period(time_period)
+                .end_time(end_time)
+                .open_price(price_open.clone())
+                .high_price(price_high.clone())
+                .low_price(price_low.clone())
+                .close_price(price_close.clone())
+                .volume(volume.clone())
+                .amount(amount.clone())
+                .trades(trades)
+                .build()
+                .unwrap();
+
+        assert_eq!(ha_bar.get_open_price(), Some(expected_ha_open.clone()));
+        assert_eq!(ha_bar.get_close_price(), Some(expected_ha_close.clone()));
+        assert_eq!(ha_bar.get_high_price(), Some(expected_ha_high.clone()));
+        assert_eq!(ha_bar.get_low_price(), Some(expected_ha_low.clone()));
+    }
+}

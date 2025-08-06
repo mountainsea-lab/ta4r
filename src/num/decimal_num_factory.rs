@@ -26,6 +26,7 @@
 use crate::num::decimal_num::DecimalNum;
 use crate::num::types::{MathContext, NumError};
 use crate::num::{DecimalFactory, NumFactory};
+use num_traits::FromPrimitive;
 use once_cell::sync::Lazy;
 use rust_decimal::{Decimal, RoundingStrategy};
 use std::sync::Arc;
@@ -132,6 +133,11 @@ impl NumFactory<DecimalNum> for DecimalNumFactory {
 
     fn num_of_i64(&self, val: i64) -> DecimalNum {
         DecimalNum::with_context(val, self.math_context.clone())
+    }
+
+    fn num_of_f64(&self, val: f64) -> DecimalNum {
+        let dec = Decimal::from_f64(val).unwrap_or_else(|| Decimal::ZERO);
+        DecimalNum::with_context(dec, self.math_context.clone())
     }
 
     fn produces(&self, _num: &DecimalNum) -> bool {

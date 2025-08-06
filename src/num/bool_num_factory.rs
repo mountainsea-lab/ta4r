@@ -94,6 +94,10 @@ impl NumFactory<BoolNum> for BoolNumFactory {
         BoolNum(val != 0)
     }
 
+    fn num_of_f64(&self, val: f64) -> BoolNum {
+        BoolNum(val != 0.0)
+    }
+
     fn produces(&self, _num: &BoolNum) -> bool {
         true // 所有 BoolNum 都由此 factory 生成
     }
