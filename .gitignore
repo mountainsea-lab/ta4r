@@ -19,3 +19,8 @@ target
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
+
+# Test or tools generated files (根据你的项目新增调整)
+# 例如 tests_indicator 可能生成的临时文件夹或输出（示例）
+tests_indicator/tmp/
+tests_strategy/tmp/
