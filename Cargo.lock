@@ -948,6 +948,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "plotters",
+ "plotters-svg",
  "rust_decimal",
  "serde",
  "thiserror",
