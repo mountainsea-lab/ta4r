@@ -12,3 +12,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 time = "0.3.41"
 time-macros = "0.2.22"
 log = "0.4.27"
+
+[dev-dependencies]
+plotters = "0.3.7"         # 只用于测试和示例
+#plotters-svg = "0.3.7"     # 生成 SVG 格式
