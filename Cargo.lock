@@ -947,8 +947,6 @@ dependencies = [
  "log",
  "num-traits",
  "once_cell",
- "plotters",
- "plotters-svg",
  "rust_decimal",
  "serde",
  "thiserror",
@@ -961,6 +959,22 @@ name = "tap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
+
+[[package]]
+name = "tests_indicator"
+version = "0.1.0"
+dependencies = [
+ "plotters",
+ "plotters-svg",
+ "ta4r",
+]
+
+[[package]]
+name = "tests_strategy"
+version = "0.1.0"
+dependencies = [
+ "ta4r",
+]
 
 [[package]]
 name = "thiserror"

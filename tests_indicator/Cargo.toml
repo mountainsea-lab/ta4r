@@ -1,0 +1,11 @@
+[package]
+name = "tests_indicator"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ta4r = { path = "../ta4r" }
+plotters = "0.3.7"         # 只用于测试和示例
+plotters-svg = "0.3.7"     # 生成 SVG 格式
+
+

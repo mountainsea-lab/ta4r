@@ -1,0 +1,7 @@
+[package]
+name = "tests_strategy"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ta4r = { path = "../ta4r" }

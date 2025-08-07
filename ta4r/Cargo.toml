@@ -1,0 +1,14 @@
+[package]
+name = "ta4r"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+num-traits = "0.2.19"
+rust_decimal = { version = "1.37.2", features = ["serde", "maths"] }
+thiserror = "2.0.12"
+once_cell = "1.21.3"
+serde = { version = "1.0.219", features = ["derive"] }
+time = "0.3.41"
+time-macros = "0.2.22"
+log = "0.4.27"
