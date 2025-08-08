@@ -32,6 +32,8 @@ use crate::num::decimal_num::DecimalNum;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
+static TEST_START_TIME: OffsetDateTime = OffsetDateTime::UNIX_EPOCH;
+
 pub struct MockBarSeriesBuilder<T: TrNum> {
     inner: BaseBarSeriesBuilder<T>,
     data: Option<Vec<f64>>,
@@ -107,8 +109,7 @@ where
         let max_bars = data.len() + 1;
         for (i, &value) in data.iter().enumerate() {
             // 生成一个固定时区偏移为 UTC 的时间点，举例：1970-01-01T00:00:00Z - x分钟
-            let end_time = OffsetDateTime::from_unix_timestamp(0).unwrap()
-                - Duration::minutes((max_bars - i) as i64);
+            let end_time = TEST_START_TIME - Duration::minutes((max_bars - i) as i64);
 
             // 用 builder 构造 bar，注意处理 Result
             let res = series
@@ -127,8 +128,8 @@ where
     fn arbitrary_bars(series: &mut BaseBarSeries<T>) {
         for i in 0..5000u32 {
             let f = i as f64;
-            let end_time = OffsetDateTime::from_unix_timestamp(0).unwrap()
-                - Duration::minutes((5001 - i) as i64);
+
+            let end_time = TEST_START_TIME - Duration::minutes((5001 - i) as i64);
 
             let res = series
                 .bar_builder()
