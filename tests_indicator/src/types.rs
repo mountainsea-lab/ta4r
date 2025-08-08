@@ -38,6 +38,13 @@ where
     I: Indicator<Num = T> + Clone + 'static,
     F: IndicatorFactory<'a, T, S, I>,
 {
+    pub fn new(kind: NumKind, factory: F) -> Self {
+        Self {
+            kind,
+            factory,
+            phantom: std::marker::PhantomData,
+        }
+    }
     pub fn build_indicator(&self, series: &'a S, params: &[usize]) -> Result<I, IndicatorError> {
         self.factory.build(series, params)
     }
