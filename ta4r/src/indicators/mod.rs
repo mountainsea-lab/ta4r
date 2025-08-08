@@ -28,11 +28,11 @@ use crate::indicators::types::{IndicatorError, IndicatorIterator, NumConst};
 use crate::num::TrNum;
 use crate::num::types::NumError;
 
-mod abstract_indicator;
+pub mod abstract_indicator;
 pub mod averages;
-mod cached_indicator;
-mod helpers;
-mod numeric;
+pub mod cached_indicator;
+pub mod helpers;
+pub mod numeric;
 mod recursive_cached_indicator;
 pub mod types;
 
