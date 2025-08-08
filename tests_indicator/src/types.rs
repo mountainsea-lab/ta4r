@@ -49,3 +49,15 @@ where
         self.factory.build(series, params)
     }
 }
+
+
+// 帮助函数：断言数字相等，按需扩展（浮点等）
+fn assert_num_eq<T: TrNum>(expected: f64, actual: T) {
+    let actual_f64 = actual.to_f64().unwrap_or(f64::NAN);
+    assert!(
+        (expected - actual_f64).abs() < 1e-6,
+        "expected: {}, actual: {:?}",
+        expected,
+        actual
+    );
+}
