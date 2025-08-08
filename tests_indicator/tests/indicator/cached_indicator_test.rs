@@ -4,22 +4,58 @@ use ta4r::bar::builder::mocks::mock_bar_series_builder::MockBarSeriesBuilder;
 use ta4r::indicators::Indicator;
 use ta4r::indicators::averages::sma_indicator::SmaIndicator;
 use ta4r::indicators::helpers::close_price_indicator::ClosePriceIndicator;
-use tests_indicator::types::NumKind;
+use ta4r::indicators::helpers::open_price_indicator::OpenPriceIndicator;
+use ta4r::num::decimal_num::DecimalNum;
+use ta4r::num::decimal_num_factory::DecimalNumFactory;
+use ta4r::num::double_num::DoubleNum;
+use ta4r::num::double_num_factory::DoubleNumFactory;
+use ta4r::num::{NumFactory, TrNum};
+
+// #[rstest]
+// #[case(NumKind::Double)]
+// #[case(NumKind::Decimal)]
+// fn test_if_cache_works(#[case] kind: NumKind) {
+//     let factory = kind.num_factory();
+//
+//     let data = vec![1., 2., 3., 4., 3., 4., 5., 4., 3., 3., 4., 3., 2.];
+//
+//     let series = MockBarSeriesBuilder::default()
+//         .with_num_factory(factory.clone())
+//         .with_data(data)
+//         .build();
+//
+//     let close_price = ClosePriceIndicator::<T,_>::new(&series);
+//     let sma = SmaIndicator::new(&close_price, 3);
+//
+//     let first = sma.get_value(4).unwrap();
+//     let second = sma.get_value(4).unwrap();
+//
+//     assert_eq!(first, second);
+// }
+#[rstest]
+#[case(DoubleNumFactory::default())]
+fn test_if_cache_works_double(#[case] factory: DoubleNumFactory) {
+    test_if_cache_works::<DoubleNum>(Arc::new(factory));
+}
 
 #[rstest]
-#[case(NumKind::Double)]
-#[case(NumKind::Decimal)]
-fn test_if_cache_works(#[case] kind: NumKind) {
-    let factory = kind.num_factory();
-    // 创建测试用 BarSeries，数据同Java
+#[case(DecimalNumFactory::default())]
+fn test_if_cache_works_decimal(#[case] factory: DecimalNumFactory) {
+    test_if_cache_works::<DecimalNum>(Arc::new(factory));
+}
+
+fn test_if_cache_works<T>(factory: Arc<T::Factory>)
+where
+    T: TrNum + 'static,
+{
     let data = vec![1., 2., 3., 4., 3., 4., 5., 4., 3., 3., 4., 3., 2.];
-    let series = MockBarSeriesBuilder::new()
-        .with_num_factory(&*factory)
+
+    let series = MockBarSeriesBuilder::<T>::default()
+        .with_num_factory(factory.clone())
         .with_data(data)
         .build();
 
-    // 构造SMAIndicator，window=3
-    let close_price = ClosePriceIndicator::new(&Arc::new(series));
+    let close_price = ClosePriceIndicator::new(&series);
     let sma = SmaIndicator::new(&close_price, 3);
 
     let first = sma.get_value(4).unwrap();
