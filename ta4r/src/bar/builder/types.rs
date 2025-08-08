@@ -27,6 +27,8 @@ use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
 use crate::bar::builder::factory::time_bar_builder_factory::TimeBarBuilderFactory;
 use crate::bar::builder::factory::volume_bar_builder_factory::VolumeBarBuilderFactory;
+use crate::bar::builder::mocks::mock_bar_builder::MockBarBuilder;
+use crate::bar::builder::mocks::mock_bar_builder_factory::MockBarBuilderFactory;
 use crate::bar::builder::tick_bar_builder::TickBarBuilder;
 use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::builder::volume_bar_builder::VolumeBarBuilder;
@@ -50,6 +52,8 @@ pub enum BarBuilderFactories<T: TrNum> {
     TimeBarFactory(TimeBarBuilderFactory<T>),
     TickBarFactory(TickBarBuilderFactory<T>),
     VolumeBarFactory(VolumeBarBuilderFactory<T>),
+    #[cfg(feature = "enable-mocks")]
+    MockBarFactory(MockBarBuilderFactory<T>),
     // 以后可能会有其他带T的变体
     _Phantom(PhantomData<T>),
 }
@@ -79,6 +83,10 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
             BarBuilderFactories::VolumeBarFactory(factory) => {
                 BarBuilders::Volume(factory.create_bar_builder(series))
             }
+            #[cfg(feature = "enable-mocks")]
+            BarBuilderFactories::MockBarFactory(factory) => {
+                BarBuilders::Mock(factory.create_bar_builder(series))
+            }
             _ => unreachable!("Unsupported BarBuilderFactories variant"),
         }
     }
@@ -101,6 +109,10 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
             BarBuilderFactories::VolumeBarFactory(factory) => {
                 BarBuilders::Volume(factory.create_bar_builder_shared(num_factory, shared_series))
             }
+            #[cfg(feature = "enable-mocks")]
+            BarBuilderFactories::MockBarFactory(factory) => {
+                BarBuilders::Mock(factory.create_bar_builder_shared(num_factory, shared_series))
+            }
             _ => unreachable!("Unsupported BarBuilderFactories variant"),
         }
     }
@@ -118,6 +130,10 @@ impl<T: TrNum> fmt::Debug for BarBuilderFactories<T> {
             BarBuilderFactories::VolumeBarFactory(factory) => {
                 f.debug_tuple("VolumeBarFactory").field(factory).finish()
             }
+            #[cfg(feature = "enable-mocks")]
+            BarBuilderFactories::MockBarFactory(factory) => {
+                f.debug_tuple("MockBarFactory").field(factory).finish()
+            }
             // 如果添加了其他变体，继续写匹配
             BarBuilderFactories::_Phantom(_) => {
                 f.debug_tuple("_Phantom").field(&"PhantomData").finish()
@@ -131,6 +147,8 @@ pub enum BarBuilders<'a, T: TrNum + 'static> {
     Time(TimeBarBuilder<'a, T, BaseBarSeries<T>>),
     Tick(TickBarBuilder<'a, T, BaseBarSeries<T>>),
     Volume(VolumeBarBuilder<'a, T, BaseBarSeries<T>>),
+    #[cfg(feature = "enable-mocks")]
+    Mock(MockBarBuilder<'a, T, BaseBarSeries<T>>),
 }
 
 impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
@@ -147,6 +165,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 self
             }
             Self::Volume(b) => {
+                b.time_period(period);
+                self
+            }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
                 b.time_period(period);
                 self
             }
@@ -167,6 +190,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 b.begin_time(time);
                 self
             }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
+                b.begin_time(time);
+                self
+            }
         }
     }
 
@@ -181,6 +209,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 self
             }
             Self::Volume(b) => {
+                b.end_time(time);
+                self
+            }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
                 b.end_time(time);
                 self
             }
@@ -201,6 +234,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 b.open_price(price);
                 self
             }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
+                b.open_price(price);
+                self
+            }
         }
     }
 
@@ -215,6 +253,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 self
             }
             Self::Volume(b) => {
+                b.high_price(price);
+                self
+            }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
                 b.high_price(price);
                 self
             }
@@ -235,6 +278,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 b.low_price(price);
                 self
             }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
+                b.low_price(price);
+                self
+            }
         }
     }
 
@@ -249,6 +297,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 self
             }
             Self::Volume(b) => {
+                b.close_price(price);
+                self
+            }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
                 b.close_price(price);
                 self
             }
@@ -269,6 +322,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 b.volume(volume);
                 self
             }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
+                b.volume(volume);
+                self
+            }
         }
     }
 
@@ -283,6 +341,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 self
             }
             Self::Volume(b) => {
+                b.amount(amount);
+                self
+            }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
                 b.amount(amount);
                 self
             }
@@ -303,6 +366,11 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
                 b.trades(trades);
                 self
             }
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => {
+                b.trades(trades);
+                self
+            }
         }
     }
 
@@ -311,6 +379,8 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
             Self::Time(b) => b.build(),
             Self::Tick(b) => b.build(),
             Self::Volume(b) => b.build(),
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => b.build(),
         }
     }
 
@@ -319,6 +389,8 @@ impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
             Self::Time(b) => b.add(),
             Self::Tick(b) => b.add(),
             Self::Volume(b) => b.add(),
+            #[cfg(feature = "enable-mocks")]
+            Self::Mock(b) => b.add(),
         }
     }
 }

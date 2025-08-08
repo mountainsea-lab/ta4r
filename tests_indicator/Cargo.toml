@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-ta4r = { path = "../ta4r" }
+ta4r = { path = "../ta4r" , features = ["enable-mocks"]}
 plotters = "0.3.7"         # 只用于测试和示例
-plotters-svg = "0.3.7"     # 生成 SVG 格式
-
+plotters-svg = "0.3.7"
+#chrono = "0.4.41"     # 生成 SVG 格式
+time = "0.3.41"
+time-macros = "0.2.22"
+log = "0.4.27"
 

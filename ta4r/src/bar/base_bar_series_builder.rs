@@ -46,7 +46,7 @@ pub struct BaseBarSeriesBuilder<T: TrNum> {
     /// 数值工厂
     num_factory: Arc<T::Factory>,
     /// Bar 构建器工厂
-    bar_builder_factory: Option<BarBuilderFactories<T>>,
+    pub bar_builder_factory: Option<BarBuilderFactories<T>>,
 }
 
 /// 默认使用DecimalNum
@@ -121,7 +121,6 @@ impl<T> BarSeriesBuilder<T> for BaseBarSeriesBuilder<T>
 where
     T: TrNum + 'static,
     T::Factory: NumFactory<T>,
-    // TimeBarBuilderFactory<T>: Default,
 {
     type BarSeries = BaseBarSeries<T>;
 

@@ -116,6 +116,24 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TimeBarBuilder<'a, T, S> {
             None => Err("No bound bar_series".to_string()),
         }
     }
+
+    /// 克隆 builder，但不包含 bar_series（不可 Clone）
+    pub fn clone_without_series(&self) -> Self {
+        Self {
+            num_factory: Arc::clone(&self.num_factory),
+            bar_series: None,
+            time_period: self.time_period,
+            begin_time: self.begin_time,
+            end_time: self.end_time,
+            open_price: self.open_price.clone(),
+            high_price: self.high_price.clone(),
+            low_price: self.low_price.clone(),
+            close_price: self.close_price.clone(),
+            volume: self.volume.clone(),
+            amount: self.amount.clone(),
+            trades: self.trades,
+        }
+    }
 }
 
 impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> BarBuilder<T> for TimeBarBuilder<'a, T, S>

@@ -23,11 +23,6 @@
  * SOFTWARE.
  */
 
-pub mod factory;
-pub mod heikin_ashi_bar_builder;
-#[cfg(any(test, feature = "enable-mocks"))]
-pub mod mocks;
-pub mod tick_bar_builder;
-pub mod time_bar_builder;
-pub mod types;
-pub mod volume_bar_builder;
+pub mod mock_bar_builder;
+pub mod mock_bar_builder_factory;
+pub mod mock_bar_series_builder;
