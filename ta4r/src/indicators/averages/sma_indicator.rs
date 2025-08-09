@@ -83,8 +83,10 @@ where
         _base: &BaseIndicator<'a, T, S>,
         index: usize,
     ) -> Result<T, IndicatorError> {
-        let sum = self.running_total.get_value(index)?;
         let real_bar_count = (index + 1).min(self.bar_count);
+
+        let sum = self.running_total.get_value(index)?;
+
         let denom = self
             .running_total
             .get_bar_series()

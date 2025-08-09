@@ -2,7 +2,7 @@ use rstest::rstest;
 use std::sync::Arc;
 use ta4r::bar::base_bar_series_builder::BaseBarSeriesBuilder;
 use ta4r::bar::builder::mocks::mock_bar_series_builder::MockBarSeriesBuilder;
-use ta4r::bar::types::BarSeriesBuilder;
+use ta4r::bar::types::{BarSeries, BarSeriesBuilder};
 use ta4r::indicators::Indicator;
 use ta4r::indicators::averages::sma_indicator::SmaIndicator;
 use ta4r::indicators::helpers::close_price_indicator::ClosePriceIndicator;
@@ -139,31 +139,42 @@ where
     eprintln!("sma value:  {:#?}", sma.get_value(105).unwrap());
 }
 
-//
-// #[rstest]
-// #[case(NumKind::Double)]
-// #[case(NumKind::Decimal)]
-// fn test_get_value_with_old_results_removal(#[case] kind: NumKind) {
-//     let factory = kind.num_factory();
-//
-//     let data = vec![1f64; 20];
-//     let mut bar_series = MockBarSeriesBuilder::new()
-//         .with_num_factory(&*factory)
-//         .with_data(&data)
-//         .build();
-//
-//     let close_price = ClosePriceIndicator::new(Arc::new(bar_series.clone()));
-//     let sma = SMAIndicator::new(Arc::new(close_price), 10);
-//
-//     assert_num_eq(1.0, sma.get_value(5).unwrap());
-//     assert_num_eq(1.0, sma.get_value(10).unwrap());
-//
-//     // 设置最大Bar数量，触发旧结果移除
-//     bar_series.set_maximum_bar_count(12);
-//
-//     assert_num_eq(1.0, sma.get_value(19).unwrap());
-// }
-//
+/// cargo test test_get_value_with_old_results_removale_double -- --nocapture --test-threads=1
+#[test]
+fn test_get_value_with_old_results_removale_double() {
+    let factory = Arc::new(DoubleNumFactory::default());
+    test_get_value_with_cache_length_increase::<DoubleNum>(factory);
+}
+/// cargo test test_get_value_with_old_results_removal_decimal -- --nocapture --test-threads=1
+#[test]
+fn test_get_value_with_old_results_removal_decimal() {
+    let factory = Arc::new(DecimalNumFactory::default());
+    test_get_value_with_old_results_removal::<DecimalNum>(factory);
+}
+
+fn test_get_value_with_old_results_removal<T>(factory: Arc<T::Factory>)
+where
+    T: TrNum + 'static,
+{
+    let data = vec![1f64; 20];
+    let mut bar_series = MockBarSeriesBuilder::<T>::default()
+        .with_num_factory(factory)
+        .with_data(data)
+        .build();
+    // 设置最大Bar数量，触发旧结果移除
+    bar_series
+        .set_maximum_bar_count(12)
+        .expect("set_maximum_bar_count error");
+
+    let close_price = ClosePriceIndicator::new(&bar_series);
+    let sma = SmaIndicator::new(&close_price, 10);
+
+    assert_num_eq(1.0, sma.get_value(5).unwrap());
+    assert_num_eq(1.0, sma.get_value(10).unwrap());
+
+    assert_num_eq(1.0, sma.get_value(19).unwrap());
+}
+
 // #[rstest]
 // #[case(NumKind::Double)]
 // #[case(NumKind::Decimal)]

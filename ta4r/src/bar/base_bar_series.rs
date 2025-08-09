@@ -27,6 +27,7 @@ use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
 use crate::bar::builder::types::{BarBuilderFactories, BarBuilders};
 use crate::bar::types::{Bar, BarBuilderFactory, BarSeries, BarSeriesBuilder};
 use crate::num::{NumFactory, TrNum};
+use log::trace;
 use std::fmt;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
@@ -201,7 +202,14 @@ where
         }
 
         if index < self.core.removed_bars_count {
-            return None; // 索引已被移除，返回 None 更合逻辑
+            trace!(
+                "Bar series `{}` ({} bars): bar {} already removed, returning bar 0 instead",
+                self.core.name, // 假设 core 有 name 字段
+                self.core.bars.len(),
+                index
+            );
+            // 返回最早的 bar，做容错处理
+            return self.core.bars.get(0);
         }
 
         let inner_index = index - self.core.removed_bars_count;

@@ -198,8 +198,11 @@ where
             }
             // index <= highest_result_index，无需扩容
         } else {
-            // 首次缓存，缓存应为空
-            assert!(results.is_empty(), "Cache should be empty on first use");
+            // 首次缓存，缓存应为空(因为指标初始化会提前分配内存)
+            assert!(
+                results.iter().all(|x| x.is_none()),
+                "Cache should be empty on first use"
+            );
 
             let init_len = std::cmp::min(index + 1, max_length);
             results.resize(init_len, None);
