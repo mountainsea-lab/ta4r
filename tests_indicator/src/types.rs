@@ -52,6 +52,7 @@ where
 }
 
 // 帮助函数：断言数字相等，按需扩展（浮点等）
+#[warn(dead_code)]
 fn assert_num_eq<T: TrNum>(expected: f64, actual: T) {
     let actual_f64 = actual.to_f64().unwrap_or(f64::NAN);
     assert!(

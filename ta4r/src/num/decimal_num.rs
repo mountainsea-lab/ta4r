@@ -681,7 +681,7 @@ mod tests {
     /// - Input: "1.2345678901234567890123456789012345", max_digits = 29
     /// - Output: "1.23456789012345678901234567890"
     pub fn truncate_to_decimal_precision(s: &str, max_digits: usize) -> String {
-        let (significand, exponent) = match s.find('.') {
+        let (significand, _exponent) = match s.find('.') {
             Some(dot_index) => {
                 let int_part = &s[..dot_index];
                 let frac_part = &s[dot_index + 1..];

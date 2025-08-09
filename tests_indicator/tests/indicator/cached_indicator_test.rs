@@ -4,50 +4,32 @@ use ta4r::bar::builder::mocks::mock_bar_series_builder::MockBarSeriesBuilder;
 use ta4r::indicators::Indicator;
 use ta4r::indicators::averages::sma_indicator::SmaIndicator;
 use ta4r::indicators::helpers::close_price_indicator::ClosePriceIndicator;
-use ta4r::indicators::helpers::open_price_indicator::OpenPriceIndicator;
+use ta4r::num::TrNum;
 use ta4r::num::decimal_num::DecimalNum;
 use ta4r::num::decimal_num_factory::DecimalNumFactory;
 use ta4r::num::double_num::DoubleNum;
 use ta4r::num::double_num_factory::DoubleNumFactory;
-use ta4r::num::{NumFactory, TrNum};
 
-// #[rstest]
-// #[case(NumKind::Double)]
-// #[case(NumKind::Decimal)]
-// fn test_if_cache_works(#[case] kind: NumKind) {
-//     let factory = kind.num_factory();
-//
-//     let data = vec![1., 2., 3., 4., 3., 4., 5., 4., 3., 3., 4., 3., 2.];
-//
-//     let series = MockBarSeriesBuilder::default()
-//         .with_num_factory(factory.clone())
-//         .with_data(data)
-//         .build();
-//
-//     let close_price = ClosePriceIndicator::<T,_>::new(&series);
-//     let sma = SmaIndicator::new(&close_price, 3);
-//
-//     let first = sma.get_value(4).unwrap();
-//     let second = sma.get_value(4).unwrap();
-//
-//     assert_eq!(first, second);
-// }
+/// cargo test test_if_cache_works_double -- --nocapture --test-threads=1
 #[rstest]
 #[case(DoubleNumFactory::default())]
 fn test_if_cache_works_double(#[case] factory: DoubleNumFactory) {
     test_if_cache_works::<DoubleNum>(Arc::new(factory));
 }
-
+/// cargo test test_if_cache_works_decimal -- --nocapture --test-threads=1
 #[rstest]
 #[case(DecimalNumFactory::default())]
 fn test_if_cache_works_decimal(#[case] factory: DecimalNumFactory) {
     test_if_cache_works::<DecimalNum>(Arc::new(factory));
 }
-
+#[inline(never)]
 fn test_if_cache_works<T>(factory: Arc<T::Factory>)
 where
     T: TrNum + 'static,
 {
+    // 手动强制打印（println 也行，但 eprintln 在测试中默认也会打印）
+    eprintln!(">>> Starting test_if_cache_works");
+
     let data = vec![1., 2., 3., 4., 3., 4., 5., 4., 3., 3., 4., 3., 2.];
 
     let series = MockBarSeriesBuilder::<T>::default()
@@ -61,7 +43,12 @@ where
     let first = sma.get_value(4).unwrap();
     let second = sma.get_value(4).unwrap();
 
+    eprintln!("First SMA value:  {:#?}", first);
+    eprintln!("Second SMA value: {:#?}", second);
+
     assert_eq!(first, second);
+
+    eprintln!(">>> test_if_cache_works finished");
 }
 
 //

@@ -128,10 +128,10 @@ where
                         .time_period
                         .ok_or("Missing time_period")?,
                     self.time_bar_builder.end_time.ok_or("Missing end_time")?,
-                    ha_open,
-                    ha_high,
-                    ha_low,
-                    ha_close,
+                    Some(ha_open),
+                    Some(ha_high),
+                    Some(ha_low),
+                    Some(ha_close),
                     self.time_bar_builder
                         .volume
                         .clone()
@@ -252,10 +252,10 @@ mod tests {
         let input_bar = BaseBar::new(
             time_period,
             end_time,
-            price_open.clone(),
-            price_high.clone(),
-            price_low.clone(),
-            price_close.clone(),
+            Some(price_open.clone()),
+            Some(price_high.clone()),
+            Some(price_low.clone()),
+            Some(price_close.clone()),
             volume.clone(),
             Some(amount.clone()),
             trades,

@@ -197,10 +197,10 @@ where
         let end_time = self.end_time.unwrap_or_else(|| OffsetDateTime::now_utc());
 
         // 确保所有必须字段存在
-        let open_price = self.open_price.clone().ok_or("Missing open_price")?;
-        let high_price = self.high_price.clone().ok_or("Missing high_price")?;
-        let low_price = self.low_price.clone().ok_or("Missing low_price")?;
-        let close_price = self.close_price.clone().ok_or("Missing close_price")?;
+        let open_price = self.open_price.clone();
+        let high_price = self.high_price.clone();
+        let low_price = self.low_price.clone();
+        let close_price = self.close_price.clone();
 
         let volume = self.volume.clone().unwrap_or_else(|| T::zero());
         let amount = self.amount.clone();
