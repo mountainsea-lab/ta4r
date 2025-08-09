@@ -7,11 +7,11 @@ use ta4r::indicators::Indicator;
 use ta4r::indicators::averages::sma_indicator::SmaIndicator;
 use ta4r::indicators::helpers::close_price_indicator::ClosePriceIndicator;
 use ta4r::indicators::helpers::constant_indicator::ConstantIndicator;
-use ta4r::num::{NumFactory, TrNum};
 use ta4r::num::decimal_num::DecimalNum;
 use ta4r::num::decimal_num_factory::DecimalNumFactory;
 use ta4r::num::double_num::DoubleNum;
 use ta4r::num::double_num_factory::DoubleNumFactory;
+use ta4r::num::{NumFactory, TrNum};
 
 /// cargo test test_if_cache_works_double -- --nocapture --test-threads=1
 #[rstest]
@@ -76,7 +76,7 @@ where
     let base_series = BaseBarSeriesBuilder::<T>::default()
         .with_num_factory(factory)
         .build()
-        .expect("Failed to build BaseBarSeries");;
+        .expect("Failed to build BaseBarSeries");
 
     let constant = ConstantIndicator::new(&base_series, constant_val.clone());
 
@@ -86,8 +86,14 @@ where
     let series_ref = constant.get_bar_series();
     assert!(std::ptr::eq(series_ref, series_ref)); // 总是 true，或者不写断言
 
-    eprintln!("First constant_val value:  {:#?}", constant.get_value(0).unwrap());
-    eprintln!("Second constant_val value: {:#?}", constant.get_value(100).unwrap());
+    eprintln!(
+        "First constant_val value:  {:#?}",
+        constant.get_value(0).unwrap()
+    );
+    eprintln!(
+        "Second constant_val value: {:#?}",
+        constant.get_value(100).unwrap()
+    );
 
     let sma = SmaIndicator::new(&constant, 10);
 
