@@ -12,6 +12,7 @@ use ta4r::num::decimal_num_factory::DecimalNumFactory;
 use ta4r::num::double_num::DoubleNum;
 use ta4r::num::double_num_factory::DoubleNumFactory;
 use ta4r::num::{NumFactory, TrNum};
+use tests_indicator::types::assert_num_eq;
 
 /// cargo test test_if_cache_works_double -- --nocapture --test-threads=1
 #[rstest]
@@ -107,23 +108,37 @@ where
     assert!(std::ptr::eq(series_ref, series_ref)); // 总是 true，或者不写断言
 }
 
-// #[rstest]
-// #[case(NumKind::Double)]
-// #[case(NumKind::Decimal)]
-// fn test_get_value_with_cache_length_increase(#[case] kind: NumKind) {
-//     let factory = kind.num_factory();
-//
-//     let data = vec![10f64; 200];
-//     let series = MockBarSeriesBuilder::new()
-//         .with_num_factory(&*factory)
-//         .with_data(&data)
-//         .build();
-//
-//     let close_price = ClosePriceIndicator::new(Arc::new(series));
-//     let sma = SMAIndicator::new(Arc::new(close_price), 100);
-//
-//     assert_num_eq(10.0, sma.get_value(105).unwrap());
-// }
+/// cargo test test_get_value_with_cache_length_increase_double -- --nocapture --test-threads=1
+#[test]
+fn test_get_value_with_cache_length_increase_double() {
+    let factory = Arc::new(DoubleNumFactory::default());
+    test_get_value_with_cache_length_increase::<DoubleNum>(factory);
+}
+/// cargo test test_get_value_with_cache_length_increase_decimal -- --nocapture --test-threads=1
+#[test]
+fn test_get_value_with_cache_length_increase_decimal() {
+    let factory = Arc::new(DecimalNumFactory::default());
+    test_get_value_with_cache_length_increase::<DecimalNum>(factory);
+}
+
+fn test_get_value_with_cache_length_increase<T>(factory: Arc<T::Factory>)
+where
+    T: TrNum + 'static,
+{
+    let data = vec![10f64; 200];
+    let series = MockBarSeriesBuilder::<T>::default()
+        .with_num_factory(factory)
+        .with_data(data)
+        .build();
+
+    let close_price = ClosePriceIndicator::new(&series);
+    let sma = SmaIndicator::new(&close_price, 100);
+
+    assert_num_eq(10.0, sma.get_value(105).unwrap());
+
+    eprintln!("sma value:  {:#?}", sma.get_value(105).unwrap());
+}
+
 //
 // #[rstest]
 // #[case(NumKind::Double)]

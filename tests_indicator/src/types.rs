@@ -53,12 +53,21 @@ where
 
 // 帮助函数：断言数字相等，按需扩展（浮点等）
 #[warn(dead_code)]
-fn assert_num_eq<T: TrNum>(expected: f64, actual: T) {
+pub fn assert_num_eq<T: TrNum>(expected: f64, actual: T) {
+    // 转换 actual 为 f64
     let actual_f64 = actual.to_f64().unwrap_or(f64::NAN);
+
+    // 判断是否都是 NaN，如果是则视为相等
+    if expected.is_nan() && actual_f64.is_nan() {
+        return; // 都是 NaN，认为相等
+    }
+
+    // 判断是否相等（允许一个很小的误差）
     assert!(
         (expected - actual_f64).abs() < 1e-6,
-        "expected: {}, actual: {:?}",
+        "expected: {}, actual: {:?} (as f64: {})",
         expected,
-        actual
+        actual,
+        actual_f64
     );
 }
