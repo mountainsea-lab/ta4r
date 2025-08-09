@@ -1,10 +1,13 @@
 use rstest::rstest;
 use std::sync::Arc;
+use ta4r::bar::base_bar_series_builder::BaseBarSeriesBuilder;
 use ta4r::bar::builder::mocks::mock_bar_series_builder::MockBarSeriesBuilder;
+use ta4r::bar::types::BarSeriesBuilder;
 use ta4r::indicators::Indicator;
 use ta4r::indicators::averages::sma_indicator::SmaIndicator;
 use ta4r::indicators::helpers::close_price_indicator::ClosePriceIndicator;
-use ta4r::num::TrNum;
+use ta4r::indicators::helpers::constant_indicator::ConstantIndicator;
+use ta4r::num::{NumFactory, TrNum};
 use ta4r::num::decimal_num::DecimalNum;
 use ta4r::num::decimal_num_factory::DecimalNumFactory;
 use ta4r::num::double_num::DoubleNum;
@@ -51,32 +54,53 @@ where
     eprintln!(">>> test_if_cache_works finished");
 }
 
-//
-// #[rstest]
-// #[case(NumKind::Double)]
-// #[case(NumKind::Decimal)]
-// fn test_get_value_with_null_bar_series(#[case] kind: NumKind) {
-//     let factory = kind.num_factory();
-//
-//     let base_series = BaseBarSeriesBuilder::new()
-//         .with_num_factory(&*factory)
-//         .build();
-//
-//     let constant_val = factory.num_of(10);
-//
-//     let constant = ConstantIndicator::new(Arc::new(base_series.clone()), constant_val.clone());
-//
-//     assert_eq!(constant_val, constant.get_value(0).unwrap());
-//     assert_eq!(constant_val, constant.get_value(100).unwrap());
-//     assert!(constant.get_bar_series().is_some());
-//
-//     let sma = SMAIndicator::new(Arc::new(constant), 10);
-//
-//     assert_eq!(constant_val, sma.get_value(0).unwrap());
-//     assert_eq!(constant_val, sma.get_value(100).unwrap());
-//     assert!(sma.get_bar_series().is_some());
-// }
-//
+/// cargo test test_get_value_with_null_bar_series_double -- --nocapture --test-threads=1
+#[test]
+fn test_get_value_with_null_bar_series_double() {
+    let factory = Arc::new(DoubleNumFactory::default());
+    test_get_value_with_null_bar_series::<DoubleNum>(factory);
+}
+/// cargo test test_get_value_with_null_bar_series_decimal -- --nocapture --test-threads=1
+#[test]
+fn test_get_value_with_null_bar_series_decimal() {
+    let factory = Arc::new(DecimalNumFactory::default());
+    test_get_value_with_null_bar_series::<DecimalNum>(factory);
+}
+
+fn test_get_value_with_null_bar_series<T>(factory: Arc<T::Factory>)
+where
+    T: TrNum + 'static,
+{
+    let constant_val = factory.clone().num_of_i64(10);
+
+    let base_series = BaseBarSeriesBuilder::<T>::default()
+        .with_num_factory(factory)
+        .build()
+        .expect("Failed to build BaseBarSeries");;
+
+    let constant = ConstantIndicator::new(&base_series, constant_val.clone());
+
+    assert_eq!(constant_val, constant.get_value(0).unwrap());
+    assert_eq!(constant_val, constant.get_value(100).unwrap());
+
+    let series_ref = constant.get_bar_series();
+    assert!(std::ptr::eq(series_ref, series_ref)); // 总是 true，或者不写断言
+
+    eprintln!("First constant_val value:  {:#?}", constant.get_value(0).unwrap());
+    eprintln!("Second constant_val value: {:#?}", constant.get_value(100).unwrap());
+
+    let sma = SmaIndicator::new(&constant, 10);
+
+    assert_eq!(constant_val, sma.get_value(0).unwrap());
+    assert_eq!(constant_val, sma.get_value(100).unwrap());
+
+    eprintln!("First sma value:  {:#?}", sma.get_value(0).unwrap());
+    eprintln!("Second sma value: {:#?}", sma.get_value(100).unwrap());
+
+    let series_ref = sma.get_bar_series();
+    assert!(std::ptr::eq(series_ref, series_ref)); // 总是 true，或者不写断言
+}
+
 // #[rstest]
 // #[case(NumKind::Double)]
 // #[case(NumKind::Decimal)]
