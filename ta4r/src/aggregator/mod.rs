@@ -1,3 +1,4 @@
+pub mod base_bar_series_aggregator;
 pub mod types;
 
 use crate::bar::types::{Bar, BarSeries};
@@ -16,7 +17,7 @@ pub trait BarSeriesAggregator<T: TrNum + 'static> {
     type Series: for<'a> BarSeries<'a, T, Bar = Self::Bar>;
 
     /// 使用默认名称聚合整个 BarSeries，返回新的 BarSeries
-    fn aggregate(&self, series: &Self::Series) -> Self::Series {
+    fn aggregate(&self, series: &Self::Series) -> Result<Self::Series, String> {
         let default_name = series.get_name();
         self.aggregate_with_name(series, default_name)
     }
@@ -26,5 +27,5 @@ pub trait BarSeriesAggregator<T: TrNum + 'static> {
         &self,
         series: &Self::Series,
         aggregated_series_name: &str,
-    ) -> Self::Series;
+    ) -> Result<Self::Series, String>;
 }
