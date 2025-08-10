@@ -169,13 +169,16 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> HeikinAshiBarBuilder<'a, T, S>
         self
     }
 
-    pub fn previous_heikin_ashi_open_price(mut self, previous_open_price: T) -> Self {
-        self.previous_heikin_ashi_open_price = Some(previous_open_price);
+    pub fn previous_heikin_ashi_open_price(&mut self, previous_open_price: Option<T>) -> &mut Self {
+        self.previous_heikin_ashi_open_price = previous_open_price;
         self
     }
 
-    pub fn previous_heikin_ashi_close_price(mut self, previous_close_price: T) -> Self {
-        self.previous_heikin_ashi_close_price = Some(previous_close_price);
+    pub fn previous_heikin_ashi_close_price(
+        &mut self,
+        previous_close_price: Option<T>,
+    ) -> &mut Self {
+        self.previous_heikin_ashi_close_price = previous_close_price;
         self
     }
 }

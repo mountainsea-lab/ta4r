@@ -1,8 +1,8 @@
 pub mod base_bar_series_aggregator;
 pub mod duration_bar_aggregator;
+mod heikin_ashi_bar_aggregator;
 pub mod types;
 
-use crate::bar::base_bar::BaseBar;
 use crate::bar::types::{Bar, BarSeries};
 use crate::num::TrNum;
 
