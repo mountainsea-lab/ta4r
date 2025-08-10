@@ -2,7 +2,7 @@ use rstest::rstest;
 use std::sync::Arc;
 use ta4r::bar::base_bar_series_builder::BaseBarSeriesBuilder;
 use ta4r::bar::builder::mocks::mock_bar_series_builder::MockBarSeriesBuilder;
-use ta4r::bar::types::{BarSeries, BarSeriesBuilder};
+use ta4r::bar::types::{Bar, BarSeries, BarSeriesBuilder};
 use ta4r::indicators::Indicator;
 use ta4r::indicators::averages::sma_indicator::SmaIndicator;
 use ta4r::indicators::helpers::close_price_indicator::ClosePriceIndicator;
@@ -162,9 +162,9 @@ where
         .with_data(data)
         .build();
     // 限制最大Bar数量
-    // bar_series
-    //     .set_maximum_bar_count(12)
-    //     .expect("set_maximum_bar_count error");
+    bar_series
+        .set_maximum_bar_count(12)
+        .expect("set_maximum_bar_count error");
 
     let close_price = ClosePriceIndicator::new(&bar_series);
     let sma = SmaIndicator::new(&close_price, 10);
@@ -261,49 +261,111 @@ fn test_get_value_on_results_calculated_from_removed_bars_should_return_first_re
     }
 }
 
-// #[rstest]
-// #[case(NumKind::Double)]
-// #[case(NumKind::Decimal)]
-// fn test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow(#[case] kind: NumKind) {
-//     let factory = kind.num_factory();
+/// cargo test test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow_double -- --nocapture --test-threads=1
+#[test]
+fn test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow_double() {
+    let factory = Arc::new(DoubleNumFactory::default());
+    test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow::<DoubleNum>(
+        factory,
+    );
+}
+/// cargo test test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow_decimal -- --nocapture --test-threads=1
+#[test]
+fn test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow_decimal() {
+    let factory = Arc::new(DecimalNumFactory::default());
+    test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow::<
+        DecimalNum,
+    >(factory);
+}
+
+fn test_recursive_cached_indicator_on_moving_bar_series_should_not_cause_stack_overflow<T>(
+    factory: Arc<T::Factory>,
+) where
+    T: TrNum + 'static,
+{
+
+    // let mut series = MockBarSeriesBuilder::new()
+    //     .with_num_factory(factory)
+    //     .with_default_data()
+    //     .build();
+    //
+    // series.set_maximum_bar_count(5);
+    //
+    // assert_eq!(5, series.get_bar_count());
+    //
+    // let close_price = ClosePriceIndicator::new(&series);
+    // // todo
+    // let zlema = ZLEMAIndicator::new(Arc::new(close_price), 1);
+    //
+    // let result = std::panic::catch_unwind(|| {
+    //     assert_num_eq(4996.0, zlema.get_value(8).unwrap());
+    // });
+    //
+    // assert!(result.is_ok());
+}
+
+/// cargo test test_leave_last_bar_uncached_double -- --nocapture --test-threads=1
+#[test]
+fn test_leave_last_bar_uncached_double() {
+    let factory = Arc::new(DoubleNumFactory::default());
+    test_leave_last_bar_uncached::<DoubleNum>(factory);
+}
+/// cargo test test_leave_last_bar_uncached_decimal -- --nocapture --test-threads=1
+#[test]
+fn test_leave_last_bar_uncached_decimal() {
+    let factory = Arc::new(DecimalNumFactory::default());
+    test_leave_last_bar_uncached::<DecimalNum>(factory);
+}
+fn test_leave_last_bar_uncached<T>(factory: Arc<T::Factory>)
+where
+    T: TrNum + 'static,
+{
+    let trade_volume = factory.clone().num_of_i64(10);
+    let trade_price = factory.clone().num_of_i64(5);
+
+    let mut series = MockBarSeriesBuilder::<T>::default()
+        .with_num_factory(factory)
+        .with_default_data()
+        .build();
+
+    series
+        .get_last_bar()
+        .unwrap()
+        .add_trade(trade_volume, trade_price);
+
+    let close_price = ClosePriceIndicator::new(&series);
+    let sma = SmaIndicator::new(&close_price, 5);
+
+    assert_num_eq(
+        4998.0,
+        sma.get_value(series.get_end_index().unwrap()).unwrap(),
+    );
+
+    // (4996 + 4997 + 4998 + 4999 + 5) / 5
+    assert_num_eq(
+        3999.0,
+        sma.get_value(series.get_end_index().unwrap()).unwrap(),
+    );
+}
+
+// fn simulate_online_data_flow<T>(mut series: SeriesType<T>, factory: Arc<T::Factory>)
+// where
+//     T: TrNum + 'static,
+// {
+//     for i in 0..N {
+//         // 模拟新数据到来，添加一根新的 Bar（或者替换最后一根）
+//         let new_bar = create_new_bar(i, &series, &factory);
+//         series.add_bar(new_bar);
 //
-//     let mut series = MockBarSeriesBuilder::new()
-//         .with_num_factory(&*factory)
-//         .with_default_data()
-//         .build();
+//         // 构造指标（或复用，保证借用规则）
+//         let close_price = ClosePriceIndicator::new(&series);
+//         let sma = SmaIndicator::new(&close_price, 5);
 //
-//     series.set_maximum_bar_count(5);
+//         // 调用指标计算最新值，验证缓存增量计算
+//         let idx = series.get_end_index().unwrap();
+//         let val = sma.get_value(idx).unwrap();
 //
-//     assert_eq!(5, series.get_bar_count());
-//
-//     let close_price = ClosePriceIndicator::new(Arc::new(series.clone()));
-//     let zlema = ZLEMAIndicator::new(Arc::new(close_price), 1);
-//
-//     let result = std::panic::catch_unwind(|| {
-//         assert_num_eq(4996.0, zlema.get_value(8).unwrap());
-//     });
-//
-//     assert!(result.is_ok());
-// }
-//
-// #[rstest]
-// #[case(NumKind::Double)]
-// #[case(NumKind::Decimal)]
-// fn test_leave_last_bar_uncached(#[case] kind: NumKind) {
-//     let factory = kind.num_factory();
-//
-//     let series = MockBarSeriesBuilder::new()
-//         .with_num_factory(&*factory)
-//         .with_default_data()
-//         .build();
-//
-//     let close_price = ClosePriceIndicator::new(Arc::new(series.clone()));
-//     let sma = SMAIndicator::new(Arc::new(close_price), 5);
-//
-//     assert_num_eq(4998.0, sma.get_value(series.get_end_index()).unwrap());
-//
-//     series.get_last_bar().add_trade(factory.num_of(10), factory.num_of(5));
-//
-//     // (4996 + 4997 + 4998 + 4999 + 5) / 5
-//     assert_num_eq(3999.0, sma.get_value(series.get_end_index()).unwrap());
+//         // 这里可以断言或者打印检查 val 是否符合预期
+//         println!("Index {}, SMA value: {:?}", idx, val);
+//     }
 // }

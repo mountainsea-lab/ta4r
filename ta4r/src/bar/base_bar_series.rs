@@ -216,6 +216,26 @@ where
         self.core.bars.get(inner_index)
     }
 
+    fn get_bar_mut(&mut self, index: usize) -> Option<&mut Self::Bar> {
+        if self.core.bars.is_empty() {
+            return None;
+        }
+
+        if index < self.core.removed_bars_count {
+            trace!(
+                "Bar series `{}` ({} bars): bar {} already removed, returning bar 0 instead",
+                self.core.name,
+                self.core.bars.len(),
+                index
+            );
+            // 返回最早的 bar，做容错处理
+            return self.core.bars.get_mut(0);
+        }
+
+        let inner_index = index - self.core.removed_bars_count;
+        self.core.bars.get_mut(inner_index)
+    }
+
     fn get_bar_count(&self) -> usize {
         // 如果 series_end_index 或 series_begin_index 任何一个是 None，说明无效或者空序列，直接返回 0
         let end_index = match self.core.series_end_index {

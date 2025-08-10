@@ -117,15 +117,43 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
     /// 但从 0 到 20 返回相同的 bar。剩余的 9 个 bar 从索引 21 开始返回。
     fn get_bar(&self, index: usize) -> Option<&Self::Bar>;
 
+    /// 获取指定索引的 bar（可变）
+    fn get_bar_mut(&mut self, index: usize) -> Option<&mut Self::Bar>;
+
+    /// 获取倒数第 n 根 bar（n=0 表示最后一根，n=1 表示倒数第二根）
+    fn get_recent_bar(&self, n: usize) -> Option<&Self::Bar> {
+        self.get_end_index()
+            .and_then(|end_index| end_index.checked_sub(n))
+            .and_then(|idx| self.get_bar(idx))
+    }
+
+    /// 获取倒数第 n 根 bar（可变版本）
+    fn get_recent_bar_mut(&mut self, n: usize) -> Option<&mut Self::Bar> {
+        self.get_end_index()
+            .and_then(|end_index| end_index.checked_sub(n))
+            .and_then(move |idx| self.get_bar_mut(idx))
+    }
     /// 返回序列的第一个 bar
     fn get_first_bar(&self) -> Option<&Self::Bar> {
         self.get_begin_index()
             .and_then(|begin_index| self.get_bar(begin_index))
     }
 
+    /// 获取第一个 bar（可变）
+    fn get_first_bar_mut(&mut self) -> Option<&mut Self::Bar> {
+        self.get_begin_index()
+            .and_then(move |begin_index| self.get_bar_mut(begin_index))
+    }
+
     fn get_last_bar(&self) -> Option<&Self::Bar> {
         self.get_end_index()
             .and_then(|end_index| self.get_bar(end_index))
+    }
+
+    /// 获取最后一个 bar（可变）
+    fn get_last_bar_mut(&mut self) -> Option<&mut Self::Bar> {
+        self.get_end_index()
+            .and_then(move |end_index| self.get_bar_mut(end_index))
     }
 
     /// 返回序列中 bar 的数量
@@ -196,6 +224,20 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
     /// replace: true 表示替换最新的 bar。一些交易所在相应期间内
     /// 连续提供新的 bar 数据，例如在 1 分钟持续时间内每 1 秒
     fn add_bar_with_replace(&mut self, bar: Self::Bar, replace: bool) -> Result<(), String>;
+
+    /// 给最后一根 bar 添加一笔成交（更新成交量、收盘价、最高/最低价）
+    fn add_trade_to_last_bar(&mut self, trade_volume: T, trade_price: T) {
+        if let Some(last_bar) = self.get_last_bar_mut() {
+            last_bar.add_trade(trade_volume, trade_price);
+        }
+    }
+
+    /// 给最后一根 bar 更新价格（会更新收盘价，必要时更新最高/最低价）
+    fn update_last_bar_price(&mut self, price: T) {
+        if let Some(last_bar) = self.get_last_bar_mut() {
+            last_bar.add_price(price);
+        }
+    }
 
     /// 添加交易并更新最后一个 bar 的收盘价
     fn add_trade_with_numbers(&mut self, trade_volume: i64, trade_price: i64) {
