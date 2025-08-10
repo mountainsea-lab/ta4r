@@ -328,7 +328,7 @@ where
         .with_default_data()
         .build();
 
-    series.add_trade_to_last_bar(trade_volume,trade_price); // rust版本语言禁止后面修改
+    series.add_trade_to_last_bar(trade_volume, trade_price); // rust版本语言禁止后面修改
 
     let close_price = ClosePriceIndicator::new(&series);
     let sma = SmaIndicator::new(&close_price, 5);

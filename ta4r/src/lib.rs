@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 
+mod aggregator;
 pub mod bar;
 pub mod indicators;
 pub mod num;
