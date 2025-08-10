@@ -328,18 +328,16 @@ where
         .with_default_data()
         .build();
 
-    series
-        .get_last_bar()
-        .unwrap()
-        .add_trade(trade_volume, trade_price);
+    series.add_trade_to_last_bar(trade_volume,trade_price); // rust版本语言禁止后面修改
 
     let close_price = ClosePriceIndicator::new(&series);
     let sma = SmaIndicator::new(&close_price, 5);
 
-    assert_num_eq(
-        4998.0,
-        sma.get_value(series.get_end_index().unwrap()).unwrap(),
-    );
+    // assert_num_eq(
+    //     4998.0,
+    //     sma.get_value(series.get_end_index().unwrap()).unwrap(),
+    // );
+    // series.add_trade_to_last_bar(trade_volume,trade_price); // java版本的是这里设置的
 
     // (4996 + 4997 + 4998 + 4999 + 5) / 5
     assert_num_eq(
