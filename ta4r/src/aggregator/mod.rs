@@ -1,6 +1,8 @@
 pub mod base_bar_series_aggregator;
+pub mod duration_bar_aggregator;
 pub mod types;
 
+use crate::bar::base_bar::BaseBar;
 use crate::bar::types::{Bar, BarSeries};
 use crate::num::TrNum;
 
@@ -9,7 +11,7 @@ pub trait BarAggregator<T: TrNum + 'static> {
 
     /// 将输入的一批 Bar 聚合为新的 Bar 序列
     /// 传入是对输入 Bar 的借用切片
-    fn aggregate(&self, bars: &[Self::Bar]) -> Vec<Self::Bar>;
+    fn aggregate(&self, bars: &[Self::Bar]) -> Result<Vec<Self::Bar>, String>;
 }
 
 pub trait BarSeriesAggregator<T: TrNum + 'static> {

@@ -6,49 +6,6 @@ use crate::bar::types::{BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
 use std::marker::PhantomData;
 
-// pub struct BaseBarSeriesAggregator<T, BA, S>
-// where
-//     T: TrNum + 'static,
-//     BA: BarAggregator<T>,
-//     S: for<'a> BarSeries<'a, T, Bar = BA::Bar>,
-// {
-//     bar_aggregator: BA,
-//     _marker: std::marker::PhantomData<(T, S)>,
-// }
-//
-// impl<T, BA, S> BaseBarSeriesAggregator<T, BA, S>
-// where
-//     T: TrNum + 'static,
-//     BA: BarAggregator<T>,
-//     S: for<'a> BarSeries<'a, T, Bar = BA::Bar>,
-// {
-//     pub fn new(bar_aggregator: BA) -> Self {
-//         Self {
-//             bar_aggregator,
-//             _marker: std::marker::PhantomData,
-//         }
-//     }
-// }
-//
-// impl<T, BA, S> BarSeriesAggregator<T> for BaseBarSeriesAggregator<T, BA, S>
-// where
-//     T: TrNum + 'static,
-//     BA: BarAggregator<T>,
-//     S: for<'a> BarSeries<'a, T, Bar = BA::Bar>,
-// {
-//     type Bar = BA::Bar;
-//     type Series = BaseBarSeries<T>;
-//
-//     fn aggregate_with_name(&self, series: &S, aggregated_series_name: &str) -> Self::Series {
-//         let bars = series.bars();
-//         let aggregated_bars = self.bar_aggregator.aggregate(bars);
-//
-//         BaseBarSeriesBuilder::<T>::default()
-//             .with_name(aggregated_series_name)
-//             .with_bars(aggregated_bars)
-//             .build()
-//     }
-// }
 pub struct BaseBarSeriesAggregator<T, BA>
 where
     T: TrNum + 'static,
@@ -89,7 +46,7 @@ where
 
         BaseBarSeriesBuilder::<T>::default()
             .with_name(aggregated_series_name.to_string())
-            .with_bars(aggregated_bars)
+            .with_bars(aggregated_bars?)
             .build()
     }
 }
