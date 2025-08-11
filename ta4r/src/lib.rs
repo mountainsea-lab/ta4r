@@ -23,8 +23,68 @@
  * SOFTWARE.
  */
 
+use crate::num::TrNum;
+
 mod aggregator;
 pub mod bar;
 pub mod indicators;
 pub mod num;
 mod rule;
+mod trade;
+mod position;
+
+pub trait TradingRecord<T: TrNum>: Clone {
+    // fn get_starting_type(&self) -> TradeType;
+    // fn get_name(&self) -> &str;
+    //
+    // fn operate(&mut self, index: usize) {
+    //     self.operate_full(index, T::nan(), T::nan());
+    // }
+    // fn operate_full(&mut self, index: usize, price: T, amount: T);
+    //
+    // fn enter(&mut self, index: usize) -> bool {
+    //     self.enter_full(index, T::nan(), T::nan())
+    // }
+    // fn enter_full(&mut self, index: usize, price: T, amount: T) -> bool;
+    //
+    // fn exit(&mut self, index: usize) -> bool {
+    //     self.exit_full(index, T::nan(), T::nan())
+    // }
+    // fn exit_full(&mut self, index: usize, price: T, amount: T) -> bool;
+    //
+    // fn is_closed(&self) -> bool {
+    //     !self.get_current_position().is_opened()
+    // }
+    //
+    // fn transaction_cost_model(&self) -> &dyn CostModel<T>;
+    // fn holding_cost_model(&self) -> &dyn CostModel<T>;
+    //
+    // fn positions(&self) -> &[Position<T>];
+    // fn position_count(&self) -> usize {
+    //     self.positions().len()
+    // }
+    //
+    // fn get_current_position(&self) -> &Position<T>;
+    // fn get_last_position(&self) -> Option<&Position<T>>;
+    //
+    // fn trades(&self) -> &[Trade<T>];
+    // fn last_trade(&self) -> Option<&Trade<T>>;
+    // fn last_trade_of_type(&self, trade_type: TradeType) -> Option<&Trade<T>>;
+    // fn last_entry(&self) -> Option<&Trade<T>>;
+    // fn last_exit(&self) -> Option<&Trade<T>>;
+    //
+    // fn start_index(&self) -> Option<usize>;
+    // fn end_index(&self) -> Option<usize>;
+    //
+    // fn start_index_in_series<S: BarSeries<T>>(&self, series: &S) -> usize {
+    //     self.start_index()
+    //         .map(|i| i.max(series.begin_index()))
+    //         .unwrap_or(series.begin_index())
+    // }
+    //
+    // fn end_index_in_series<S: BarSeries<T>>(&self, series: &S) -> usize {
+    //     self.end_index()
+    //         .map(|i| i.min(series.end_index()))
+    //         .unwrap_or(series.end_index())
+    // }
+}
