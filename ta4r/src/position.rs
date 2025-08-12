@@ -1,7 +1,8 @@
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
-use crate::trade::{CostModel, Trade, TradeType};
 use std::fmt;
+use crate::analysis::CostModel;
+use crate::trade::{Trade, TradeType};
 
 #[derive(Clone)]
 pub struct Position<'a, T, CM, HM, S>

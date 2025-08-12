@@ -94,7 +94,7 @@ pub struct HeikinAshiBarAggregator<T>
 where
     T: TrNum + 'static,
 {
-    _marker: PhantomData<(T)>,
+    _marker: PhantomData<T>,
     num_factory: Arc<T::Factory>,
 }
 

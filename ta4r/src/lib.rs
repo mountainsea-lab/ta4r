@@ -25,14 +25,14 @@
 
 use crate::num::TrNum;
 
-mod aggregator;
-mod analysis;
+pub mod aggregator;
+pub mod analysis;
 pub mod bar;
 pub mod indicators;
 pub mod num;
-mod position;
-mod rule;
-mod trade;
+pub mod position;
+pub mod rule;
+pub mod trade;
 
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
