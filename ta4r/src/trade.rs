@@ -2,10 +2,10 @@ use crate::analysis::CostModel;
 use crate::analysis::cost::zero_cost_model::ZeroCostModel;
 use crate::bar::types::{Bar, BarSeries};
 use crate::num::TrNum;
+use crate::num::types::NumError;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use crate::num::types::NumError;
 
 /// 交易类型：买或卖
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -16,13 +16,6 @@ pub enum TradeType {
 
 impl TradeType {
     /// 返回互补类型：Buy <-> Sell
-    // pub fn complement_type(&self) -> TradeType {
-    //     match self {
-    //         TradeType::Buy => TradeType::Sell,
-    //         TradeType::Sell => TradeType::Buy,
-    //     }
-    // }
-
     pub const fn complement_type(&self) -> TradeType {
         match self {
             TradeType::Buy => TradeType::Sell,
@@ -32,7 +25,6 @@ impl TradeType {
 }
 
 /// 完整版 Trade
-#[derive(Debug)]
 pub struct Trade<'a, T, CM, S>
 where
     T: TrNum + 'static,
@@ -40,10 +32,10 @@ where
     S: BarSeries<'a, T>,
 {
     trade_type: TradeType,
-    index: usize,
-    price_per_asset: T,
+    pub(crate) index: usize,
+    pub(crate) price_per_asset: T,
     net_price: T,
-    amount: T,
+    pub(crate) amount: T,
     cost: T,
     cost_model: CM,
     // 你可以加个 PhantomData 来标记生命周期
@@ -308,7 +300,6 @@ where
         amount: T,
         cost_model: CM,
     ) -> Result<Self, String> {
-
         let bar = series
             .get_bar(index)
             .ok_or_else(|| format!("Bar at index {} not found", index))?;
@@ -330,8 +321,10 @@ where
         amount: T,
         cost_model: CM,
     ) -> Self {
-        Self::try_new_from_series_with_amount_and_cost_model(index, series, trade_type, amount, cost_model)
-            .expect("Failed to create Trade in new_from_series_with_amount_and_cost_model()")
+        Self::try_new_from_series_with_amount_and_cost_model(
+            index, series, trade_type, amount, cost_model,
+        )
+        .expect("Failed to create Trade in new_from_series_with_amount_and_cost_model()")
     }
 
     /// 通用设置价格和成本，带错误返回
@@ -343,7 +336,9 @@ where
     ) -> Result<(), NumError> {
         self.cost_model = cost_model;
         self.price_per_asset = price_per_asset;
-        self.cost = self.cost_model.calculate_trade(&self.price_per_asset, &amount);
+        self.cost = self
+            .cost_model
+            .calculate_trade(&self.price_per_asset, &amount);
         let cost_per_asset = self.cost.divided_by(&amount)?;
         self.net_price = match self.trade_type {
             TradeType::Buy => self.price_per_asset.plus(&cost_per_asset),
@@ -450,7 +445,6 @@ where
     }
 }
 
-
 impl<'a, T, S> Trade<'a, T, ZeroCostModel<T>, S>
 where
     T: TrNum + 'static,
@@ -463,7 +457,13 @@ where
         price_per_asset: T,
         amount: T,
     ) -> Result<Self, NumError> {
-        Self::try_new(index, trade_type, price_per_asset, amount, ZeroCostModel::new())
+        Self::try_new(
+            index,
+            trade_type,
+            price_per_asset,
+            amount,
+            ZeroCostModel::new(),
+        )
     }
 
     /// 通过 BarSeries 创建默认数量和零成本的买卖单，带错误返回
@@ -501,7 +501,6 @@ where
         Self::try_new_zero_cost(index, trade_type, price, amount)
             .map_err(|e| format!("Failed to create Trade with zero cost: {:?}", e))
     }
-
 
     /// 直接用参数构造（ZeroCostModel版本），带错误返回
     pub fn try_new_zero_cost_with_params(
@@ -565,6 +564,26 @@ where
             "Trade {{ type: {:?}, index: {}, price: {:?}, amount: {:?} }}",
             self.trade_type, self.index, self.price_per_asset, self.amount
         )
+    }
+}
+
+impl<'a, T, CM, S> Debug for Trade<'a, T, CM, S>
+where
+    T: TrNum + 'static + Debug,
+    CM: CostModel<T> + Clone + Debug,
+    S: BarSeries<'a, T>,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Trade")
+            .field("trade_type", &self.trade_type)
+            .field("index", &self.index)
+            .field("price_per_asset", &self.price_per_asset)
+            .field("net_price", &self.net_price)
+            .field("amount", &self.amount)
+            .field("cost", &self.cost)
+            .field("cost_model", &self.cost_model)
+            // _marker 跳过
+            .finish()
     }
 }
 

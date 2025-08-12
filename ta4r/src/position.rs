@@ -1,10 +1,10 @@
-use crate::bar::types::BarSeries;
-use crate::num::{NumFactory, TrNum};
-use std::fmt;
-use crate::analysis::cost::CostContext;
 use crate::analysis::CostModel;
+use crate::analysis::cost::CostContext;
+use crate::bar::types::BarSeries;
 use crate::num::types::NumError;
+use crate::num::{NumFactory, TrNum};
 use crate::trade::{Trade, TradeType};
+use std::fmt;
 
 #[derive(Clone)]
 pub struct Position<'a, T, CM, HM, S>
@@ -25,33 +25,11 @@ where
 impl<'a, T, CM, HM, S> Position<'a, T, CM, HM, S>
 where
     T: TrNum + 'static,
+    <T as TrNum>::Factory: NumFactory<T>,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
     S: BarSeries<'a, T>,
 {
-    /// 构造通用 CostContext（不带 final_index）
-    pub fn build_cost_context(&self) -> CostContext<T> {
-        CostContext {
-            entry_price: self.price_per_asset.clone(),
-            amount: self.amount.clone(),
-            entry_index: Some(self.index),
-            final_index: None,
-            is_closed: false,
-            // 未来额外字段填充
-        }
-    }
-
-    /// 构造带 final_index 的 CostContext
-    pub fn build_cost_context_with_final_index(&self, final_index: usize) -> CostContext<T> {
-        CostContext {
-            entry_price: self.price_per_asset.clone(),
-            amount: self.amount.clone(),
-            entry_index: Some(self.index),
-            final_index: Some(final_index),
-            is_closed: true,
-        }
-    }
-
     /// Creates a new Position with given starting type
     pub fn new(
         starting_type: TradeType,
@@ -169,7 +147,7 @@ where
 
     pub fn get_profit_with_final(&self, final_index: usize, final_price: T) -> T {
         let gross_profit = self.get_gross_profit(final_price);
-        let trading_cost = self.get_position_cost_with_final(final_index);
+        let trading_cost = self.get_position_cost_with_index(final_index);
         gross_profit - trading_cost
     }
 
@@ -190,7 +168,9 @@ where
 
     pub fn get_gross_return(&self, entry_price: T, exit_price: T) -> Result<T, NumError> {
         let entry_trade = self.entry.as_ref().ok_or_else(|| {
-            NumError::PositionOperateError("Cannot compute gross return: no entry trade".to_string())
+            NumError::PositionOperateError(
+                "Cannot compute gross return: no entry trade".to_string(),
+            )
         })?;
 
         let binding = entry_price.get_factory().one();
@@ -205,40 +185,45 @@ where
     }
 
     pub fn get_position_cost(&self) -> T {
-        // todo 构建对应的pub struct CostContext<T: TrNum + 'static>解耦传参
-        self.transaction_cost_model.calculate_position(self) + self.get_holding_cost()
+        // 未闭合
+        let ctx: CostContext<T> = self.into();
+        self.transaction_cost_model.calculate_position(&ctx) + self.get_holding_cost()
     }
 
     pub fn get_position_cost_with_index(&self, final_index: usize) -> T {
+        // 闭合
+        let closed_ctx = self.to_closed_cost_context(final_index);
         self.transaction_cost_model
-            .calculate_with_index(self, final_index)
+            .calculate_with_index(&closed_ctx)
             + self.get_holding_cost_with_final(final_index)
     }
 
     pub fn get_holding_cost(&self) -> T {
-        self.holding_cost_model.calculate_position(self)
+        let ctx: CostContext<T> = self.into();
+        self.holding_cost_model.calculate_position(&ctx)
     }
 
     pub fn get_holding_cost_with_final(&self, final_index: usize) -> T {
-        self.holding_cost_model
-            .calculate_with_index(self, final_index)
+        // 闭合
+        let closed_ctx = self.to_closed_cost_context(final_index);
+        self.holding_cost_model.calculate_with_index(&closed_ctx)
     }
 
     fn zero(&self) -> T {
-        self.entry
-            .as_ref()
-            .unwrap()
-            .get_net_price()
-            .num_factory()
-            .zero()
+        let trade = self.entry.as_ref().unwrap();
+        let net_price = trade.get_net_price();
+        let factory = net_price.get_factory();
+
+        let zero_wrapped = factory.zero();
+        zero_wrapped.as_ref().clone()
     }
 }
 
 impl<'a, T, CM, HM, S> fmt::Debug for Position<'a, T, CM, HM, S>
 where
-    T: TrNum + 'static,
-    CM: fmt::Debug + CostModel<T> + Clone,
-    HM: fmt::Debug + CostModel<T> + Clone,
+    T: TrNum + 'static + fmt::Debug,
+    CM: CostModel<T> + Clone + fmt::Debug,
+    HM: CostModel<T> + Clone + fmt::Debug,
     S: BarSeries<'a, T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -248,6 +233,47 @@ where
             .field("starting_type", &self.starting_type)
             .field("transaction_cost_model", &self.transaction_cost_model)
             .field("holding_cost_model", &self.holding_cost_model)
+            // PhantomData 跳过打印
             .finish()
+    }
+}
+
+impl<'a, T, CM, HM, S> From<&Position<'a, T, CM, HM, S>> for CostContext<T>
+where
+    T: TrNum + Clone,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
+{
+    fn from(pos: &Position<'a, T, CM, HM, S>) -> Self {
+        let trade = pos.entry.as_ref().expect("Position has no entry trade");
+
+        CostContext {
+            entry_price: trade.price_per_asset.clone(),
+            amount: trade.amount.clone(),
+            entry_index: Some(trade.index),
+            final_index: None,
+            is_closed: false,
+        }
+    }
+}
+
+impl<'a, T, CM, HM, S> Position<'a, T, CM, HM, S>
+where
+    T: TrNum + Clone,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
+{
+    pub fn to_closed_cost_context(&self, final_index: usize) -> CostContext<T> {
+        let trade = self.entry.as_ref().expect("Position has no entry trade");
+
+        CostContext {
+            entry_price: trade.price_per_asset.clone(),
+            amount: trade.amount.clone(),
+            entry_index: Some(trade.index),
+            final_index: Some(final_index),
+            is_closed: true,
+        }
     }
 }

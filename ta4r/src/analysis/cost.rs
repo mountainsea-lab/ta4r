@@ -1,4 +1,3 @@
-use crate::bar::types::BarSeries;
 use crate::num::TrNum;
 
 pub mod fixed_transaction_cost_model;

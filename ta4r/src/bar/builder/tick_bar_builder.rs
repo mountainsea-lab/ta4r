@@ -23,7 +23,7 @@
  * SOFTWARE.
  */
 use crate::bar::base_bar::BaseBar;
-use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
+
 use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
 use crate::bar::builder::types::{BarBuilderFactories, BarSeriesRef, add_to_option};
 use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
@@ -258,8 +258,8 @@ where
 
 #[test]
 fn test_tick_bar_builder_add() {
+    use crate::bar::base_bar_series_builder::BaseBarSeriesBuilder;
     use crate::num::decimal_num::DecimalNum;
-
     use time::Duration;
 
     let tick_factory = TickBarBuilderFactory::<DecimalNum>::new(5);
