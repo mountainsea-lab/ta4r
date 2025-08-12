@@ -1,3 +1,28 @@
+/*!
+ * MIT License
+ *
+ * Copyright (c) 2025 Mountainsea
+ * Based on ta4j (c) 2017–2025 Ta4j Organization & respective authors (see AUTHORS)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 use crate::analysis::CostModel;
 use crate::analysis::cost::zero_cost_model::ZeroCostModel;
 use crate::bar::types::{Bar, BarSeries};
@@ -61,195 +86,6 @@ where
         }
     }
 }
-
-// impl<'a, T, CM, S> Trade<'a, T, CM, S>
-// where
-//     T: TrNum + 'static,
-//     CM: CostModel<T> + Clone,
-//     S: BarSeries<'a, T>,
-// {
-//     /// 通过 BarSeries 创建默认数量和零成本的买卖单
-//     pub fn new_from_series(index: usize, series: &'a S, trade_type: TradeType) -> Self {
-//         let amount = T::one();
-//         let cost_model = ZeroCostModel::new();
-//         let price = series.get_bar(index).get_close_price().clone();
-//         Self::new(index, trade_type, price, amount, cost_model)
-//     }
-//
-//     pub fn new_from_series_with_amount(
-//         index: usize,
-//         series: &'a S,
-//         trade_type: TradeType,
-//         amount: T,
-//     ) -> Self {
-//         let cost_model = ZeroCostModel::new();
-//         let price = series.get_bar(index).get_close_price().clone();
-//         Self::new(index, trade_type, price, amount, cost_model)
-//     }
-//
-//     pub fn new_from_series_with_amount_and_cost_model(
-//         index: usize,
-//         series: &'a S,
-//         trade_type: TradeType,
-//         amount: T,
-//         cost_model: CM,
-//     ) -> Self {
-//         let price = series.get_bar(index).get_close_price().clone();
-//         Self::new(index, trade_type, price, amount, cost_model)
-//     }
-//
-//     /// 直接用参数构造
-//     pub fn new(
-//         index: usize,
-//         trade_type: TradeType,
-//         price_per_asset: T,
-//         amount: T,
-//         cost_model: CM,
-//     ) -> Self {
-//         let mut trade = Trade {
-//             trade_type,
-//             index,
-//             price_per_asset: price_per_asset.clone(),
-//             net_price: price_per_asset.clone(),
-//             amount: amount.clone(),
-//             cost: T::zero(),
-//             cost_model: cost_model.clone(),
-//             _marker: std::marker::PhantomData,
-//         };
-//         trade.set_prices_and_cost(price_per_asset, amount, cost_model);
-//         trade
-//     }
-//
-//     fn set_prices_and_cost(&mut self, price_per_asset: T, amount: T, cost_model: CM) {
-//         self.cost_model = cost_model.clone();
-//         self.price_per_asset = price_per_asset.clone();
-//         self.cost = self.cost_model.calculate(&price_per_asset, &amount);
-//         let cost_per_asset = self.cost.divided_by(&amount);
-//         self.net_price = match self.trade_type {
-//             TradeType::Buy => self.price_per_asset.plus(&cost_per_asset),
-//             TradeType::Sell => self.price_per_asset.minus(&cost_per_asset),
-//         };
-//     }
-//
-//     // 访问器示例
-//     pub fn get_type(&self) -> TradeType {
-//         self.trade_type
-//     }
-//
-//     pub fn get_index(&self) -> usize {
-//         self.index
-//     }
-//
-//     pub fn get_price_per_asset(&self) -> &T {
-//         &self.price_per_asset
-//     }
-//
-//     pub fn get_price_per_asset_with_series(&self, series: &'a S) -> T {
-//         if self.price_per_asset.is_nan() {
-//             series.get_bar(self.index).get_close_price().clone()
-//         } else {
-//             self.price_per_asset.clone()
-//         }
-//     }
-//
-//     pub fn get_net_price(&self) -> &T {
-//         &self.net_price
-//     }
-//
-//     pub fn get_amount(&self) -> &T {
-//         &self.amount
-//     }
-//
-//     pub fn get_cost(&self) -> &T {
-//         &self.cost
-//     }
-//
-//     pub fn get_cost_model(&self) -> &CM {
-//         &self.cost_model
-//     }
-//
-//     pub fn is_buy(&self) -> bool {
-//         self.trade_type == TradeType::Buy
-//     }
-//
-//     pub fn is_sell(&self) -> bool {
-//         self.trade_type == TradeType::Sell
-//     }
-//
-//     pub fn get_value(&self) -> T {
-//         self.price_per_asset.multiplied_by(&self.amount)
-//     }
-//
-//     // 静态工厂方法，全部带生命周期和泛型
-//     pub fn buy_at(index: usize, series: &'a S) -> Self {
-//         Self::new_from_series(index, series, TradeType::Buy)
-//     }
-//
-//     pub fn buy_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
-//         Self::new_from_series_with_amount(index, series, TradeType::Buy, amount)
-//     }
-//
-//     pub fn buy_at_with_amount_and_cost_model(
-//         index: usize,
-//         series: &'a S,
-//         amount: T,
-//         cost_model: CM,
-//     ) -> Self {
-//         Self::new_from_series_with_amount_and_cost_model(
-//             index,
-//             series,
-//             TradeType::Buy,
-//             amount,
-//             cost_model,
-//         )
-//     }
-//
-//     pub fn buy_at_price(index: usize, price: T, amount: T) -> Self {
-//         let cost_model = ZeroCostModel::new();
-//         Self::new(index, TradeType::Buy, price, amount, cost_model)
-//     }
-//
-//     pub fn buy_at_price_with_cost_model(index: usize, price: T, amount: T, cost_model: CM) -> Self {
-//         Self::new(index, TradeType::Buy, price, amount, cost_model)
-//     }
-//
-//     pub fn sell_at(index: usize, series: &'a S) -> Self {
-//         Self::new_from_series(index, series, TradeType::Sell)
-//     }
-//
-//     pub fn sell_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
-//         Self::new_from_series_with_amount(index, series, TradeType::Sell, amount)
-//     }
-//
-//     pub fn sell_at_with_amount_and_cost_model(
-//         index: usize,
-//         series: &'a S,
-//         amount: T,
-//         cost_model: CM,
-//     ) -> Self {
-//         Self::new_from_series_with_amount_and_cost_model(
-//             index,
-//             series,
-//             TradeType::Sell,
-//             amount,
-//             cost_model,
-//         )
-//     }
-//
-//     pub fn sell_at_price(index: usize, price: T, amount: T) -> Self {
-//         let cost_model = ZeroCostModel::new();
-//         Self::new(index, TradeType::Sell, price, amount, cost_model)
-//     }
-//
-//     pub fn sell_at_price_with_cost_model(
-//         index: usize,
-//         price: T,
-//         amount: T,
-//         cost_model: CM,
-//     ) -> Self {
-//         Self::new(index, TradeType::Sell, price, amount, cost_model)
-//     }
-// }
 
 impl<'a, T, CM, S> Trade<'a, T, CM, S>
 where
