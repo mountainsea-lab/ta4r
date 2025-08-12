@@ -1,10 +1,10 @@
+use crate::analysis::CostModel;
+use crate::analysis::cost::zero_cost_model::ZeroCostModel;
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use crate::analysis::cost::zero_cost_model::ZeroCostModel;
-use crate::analysis::CostModel;
 
 /// 交易类型：买或卖
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -77,7 +77,7 @@ where
     /// 通过 BarSeries 创建默认数量和零成本的买卖单
     pub fn new_from_series(index: usize, series: &'a S, trade_type: TradeType) -> Self {
         let amount = T::one();
-        let cost_model =  ZeroCostModel::new();
+        let cost_model = ZeroCostModel::new();
         let price = series.get_bar(index).get_close_price().clone();
         Self::new(index, trade_type, price, amount, cost_model)
     }

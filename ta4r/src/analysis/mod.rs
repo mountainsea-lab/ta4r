@@ -3,8 +3,7 @@ use crate::num::TrNum;
 
 pub mod cost;
 
-pub trait CostModel<T: TrNum + 'static>
-{
+pub trait CostModel<T: TrNum + 'static> {
     /// 计算给定持仓的成本
     fn calculate_with_index(&self, ctx: &CostContext<T>) -> T;
 

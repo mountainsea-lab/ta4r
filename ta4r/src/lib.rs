@@ -34,12 +34,11 @@ mod position;
 mod rule;
 mod trade;
 
-
+use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
 use crate::position::Position;
 use crate::trade::{Trade, TradeType};
 use std::fmt::Debug;
-use crate::analysis::CostModel;
 
 pub trait TradingRecord<'a, T, CM, HM, S>
 where

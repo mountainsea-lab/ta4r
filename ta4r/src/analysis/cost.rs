@@ -1,4 +1,3 @@
-use crate::analysis::cost::cost_model::CostContext;
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
 
@@ -16,5 +15,4 @@ pub struct CostContext<T: TrNum + 'static> {
     // pub extra_fee: T,
     // pub timestamp: u64,
     // ...
-
 }

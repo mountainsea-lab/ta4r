@@ -1,7 +1,7 @@
+use crate::TradingRecord;
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
-use crate::TradingRecord;
 
 /// 一条交易规则（Trading Rule）
 ///
@@ -20,11 +20,7 @@ where
     }
 
     /// 规则在给定索引下是否满足（可选提供交易记录）
-    fn is_satisfied_with_record(
-        &self,
-        index: usize,
-        trading_record: Option<&TR>,
-    ) -> bool;
+    fn is_satisfied_with_record(&self, index: usize, trading_record: Option<&TR>) -> bool;
     //
     // /// 与另一条规则组合成 AND 规则
     // fn and<R>(self, other: R) -> AndRule<'a, N, CM, HM, S, TR, Self, R>

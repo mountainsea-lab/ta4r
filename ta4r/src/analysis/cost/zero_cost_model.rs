@@ -1,6 +1,6 @@
+use crate::analysis::CostModel;
 use crate::analysis::cost::CostContext;
 use crate::analysis::cost::fixed_transaction_cost_model::FixedTransactionCostModel;
-use crate::analysis::CostModel;
 use crate::num::TrNum;
 
 // ZeroCostModel，组合FixedTransactionCostModel
