@@ -16,3 +16,21 @@ pub struct CostContext<T: TrNum + 'static> {
     // pub timestamp: u64,
     // ...
 }
+
+impl<T: TrNum> CostContext<T> {
+    pub fn build(
+        entry_price: T,
+        amount: T,
+        entry_index: Option<usize>,
+        final_index: Option<usize>,
+        is_closed: bool,
+    ) -> Self {
+        Self {
+            entry_price,
+            amount,
+            entry_index,
+            final_index,
+            is_closed,
+        }
+    }
+}

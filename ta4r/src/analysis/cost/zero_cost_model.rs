@@ -26,7 +26,7 @@ impl<T: TrNum + 'static> CostModel<T> for ZeroCostModel<T> {
         self.inner.calculate_position(ctx)
     }
 
-    fn calculate_trade(&self, price: T, amount: T) -> T {
+    fn calculate_trade(&self, price: &T, amount: &T) -> T {
         self.inner.calculate_trade(price, amount)
     }
 

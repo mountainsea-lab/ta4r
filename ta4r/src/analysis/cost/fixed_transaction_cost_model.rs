@@ -27,11 +27,11 @@ impl<T: TrNum + 'static> CostModel<T> for FixedTransactionCostModel<T> {
         } else {
             T::one()
         };
-        self.fee_per_trade.multiplied_by(multiplier)
+        self.fee_per_trade.multiplied_by(&multiplier)
     }
 
     // 单笔交易固定费用，不考虑价格和数量
-    fn calculate_trade(&self, _price: T, _amount: T) -> T {
+    fn calculate_trade(&self, _price: &T, _amount: &T) -> T {
         self.fee_per_trade.clone()
     }
 

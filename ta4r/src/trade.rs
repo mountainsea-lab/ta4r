@@ -1,13 +1,14 @@
 use crate::analysis::CostModel;
 use crate::analysis::cost::zero_cost_model::ZeroCostModel;
-use crate::bar::types::BarSeries;
+use crate::bar::types::{Bar, BarSeries};
 use crate::num::TrNum;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
+use crate::num::types::NumError;
 
 /// 交易类型：买或卖
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TradeType {
     Buy,
     Sell,
@@ -31,6 +32,7 @@ impl TradeType {
 }
 
 /// 完整版 Trade
+#[derive(Debug)]
 pub struct Trade<'a, T, CM, S>
 where
     T: TrNum + 'static,
@@ -68,50 +70,209 @@ where
     }
 }
 
+// impl<'a, T, CM, S> Trade<'a, T, CM, S>
+// where
+//     T: TrNum + 'static,
+//     CM: CostModel<T> + Clone,
+//     S: BarSeries<'a, T>,
+// {
+//     /// 通过 BarSeries 创建默认数量和零成本的买卖单
+//     pub fn new_from_series(index: usize, series: &'a S, trade_type: TradeType) -> Self {
+//         let amount = T::one();
+//         let cost_model = ZeroCostModel::new();
+//         let price = series.get_bar(index).get_close_price().clone();
+//         Self::new(index, trade_type, price, amount, cost_model)
+//     }
+//
+//     pub fn new_from_series_with_amount(
+//         index: usize,
+//         series: &'a S,
+//         trade_type: TradeType,
+//         amount: T,
+//     ) -> Self {
+//         let cost_model = ZeroCostModel::new();
+//         let price = series.get_bar(index).get_close_price().clone();
+//         Self::new(index, trade_type, price, amount, cost_model)
+//     }
+//
+//     pub fn new_from_series_with_amount_and_cost_model(
+//         index: usize,
+//         series: &'a S,
+//         trade_type: TradeType,
+//         amount: T,
+//         cost_model: CM,
+//     ) -> Self {
+//         let price = series.get_bar(index).get_close_price().clone();
+//         Self::new(index, trade_type, price, amount, cost_model)
+//     }
+//
+//     /// 直接用参数构造
+//     pub fn new(
+//         index: usize,
+//         trade_type: TradeType,
+//         price_per_asset: T,
+//         amount: T,
+//         cost_model: CM,
+//     ) -> Self {
+//         let mut trade = Trade {
+//             trade_type,
+//             index,
+//             price_per_asset: price_per_asset.clone(),
+//             net_price: price_per_asset.clone(),
+//             amount: amount.clone(),
+//             cost: T::zero(),
+//             cost_model: cost_model.clone(),
+//             _marker: std::marker::PhantomData,
+//         };
+//         trade.set_prices_and_cost(price_per_asset, amount, cost_model);
+//         trade
+//     }
+//
+//     fn set_prices_and_cost(&mut self, price_per_asset: T, amount: T, cost_model: CM) {
+//         self.cost_model = cost_model.clone();
+//         self.price_per_asset = price_per_asset.clone();
+//         self.cost = self.cost_model.calculate(&price_per_asset, &amount);
+//         let cost_per_asset = self.cost.divided_by(&amount);
+//         self.net_price = match self.trade_type {
+//             TradeType::Buy => self.price_per_asset.plus(&cost_per_asset),
+//             TradeType::Sell => self.price_per_asset.minus(&cost_per_asset),
+//         };
+//     }
+//
+//     // 访问器示例
+//     pub fn get_type(&self) -> TradeType {
+//         self.trade_type
+//     }
+//
+//     pub fn get_index(&self) -> usize {
+//         self.index
+//     }
+//
+//     pub fn get_price_per_asset(&self) -> &T {
+//         &self.price_per_asset
+//     }
+//
+//     pub fn get_price_per_asset_with_series(&self, series: &'a S) -> T {
+//         if self.price_per_asset.is_nan() {
+//             series.get_bar(self.index).get_close_price().clone()
+//         } else {
+//             self.price_per_asset.clone()
+//         }
+//     }
+//
+//     pub fn get_net_price(&self) -> &T {
+//         &self.net_price
+//     }
+//
+//     pub fn get_amount(&self) -> &T {
+//         &self.amount
+//     }
+//
+//     pub fn get_cost(&self) -> &T {
+//         &self.cost
+//     }
+//
+//     pub fn get_cost_model(&self) -> &CM {
+//         &self.cost_model
+//     }
+//
+//     pub fn is_buy(&self) -> bool {
+//         self.trade_type == TradeType::Buy
+//     }
+//
+//     pub fn is_sell(&self) -> bool {
+//         self.trade_type == TradeType::Sell
+//     }
+//
+//     pub fn get_value(&self) -> T {
+//         self.price_per_asset.multiplied_by(&self.amount)
+//     }
+//
+//     // 静态工厂方法，全部带生命周期和泛型
+//     pub fn buy_at(index: usize, series: &'a S) -> Self {
+//         Self::new_from_series(index, series, TradeType::Buy)
+//     }
+//
+//     pub fn buy_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
+//         Self::new_from_series_with_amount(index, series, TradeType::Buy, amount)
+//     }
+//
+//     pub fn buy_at_with_amount_and_cost_model(
+//         index: usize,
+//         series: &'a S,
+//         amount: T,
+//         cost_model: CM,
+//     ) -> Self {
+//         Self::new_from_series_with_amount_and_cost_model(
+//             index,
+//             series,
+//             TradeType::Buy,
+//             amount,
+//             cost_model,
+//         )
+//     }
+//
+//     pub fn buy_at_price(index: usize, price: T, amount: T) -> Self {
+//         let cost_model = ZeroCostModel::new();
+//         Self::new(index, TradeType::Buy, price, amount, cost_model)
+//     }
+//
+//     pub fn buy_at_price_with_cost_model(index: usize, price: T, amount: T, cost_model: CM) -> Self {
+//         Self::new(index, TradeType::Buy, price, amount, cost_model)
+//     }
+//
+//     pub fn sell_at(index: usize, series: &'a S) -> Self {
+//         Self::new_from_series(index, series, TradeType::Sell)
+//     }
+//
+//     pub fn sell_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
+//         Self::new_from_series_with_amount(index, series, TradeType::Sell, amount)
+//     }
+//
+//     pub fn sell_at_with_amount_and_cost_model(
+//         index: usize,
+//         series: &'a S,
+//         amount: T,
+//         cost_model: CM,
+//     ) -> Self {
+//         Self::new_from_series_with_amount_and_cost_model(
+//             index,
+//             series,
+//             TradeType::Sell,
+//             amount,
+//             cost_model,
+//         )
+//     }
+//
+//     pub fn sell_at_price(index: usize, price: T, amount: T) -> Self {
+//         let cost_model = ZeroCostModel::new();
+//         Self::new(index, TradeType::Sell, price, amount, cost_model)
+//     }
+//
+//     pub fn sell_at_price_with_cost_model(
+//         index: usize,
+//         price: T,
+//         amount: T,
+//         cost_model: CM,
+//     ) -> Self {
+//         Self::new(index, TradeType::Sell, price, amount, cost_model)
+//     }
+// }
+
 impl<'a, T, CM, S> Trade<'a, T, CM, S>
 where
     T: TrNum + 'static,
     CM: CostModel<T> + Clone,
     S: BarSeries<'a, T>,
 {
-    /// 通过 BarSeries 创建默认数量和零成本的买卖单
-    pub fn new_from_series(index: usize, series: &'a S, trade_type: TradeType) -> Self {
-        let amount = T::one();
-        let cost_model = ZeroCostModel::new();
-        let price = series.get_bar(index).get_close_price().clone();
-        Self::new(index, trade_type, price, amount, cost_model)
-    }
-
-    pub fn new_from_series_with_amount(
-        index: usize,
-        series: &'a S,
-        trade_type: TradeType,
-        amount: T,
-    ) -> Self {
-        let cost_model = ZeroCostModel::new();
-        let price = series.get_bar(index).get_close_price().clone();
-        Self::new(index, trade_type, price, amount, cost_model)
-    }
-
-    pub fn new_from_series_with_amount_and_cost_model(
-        index: usize,
-        series: &'a S,
-        trade_type: TradeType,
-        amount: T,
-        cost_model: CM,
-    ) -> Self {
-        let price = series.get_bar(index).get_close_price().clone();
-        Self::new(index, trade_type, price, amount, cost_model)
-    }
-
-    /// 直接用参数构造
-    pub fn new(
+    /// 带错误返回的通用构造（用于成本模型计算可能失败的情况）
+    pub fn try_new(
         index: usize,
         trade_type: TradeType,
         price_per_asset: T,
         amount: T,
         cost_model: CM,
-    ) -> Self {
+    ) -> Result<Self, NumError> {
         let mut trade = Trade {
             trade_type,
             index,
@@ -122,22 +283,76 @@ where
             cost_model: cost_model.clone(),
             _marker: std::marker::PhantomData,
         };
-        trade.set_prices_and_cost(price_per_asset, amount, cost_model);
-        trade
+        // 使用复用的设置方法
+        trade.set_prices_and_cost(price_per_asset, amount, cost_model)?;
+        Ok(trade)
     }
 
-    fn set_prices_and_cost(&mut self, price_per_asset: T, amount: T, cost_model: CM) {
-        self.cost_model = cost_model.clone();
-        self.price_per_asset = price_per_asset.clone();
-        self.cost = self.cost_model.calculate(&price_per_asset, &amount);
-        let cost_per_asset = self.cost.divided_by(&amount);
+    /// 通用构造，panic 版本，内部调用 try_new 并 expect
+    pub fn new(
+        index: usize,
+        trade_type: TradeType,
+        price_per_asset: T,
+        amount: T,
+        cost_model: CM,
+    ) -> Self {
+        Self::try_new(index, trade_type, price_per_asset, amount, cost_model)
+            .expect("Failed to create Trade in new()")
+    }
+
+    /// 带错误返回的通过 BarSeries 创建指定数量和成本模型买卖单
+    pub fn try_new_from_series_with_amount_and_cost_model(
+        index: usize,
+        series: &'a S,
+        trade_type: TradeType,
+        amount: T,
+        cost_model: CM,
+    ) -> Result<Self, String> {
+
+        let bar = series
+            .get_bar(index)
+            .ok_or_else(|| format!("Bar at index {} not found", index))?;
+
+        let price = bar
+            .get_close_price()
+            .clone()
+            .ok_or_else(|| format!("Close price at index {} is None", index))?;
+
+        Self::try_new(index, trade_type, price, amount, cost_model)
+            .map_err(|e| format!("Failed to create Trade: {:?}", e))
+    }
+
+    /// 通过 BarSeries 创建指定数量和成本模型买卖单，panic 版本
+    pub fn new_from_series_with_amount_and_cost_model(
+        index: usize,
+        series: &'a S,
+        trade_type: TradeType,
+        amount: T,
+        cost_model: CM,
+    ) -> Self {
+        Self::try_new_from_series_with_amount_and_cost_model(index, series, trade_type, amount, cost_model)
+            .expect("Failed to create Trade in new_from_series_with_amount_and_cost_model()")
+    }
+
+    /// 通用设置价格和成本，带错误返回
+    fn set_prices_and_cost(
+        &mut self,
+        price_per_asset: T,
+        amount: T,
+        cost_model: CM,
+    ) -> Result<(), NumError> {
+        self.cost_model = cost_model;
+        self.price_per_asset = price_per_asset;
+        self.cost = self.cost_model.calculate_trade(&self.price_per_asset, &amount);
+        let cost_per_asset = self.cost.divided_by(&amount)?;
         self.net_price = match self.trade_type {
             TradeType::Buy => self.price_per_asset.plus(&cost_per_asset),
             TradeType::Sell => self.price_per_asset.minus(&cost_per_asset),
         };
+        Ok(())
     }
 
-    // 访问器示例
+    /// 访问器等通用方法，保持不变
     pub fn get_type(&self) -> TradeType {
         self.trade_type
     }
@@ -150,12 +365,16 @@ where
         &self.price_per_asset
     }
 
-    pub fn get_price_per_asset_with_series(&self, series: &'a S) -> T {
-        if self.price_per_asset.is_nan() {
-            series.get_bar(self.index).get_close_price().clone()
-        } else {
-            self.price_per_asset.clone()
+    pub fn get_price_per_asset_with_series(&self, series: &'a S) -> Result<T, String> {
+        if !self.price_per_asset.is_nan() {
+            return Ok(self.price_per_asset.clone());
         }
+        let bar = series
+            .get_bar(self.index)
+            .ok_or_else(|| format!("Bar at index {} not found", self.index))?;
+        bar.get_close_price()
+            .clone()
+            .ok_or_else(|| format!("Close price at index {} is None", self.index))
     }
 
     pub fn get_net_price(&self) -> &T {
@@ -186,15 +405,7 @@ where
         self.price_per_asset.multiplied_by(&self.amount)
     }
 
-    // 静态工厂方法，全部带生命周期和泛型
-    pub fn buy_at(index: usize, series: &'a S) -> Self {
-        Self::new_from_series(index, series, TradeType::Buy)
-    }
-
-    pub fn buy_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
-        Self::new_from_series_with_amount(index, series, TradeType::Buy, amount)
-    }
-
+    /// 静态工厂方法，调用 panic 版本（保持兼容）
     pub fn buy_at_with_amount_and_cost_model(
         index: usize,
         series: &'a S,
@@ -210,21 +421,8 @@ where
         )
     }
 
-    pub fn buy_at_price(index: usize, price: T, amount: T) -> Self {
-        let cost_model = ZeroCostModel::new();
-        Self::new(index, TradeType::Buy, price, amount, cost_model)
-    }
-
     pub fn buy_at_price_with_cost_model(index: usize, price: T, amount: T, cost_model: CM) -> Self {
         Self::new(index, TradeType::Buy, price, amount, cost_model)
-    }
-
-    pub fn sell_at(index: usize, series: &'a S) -> Self {
-        Self::new_from_series(index, series, TradeType::Sell)
-    }
-
-    pub fn sell_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
-        Self::new_from_series_with_amount(index, series, TradeType::Sell, amount)
     }
 
     pub fn sell_at_with_amount_and_cost_model(
@@ -242,11 +440,6 @@ where
         )
     }
 
-    pub fn sell_at_price(index: usize, price: T, amount: T) -> Self {
-        let cost_model = ZeroCostModel::new();
-        Self::new(index, TradeType::Sell, price, amount, cost_model)
-    }
-
     pub fn sell_at_price_with_cost_model(
         index: usize,
         price: T,
@@ -254,6 +447,108 @@ where
         cost_model: CM,
     ) -> Self {
         Self::new(index, TradeType::Sell, price, amount, cost_model)
+    }
+}
+
+
+impl<'a, T, S> Trade<'a, T, ZeroCostModel<T>, S>
+where
+    T: TrNum + 'static,
+    S: BarSeries<'a, T>,
+{
+    /// 带错误返回的 ZeroCostModel 构造
+    pub fn try_new_zero_cost(
+        index: usize,
+        trade_type: TradeType,
+        price_per_asset: T,
+        amount: T,
+    ) -> Result<Self, NumError> {
+        Self::try_new(index, trade_type, price_per_asset, amount, ZeroCostModel::new())
+    }
+
+    /// 通过 BarSeries 创建默认数量和零成本的买卖单，带错误返回
+    pub fn try_new_from_series(
+        index: usize,
+        series: &'a S,
+        trade_type: TradeType,
+    ) -> Result<Self, String> {
+        let amount = T::one();
+        Self::try_new_from_series_with_amount(index, series, trade_type, amount)
+    }
+
+    /// 通过 BarSeries 创建默认数量和零成本的买卖单，panic 版本
+    pub fn new_from_series(index: usize, series: &'a S, trade_type: TradeType) -> Self {
+        Self::try_new_from_series(index, series, trade_type)
+            .expect("Failed to create Trade with zero cost model from series")
+    }
+
+    /// 通过 BarSeries 创建指定数量和零成本买卖单，带错误返回
+    pub fn try_new_from_series_with_amount(
+        index: usize,
+        series: &'a S,
+        trade_type: TradeType,
+        amount: T,
+    ) -> Result<Self, String> {
+        let bar = series
+            .get_bar(index)
+            .ok_or_else(|| format!("Bar at index {} not found", index))?;
+
+        let price = bar
+            .get_close_price()
+            .clone()
+            .ok_or_else(|| format!("Close price at index {} is None", index))?;
+
+        Self::try_new_zero_cost(index, trade_type, price, amount)
+            .map_err(|e| format!("Failed to create Trade with zero cost: {:?}", e))
+    }
+
+
+    /// 直接用参数构造（ZeroCostModel版本），带错误返回
+    pub fn try_new_zero_cost_with_params(
+        index: usize,
+        trade_type: TradeType,
+        price_per_asset: T,
+        amount: T,
+    ) -> Result<Self, NumError> {
+        Self::try_new_zero_cost(index, trade_type, price_per_asset, amount)
+    }
+
+    /// 直接用参数构造（ZeroCostModel版本），panic 版本
+    pub fn new_zero_cost(
+        index: usize,
+        trade_type: TradeType,
+        price_per_asset: T,
+        amount: T,
+    ) -> Self {
+        Self::try_new_zero_cost(index, trade_type, price_per_asset, amount)
+            .expect("Trade initialization failed due to invalid numeric operation")
+    }
+
+    /// 静态工厂方法，调用默认零成本模型的构造函数，panic 版本
+    pub fn buy_at(index: usize, series: &'a S) -> Self {
+        Self::new_from_series(index, series, TradeType::Buy)
+    }
+
+    pub fn buy_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
+        Self::try_new_from_series_with_amount(index, series, TradeType::Buy, amount)
+            .expect("Failed to create Buy Trade with zero cost and amount")
+    }
+
+    pub fn buy_at_price(index: usize, price: T, amount: T) -> Self {
+        Self::new_zero_cost(index, TradeType::Buy, price, amount)
+    }
+
+    pub fn sell_at(index: usize, series: &'a S) -> Self {
+        Self::new_from_series(index, series, TradeType::Sell)
+    }
+
+    pub fn sell_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
+        Self::try_new_from_series_with_amount(index, series, TradeType::Sell, amount)
+            .expect("Failed to create Sell Trade with zero cost and amount")
+    }
+
+    pub fn sell_at_price(index: usize, price: T, amount: T) -> Self {
+        Self::new_zero_cost(index, TradeType::Sell, price, amount)
     }
 }
 

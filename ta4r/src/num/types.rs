@@ -83,4 +83,7 @@ pub enum NumError {
 
     #[error("Logarithm of non-positive number")]
     InvalidLog,
+
+    #[error("Position Operate Error: {0}")]
+    PositionOperateError(String),
 }

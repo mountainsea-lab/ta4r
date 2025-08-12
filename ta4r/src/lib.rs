@@ -38,14 +38,13 @@ use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
 use crate::position::Position;
 use crate::trade::{Trade, TradeType};
-use std::fmt::Debug;
 
 pub trait TradingRecord<'a, T, CM, HM, S>
 where
     T: TrNum + 'static,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<'a, T> + 'a,
 {
     // 起始交易类型
     fn get_starting_type(&self) -> TradeType;

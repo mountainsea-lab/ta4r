@@ -11,7 +11,7 @@ where
     N: TrNum + 'static,
     CM: CostModel<N> + Clone,
     HM: CostModel<N> + Clone,
-    S: BarSeries<'a, N>,
+    S: BarSeries<'a, N> + 'a,
     TR: TradingRecord<'a, N, CM, HM, S>,
 {
     /// 规则在给定索引下是否满足（不依赖交易记录）

@@ -11,7 +11,7 @@ pub trait CostModel<T: TrNum + 'static> {
     fn calculate_position(&self, ctx: &CostContext<T>) -> T;
 
     /// 计算单次交易的成本
-    fn calculate_trade(&self, price: T, amount: T) -> T;
+    fn calculate_trade(&self, price: &T, amount: &T) -> T;
 
     /// 判断两个成本模型是否相等
     fn equals(&self, other: &Self) -> bool;

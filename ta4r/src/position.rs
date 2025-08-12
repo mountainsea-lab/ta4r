@@ -1,7 +1,9 @@
 use crate::bar::types::BarSeries;
-use crate::num::TrNum;
+use crate::num::{NumFactory, TrNum};
 use std::fmt;
+use crate::analysis::cost::CostContext;
 use crate::analysis::CostModel;
+use crate::num::types::NumError;
 use crate::trade::{Trade, TradeType};
 
 #[derive(Clone)]
@@ -27,6 +29,29 @@ where
     HM: CostModel<T> + Clone,
     S: BarSeries<'a, T>,
 {
+    /// 构造通用 CostContext（不带 final_index）
+    pub fn build_cost_context(&self) -> CostContext<T> {
+        CostContext {
+            entry_price: self.price_per_asset.clone(),
+            amount: self.amount.clone(),
+            entry_index: Some(self.index),
+            final_index: None,
+            is_closed: false,
+            // 未来额外字段填充
+        }
+    }
+
+    /// 构造带 final_index 的 CostContext
+    pub fn build_cost_context_with_final_index(&self, final_index: usize) -> CostContext<T> {
+        CostContext {
+            entry_price: self.price_per_asset.clone(),
+            amount: self.amount.clone(),
+            entry_index: Some(self.index),
+            final_index: Some(final_index),
+            is_closed: true,
+        }
+    }
+
     /// Creates a new Position with given starting type
     pub fn new(
         starting_type: TradeType,
@@ -163,34 +188,40 @@ where
         gross_profit
     }
 
-    pub fn get_gross_return(&self, entry_price: T, exit_price: T) -> T {
-        if self.entry.as_ref().unwrap().is_buy() {
-            exit_price.divided_by(&entry_price)
+    pub fn get_gross_return(&self, entry_price: T, exit_price: T) -> Result<T, NumError> {
+        let entry_trade = self.entry.as_ref().ok_or_else(|| {
+            NumError::PositionOperateError("Cannot compute gross return: no entry trade".to_string())
+        })?;
+
+        let binding = entry_price.get_factory().one();
+        let one = binding.as_ref();
+
+        let ratio = exit_price.divided_by(&entry_price)?;
+        if entry_trade.is_buy() {
+            Ok(ratio)
         } else {
-            let one = entry_price.num_factory().one();
-            ((exit_price.divided_by(&entry_price)).minus(&one))
-                .neg()
-                .plus(&one)
+            Ok(one.divided_by(&ratio)?) // 卖出方向取倒数
         }
     }
 
     pub fn get_position_cost(&self) -> T {
-        self.transaction_cost_model.calculate(self) + self.get_holding_cost()
+        // todo 构建对应的pub struct CostContext<T: TrNum + 'static>解耦传参
+        self.transaction_cost_model.calculate_position(self) + self.get_holding_cost()
     }
 
-    pub fn get_position_cost_with_final(&self, final_index: usize) -> T {
+    pub fn get_position_cost_with_index(&self, final_index: usize) -> T {
         self.transaction_cost_model
-            .calculate_with_final(self, final_index)
+            .calculate_with_index(self, final_index)
             + self.get_holding_cost_with_final(final_index)
     }
 
     pub fn get_holding_cost(&self) -> T {
-        self.holding_cost_model.calculate(self)
+        self.holding_cost_model.calculate_position(self)
     }
 
     pub fn get_holding_cost_with_final(&self, final_index: usize) -> T {
         self.holding_cost_model
-            .calculate_with_final(self, final_index)
+            .calculate_with_index(self, final_index)
     }
 
     fn zero(&self) -> T {
@@ -203,12 +234,12 @@ where
     }
 }
 
-impl<'a, N, CM, HM, S> fmt::Debug for Position<'a, N, CM, HM, S>
+impl<'a, T, CM, HM, S> fmt::Debug for Position<'a, T, CM, HM, S>
 where
-    N: TrNum,
-    CM: fmt::Debug + CostModel<N> + Clone,
-    HM: fmt::Debug + CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + 'static,
+    CM: fmt::Debug + CostModel<T> + Clone,
+    HM: fmt::Debug + CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Position")
