@@ -1,10 +1,10 @@
-use crate::analysis::cost::CostModel;
-use crate::analysis::cost::cost_model::ZeroCostModel;
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
 use std::fmt;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
+use crate::analysis::cost::zero_cost_model::ZeroCostModel;
+use crate::analysis::CostModel;
 
 /// 交易类型：买或卖
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,28 +31,28 @@ impl TradeType {
 }
 
 /// 完整版 Trade
-pub struct Trade<'a, N, CM, S>
+pub struct Trade<'a, T, CM, S>
 where
-    N: TrNum,
-    CM: CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + 'static,
+    CM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
     trade_type: TradeType,
     index: usize,
-    price_per_asset: N,
-    net_price: N,
-    amount: N,
-    cost: N,
+    price_per_asset: T,
+    net_price: T,
+    amount: T,
+    cost: T,
     cost_model: CM,
     // 你可以加个 PhantomData 来标记生命周期
     _marker: std::marker::PhantomData<&'a S>,
 }
 
-impl<'a, N, CM, S> Clone for Trade<'a, N, CM, S>
+impl<'a, T, CM, S> Clone for Trade<'a, T, CM, S>
 where
-    N: TrNum + Clone,
-    CM: CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + Clone + 'static,
+    CM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -68,16 +68,16 @@ where
     }
 }
 
-impl<'a, N, CM, S> Trade<'a, N, CM, S>
+impl<'a, T, CM, S> Trade<'a, T, CM, S>
 where
-    N: TrNum,
-    CM: CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + 'static,
+    CM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
     /// 通过 BarSeries 创建默认数量和零成本的买卖单
     pub fn new_from_series(index: usize, series: &'a S, trade_type: TradeType) -> Self {
-        let amount = N::one();
-        let cost_model = ZeroCostModel;
+        let amount = T::one();
+        let cost_model =  ZeroCostModel::new();
         let price = series.get_bar(index).get_close_price().clone();
         Self::new(index, trade_type, price, amount, cost_model)
     }
@@ -86,9 +86,9 @@ where
         index: usize,
         series: &'a S,
         trade_type: TradeType,
-        amount: N,
+        amount: T,
     ) -> Self {
-        let cost_model = ZeroCostModel;
+        let cost_model = ZeroCostModel::new();
         let price = series.get_bar(index).get_close_price().clone();
         Self::new(index, trade_type, price, amount, cost_model)
     }
@@ -97,7 +97,7 @@ where
         index: usize,
         series: &'a S,
         trade_type: TradeType,
-        amount: N,
+        amount: T,
         cost_model: CM,
     ) -> Self {
         let price = series.get_bar(index).get_close_price().clone();
@@ -108,8 +108,8 @@ where
     pub fn new(
         index: usize,
         trade_type: TradeType,
-        price_per_asset: N,
-        amount: N,
+        price_per_asset: T,
+        amount: T,
         cost_model: CM,
     ) -> Self {
         let mut trade = Trade {
@@ -118,7 +118,7 @@ where
             price_per_asset: price_per_asset.clone(),
             net_price: price_per_asset.clone(),
             amount: amount.clone(),
-            cost: N::zero(),
+            cost: T::zero(),
             cost_model: cost_model.clone(),
             _marker: std::marker::PhantomData,
         };
@@ -126,7 +126,7 @@ where
         trade
     }
 
-    fn set_prices_and_cost(&mut self, price_per_asset: N, amount: N, cost_model: CM) {
+    fn set_prices_and_cost(&mut self, price_per_asset: T, amount: T, cost_model: CM) {
         self.cost_model = cost_model.clone();
         self.price_per_asset = price_per_asset.clone();
         self.cost = self.cost_model.calculate(&price_per_asset, &amount);
@@ -146,11 +146,11 @@ where
         self.index
     }
 
-    pub fn get_price_per_asset(&self) -> &N {
+    pub fn get_price_per_asset(&self) -> &T {
         &self.price_per_asset
     }
 
-    pub fn get_price_per_asset_with_series(&self, series: &'a S) -> N {
+    pub fn get_price_per_asset_with_series(&self, series: &'a S) -> T {
         if self.price_per_asset.is_nan() {
             series.get_bar(self.index).get_close_price().clone()
         } else {
@@ -158,15 +158,15 @@ where
         }
     }
 
-    pub fn get_net_price(&self) -> &N {
+    pub fn get_net_price(&self) -> &T {
         &self.net_price
     }
 
-    pub fn get_amount(&self) -> &N {
+    pub fn get_amount(&self) -> &T {
         &self.amount
     }
 
-    pub fn get_cost(&self) -> &N {
+    pub fn get_cost(&self) -> &T {
         &self.cost
     }
 
@@ -182,7 +182,7 @@ where
         self.trade_type == TradeType::Sell
     }
 
-    pub fn get_value(&self) -> N {
+    pub fn get_value(&self) -> T {
         self.price_per_asset.multiplied_by(&self.amount)
     }
 
@@ -191,14 +191,14 @@ where
         Self::new_from_series(index, series, TradeType::Buy)
     }
 
-    pub fn buy_at_with_amount(index: usize, series: &'a S, amount: N) -> Self {
+    pub fn buy_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
         Self::new_from_series_with_amount(index, series, TradeType::Buy, amount)
     }
 
     pub fn buy_at_with_amount_and_cost_model(
         index: usize,
         series: &'a S,
-        amount: N,
+        amount: T,
         cost_model: CM,
     ) -> Self {
         Self::new_from_series_with_amount_and_cost_model(
@@ -210,12 +210,12 @@ where
         )
     }
 
-    pub fn buy_at_price(index: usize, price: N, amount: N) -> Self {
-        let cost_model = ZeroCostModel;
+    pub fn buy_at_price(index: usize, price: T, amount: T) -> Self {
+        let cost_model = ZeroCostModel::new();
         Self::new(index, TradeType::Buy, price, amount, cost_model)
     }
 
-    pub fn buy_at_price_with_cost_model(index: usize, price: N, amount: N, cost_model: CM) -> Self {
+    pub fn buy_at_price_with_cost_model(index: usize, price: T, amount: T, cost_model: CM) -> Self {
         Self::new(index, TradeType::Buy, price, amount, cost_model)
     }
 
@@ -223,14 +223,14 @@ where
         Self::new_from_series(index, series, TradeType::Sell)
     }
 
-    pub fn sell_at_with_amount(index: usize, series: &'a S, amount: N) -> Self {
+    pub fn sell_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
         Self::new_from_series_with_amount(index, series, TradeType::Sell, amount)
     }
 
     pub fn sell_at_with_amount_and_cost_model(
         index: usize,
         series: &'a S,
-        amount: N,
+        amount: T,
         cost_model: CM,
     ) -> Self {
         Self::new_from_series_with_amount_and_cost_model(
@@ -242,15 +242,15 @@ where
         )
     }
 
-    pub fn sell_at_price(index: usize, price: N, amount: N) -> Self {
-        let cost_model = ZeroCostModel;
+    pub fn sell_at_price(index: usize, price: T, amount: T) -> Self {
+        let cost_model = ZeroCostModel::new();
         Self::new(index, TradeType::Sell, price, amount, cost_model)
     }
 
     pub fn sell_at_price_with_cost_model(
         index: usize,
-        price: N,
-        amount: N,
+        price: T,
+        amount: T,
         cost_model: CM,
     ) -> Self {
         Self::new(index, TradeType::Sell, price, amount, cost_model)
@@ -258,11 +258,11 @@ where
 }
 
 // 实现 Display，方便打印
-impl<'a, N, CM, S> fmt::Display for Trade<'a, N, CM, S>
+impl<'a, T, CM, S> fmt::Display for Trade<'a, T, CM, S>
 where
-    N: TrNum + Debug,
-    CM: CostModel<N> + Clone + Debug,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + Debug + 'static,
+    CM: CostModel<T> + Clone + Debug,
+    S: BarSeries<'a, T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -274,11 +274,11 @@ where
 }
 
 // 实现 PartialEq 和 Hash
-impl<'a, N, CM, S> PartialEq for Trade<'a, N, CM, S>
+impl<'a, T, CM, S> PartialEq for Trade<'a, T, CM, S>
 where
-    N: TrNum + PartialEq,
-    CM: CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + PartialEq + 'static,
+    CM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
     fn eq(&self, other: &Self) -> bool {
         self.trade_type == other.trade_type
@@ -288,19 +288,19 @@ where
     }
 }
 
-impl<'a, N, CM, S> Eq for Trade<'a, N, CM, S>
+impl<'a, T, CM, S> Eq for Trade<'a, T, CM, S>
 where
-    N: TrNum + PartialEq + Eq,
-    CM: CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + PartialEq + Eq + 'static,
+    CM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
 }
 
-impl<'a, N, CM, S> Hash for Trade<'a, N, CM, S>
+impl<'a, T, CM, S> Hash for Trade<'a, T, CM, S>
 where
-    N: TrNum + Hash,
-    CM: CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + Hash + 'static,
+    CM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.trade_type.hash(state);

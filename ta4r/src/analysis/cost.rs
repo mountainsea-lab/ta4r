@@ -1,26 +1,20 @@
+use crate::analysis::cost::cost_model::CostContext;
+use crate::bar::types::BarSeries;
 use crate::num::TrNum;
-use crate::position::Position;
 
-pub mod cost_model;
+pub mod fixed_transaction_cost_model;
+pub mod zero_cost_model;
 
-pub trait CostModel<T: TrNum> {
-    /// 计算给定 Position 到指定索引的成本
-    fn calculate_with_index(&self, position: &Position<T, Self, Self>, final_index: usize) -> T
-    where
-        Self: Sized;
+/// 用于封装计算成本所需的所有参数，后续方便扩展 比如解耦: cost与Position的耦合
+pub struct CostContext<T: TrNum + 'static> {
+    pub entry_price: T,
+    pub amount: T,
+    pub entry_index: Option<usize>, // 可选，因为有的方法不需要索引
+    pub final_index: Option<usize>, // 指定索引
+    pub is_closed: bool,
+    // 后续如果有更多状态，直接加字段即可
+    // pub extra_fee: T,
+    // pub timestamp: u64,
+    // ...
 
-    /// 计算给定 Position 的成本
-    fn calculate_position(&self, position: &Position<T, Self, Self>) -> T
-    where
-        Self: Sized;
-
-    /// 计算单次交易的成本
-    fn calculate_trade(&self, price: T, amount: T) -> T
-    where
-        Self: Sized;
-
-    /// 判断两个成本模型是否相等
-    fn equals(&self, other: &Self) -> bool
-    where
-        Self: Sized;
 }

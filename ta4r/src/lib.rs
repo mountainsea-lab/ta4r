@@ -33,18 +33,20 @@ pub mod num;
 mod position;
 mod rule;
 mod trade;
-use crate::analysis::cost::CostModel;
+
+
 use crate::bar::types::BarSeries;
 use crate::position::Position;
 use crate::trade::{Trade, TradeType};
 use std::fmt::Debug;
+use crate::analysis::CostModel;
 
-pub trait TradingRecord<'a, N, CM, HM, S>
+pub trait TradingRecord<'a, T, CM, HM, S>
 where
-    N: TrNum + Clone,
-    CM: CostModel<N> + Clone,
-    HM: CostModel<N> + Clone,
-    S: BarSeries<'a, N> + ?Sized,
+    T: TrNum + 'static,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<'a, T>,
 {
     // 起始交易类型
     fn get_starting_type(&self) -> TradeType;
@@ -56,19 +58,19 @@ where
     fn operate(&mut self, index: usize);
 
     // 在 index 下执行操作，指定价格和数量
-    fn operate_with_price_amount(&mut self, index: usize, price: N, amount: N);
+    fn operate_with_price_amount(&mut self, index: usize, price: T, amount: T);
 
     // 入场交易（默认价格和数量）
     fn enter(&mut self, index: usize) -> bool;
 
     // 入场交易，指定价格和数量
-    fn enter_with_price_amount(&mut self, index: usize, price: N, amount: N) -> bool;
+    fn enter_with_price_amount(&mut self, index: usize, price: T, amount: T) -> bool;
 
     // 退出交易（默认价格和数量）
     fn exit(&mut self, index: usize) -> bool;
 
     // 退出交易，指定价格和数量
-    fn exit_with_price_amount(&mut self, index: usize, price: N, amount: N) -> bool;
+    fn exit_with_price_amount(&mut self, index: usize, price: T, amount: T) -> bool;
 
     // 当前是否持仓已关闭
     fn is_closed(&self) -> bool;
@@ -80,7 +82,7 @@ where
     fn get_holding_cost_model(&self) -> &HM;
 
     // 已记录的所有已关闭持仓
-    fn get_positions(&self) -> &[Position<'a, N, CM, HM, S>];
+    fn get_positions(&self) -> &[Position<'a, T, CM, HM, S>];
 
     // 已记录持仓数量
     fn get_position_count(&self) -> usize {
@@ -88,27 +90,27 @@ where
     }
 
     // 当前持仓
-    fn get_current_position(&self) -> &Position<'a, N, CM, HM, S>;
+    fn get_current_position(&self) -> &Position<'a, T, CM, HM, S>;
 
     // 最近关闭的持仓（无则返回 None）
-    fn get_last_position(&self) -> Option<&Position<'a, N, CM, HM, S>> {
+    fn get_last_position(&self) -> Option<&Position<'a, T, CM, HM, S>> {
         self.get_positions().last()
     }
 
     // 所有交易
-    fn get_trades(&self) -> &[Trade<'a, N, CM, S>];
+    fn get_trades(&self) -> &[Trade<'a, T, CM, S>];
 
     // 最近交易（无则返回 None）
-    fn get_last_trade(&self) -> Option<&Trade<'a, N, CM, S>>;
+    fn get_last_trade(&self) -> Option<&Trade<'a, T, CM, S>>;
 
     // 指定类型的最近交易（无则返回 None）
-    fn get_last_trade_of_type(&self, trade_type: TradeType) -> Option<&Trade<'a, N, CM, S>>;
+    fn get_last_trade_of_type(&self, trade_type: TradeType) -> Option<&Trade<'a, T, CM, S>>;
 
     // 最近入场交易（无则返回 None）
-    fn get_last_entry(&self) -> Option<&Trade<'a, N, CM, S>>;
+    fn get_last_entry(&self) -> Option<&Trade<'a, T, CM, S>>;
 
     // 最近退出交易（无则返回 None）
-    fn get_last_exit(&self) -> Option<&Trade<'a, N, CM, S>>;
+    fn get_last_exit(&self) -> Option<&Trade<'a, T, CM, S>>;
 
     // 记录起始索引（可选）
     fn get_start_index(&self) -> Option<usize>;
