@@ -23,6 +23,8 @@
  * SOFTWARE.
  */
 
+mod base_rule;
+
 use crate::TradingRecord;
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
