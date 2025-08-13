@@ -24,13 +24,20 @@
  */
 
 mod and_rule;
-mod base_rule;
 mod average_true_range_stop_gain_rule;
+mod base_rule;
+mod not_rule;
+mod or_rule;
+mod xor_rule;
 
 use crate::TradingRecord;
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
+use crate::rule::and_rule::AndRule;
+use crate::rule::not_rule::NotRule;
+use crate::rule::or_rule::OrRule;
+use crate::rule::xor_rule::XorRule;
 
 /// 一条交易规则（Trading Rule）
 ///
@@ -59,39 +66,59 @@ pub trait Rule<'a> {
         trading_record: Option<&Self::TradingRec>,
     ) -> bool;
 
-    //
-    // /// 与另一条规则组合成 AND 规则
-    // fn and<R>(self, other: R) -> AndRule<'a, N, CM, HM, S, TR, Self, R>
-    // where
-    //     Self: Sized,
-    //     R: Rule<'a, N, CM, HM, S, TR>,
-    // {
-    //     AndRule::new(self, other)
-    // }
-    //
-    // /// 与另一条规则组合成 OR 规则
-    // fn or<R>(self, other: R) -> OrRule<'a, N, CM, HM, S, TR, Self, R>
-    // where
-    //     Self: Sized,
-    //     R: Rule<'a, N, CM, HM, S, TR>,
-    // {
-    //     OrRule::new(self, other)
-    // }
-    //
-    // /// 与另一条规则组合成 XOR 规则
-    // fn xor<R>(self, other: R) -> XorRule<'a, N, CM, HM, S, TR, Self, R>
-    // where
-    //     Self: Sized,
-    //     R: Rule<'a, N, CM, HM, S, TR>,
-    // {
-    //     XorRule::new(self, other)
-    // }
-    //
-    // /// 取反规则
-    // fn negation(self) -> NotRule<'a, N, CM, HM, S, TR, Self>
-    // where
-    //     Self: Sized,
-    // {
-    //     NotRule::new(self)
-    // }
+    /// 与另一条规则组合成 AND 规则
+    fn and<R>(self, other: R) -> AndRule<'a, Self, R>
+    where
+        Self: Sized,
+        R: Rule<
+                'a,
+                Num = Self::Num,
+                CostBuy = Self::CostBuy,
+                CostSell = Self::CostSell,
+                Series = Self::Series,
+                TradingRec = Self::TradingRec,
+            >,
+    {
+        AndRule::new(self, other)
+    }
+
+    /// 与另一条规则组合成 OR 规则
+    fn or<R>(self, other: R) -> OrRule<'a, Self, R>
+    where
+        Self: Sized,
+        R: Rule<
+                'a,
+                Num = Self::Num,
+                CostBuy = Self::CostBuy,
+                CostSell = Self::CostSell,
+                Series = Self::Series,
+                TradingRec = Self::TradingRec,
+            >,
+    {
+        OrRule::new(self, other)
+    }
+
+    /// 与另一条规则组合成 XOR 规则
+    fn xor<R>(self, other: R) -> XorRule<'a, Self, R>
+    where
+        Self: Sized,
+        R: Rule<
+                'a,
+                Num = Self::Num,
+                CostBuy = Self::CostBuy,
+                CostSell = Self::CostSell,
+                Series = Self::Series,
+                TradingRec = Self::TradingRec,
+            >,
+    {
+        XorRule::new(self, other)
+    }
+
+    /// 取反规则
+    fn negation(self) -> NotRule<'a, Self>
+    where
+        Self: Sized,
+    {
+        NotRule::new(self)
+    }
 }

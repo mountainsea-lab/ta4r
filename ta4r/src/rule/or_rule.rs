@@ -1,7 +1,10 @@
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
 
-pub struct AndRule<'a, L, R>
+/// 一个 OR 组合规则
+///
+/// 只要两个规则中有一个满足即可（短路逻辑：左边满足则右边不再检查）
+pub struct OrRule<'a, L, R>
 where
     L: Rule<'a>,
     R: Rule<
@@ -18,7 +21,7 @@ where
     right: R,
 }
 
-impl<'a, L, R> AndRule<'a, L, R>
+impl<'a, L, R> OrRule<'a, L, R>
 where
     L: Rule<'a>,
     R: Rule<
@@ -32,7 +35,7 @@ where
 {
     pub fn new(left: L, right: R) -> Self {
         Self {
-            base: BaseRule::new("AndRule"),
+            base: BaseRule::new("OrRule"),
             left,
             right,
         }
@@ -49,7 +52,7 @@ where
     }
 }
 
-impl<'a, L, R> Rule<'a> for AndRule<'a, L, R>
+impl<'a, L, R> Rule<'a> for OrRule<'a, L, R>
 where
     L: Rule<'a>,
     R: Rule<
@@ -73,7 +76,7 @@ where
         trading_record: Option<&Self::TradingRec>,
     ) -> bool {
         let satisfied = self.left.is_satisfied_with_record(index, trading_record)
-            && self.right.is_satisfied_with_record(index, trading_record);
+            || self.right.is_satisfied_with_record(index, trading_record);
 
         self.base.trace_is_satisfied(index, satisfied);
         satisfied
