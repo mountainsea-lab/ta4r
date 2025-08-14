@@ -26,6 +26,7 @@
 mod and_rule;
 mod base_rule;
 mod average_true_range_stop_gain_rule;
+mod bool_rule;
 
 use crate::TradingRecord;
 use crate::analysis::CostModel;
