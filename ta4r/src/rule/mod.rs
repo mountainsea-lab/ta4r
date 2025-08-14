@@ -24,14 +24,21 @@
  */
 
 mod and_rule;
-mod base_rule;
 mod average_true_range_stop_gain_rule;
 mod bool_rule;
+mod base_rule;
+mod not_rule;
+mod or_rule;
+mod xor_rule;
 
 use crate::TradingRecord;
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
+use crate::rule::and_rule::AndRule;
+use crate::rule::not_rule::NotRule;
+use crate::rule::or_rule::OrRule;
+use crate::rule::xor_rule::XorRule;
 
 /// 一条交易规则（Trading Rule）
 ///
