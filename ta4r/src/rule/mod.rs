@@ -30,6 +30,7 @@ mod bool_rule;
 mod chain_rule;
 mod fixed_rule;
 mod helper;
+mod just_once_rule;
 mod not_rule;
 mod or_rule;
 mod xor_rule;
