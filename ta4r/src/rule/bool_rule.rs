@@ -1,38 +1,46 @@
-use crate::rule::base_rule::BaseRule;
-use crate::rule::Rule;
+use crate::rule::{Rule, base_rule::BaseRule};
 
-pub struct BooleanRule<'a, N, CB, CS, S, TR>
+/// BooleanRule: 总是返回固定 true/false 的规则
+pub struct BooleanRule<'a, T>
 where
-    N: 'a,
-    CB: 'a,
-    CS: 'a,
-    S: 'a,
-    TR: 'a,
+    T: Rule<'a>,
 {
-    base: BaseRule<'a, Self>,
+    base: BaseRule<'a, T>,
     satisfied: bool,
-    _marker: std::marker::PhantomData<(&'a N, CB, CS, S, TR)>,
 }
 
-impl<'a, N, CB, CS, S, TR> BooleanRule<'a, N, CB, CS, S, TR> {
-    pub const fn new(satisfied: bool) -> Self {
+impl<'a, T> BooleanRule<'a, T>
+where
+    T: Rule<'a>,
+{
+    /// 构造函数
+    pub fn new(satisfied: bool) -> Self {
         Self {
             base: BaseRule::new("BooleanRule"),
             satisfied,
-            _marker: std::marker::PhantomData,
         }
     }
 
-    pub const TRUE: Self = Self::new(true);
-    pub const FALSE: Self = Self::new(false);
+    /// 总是返回 true 的静态实例
+    pub fn true_rule() -> Self {
+        Self::new(true)
+    }
+
+    /// 总是返回 false 的静态实例
+    pub fn false_rule() -> Self {
+        Self::new(false)
+    }
 }
 
-impl<'a, N, CB, CS, S, TR> Rule<'a> for BooleanRule<'a, N, CB, CS, S, TR> {
-    type Num = N;
-    type CostBuy = CB;
-    type CostSell = CS;
-    type Series = S;
-    type TradingRec = TR;
+impl<'a, T> Rule<'a> for BooleanRule<'a, T>
+where
+    T: Rule<'a>,
+{
+    type Num = T::Num;
+    type CostBuy = T::CostBuy;
+    type CostSell = T::CostSell;
+    type Series = T::Series;
+    type TradingRec = T::TradingRec;
 
     fn is_satisfied_with_record(
         &self,

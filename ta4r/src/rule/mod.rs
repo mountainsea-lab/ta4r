@@ -25,8 +25,8 @@
 
 mod and_rule;
 mod average_true_range_stop_gain_rule;
-mod bool_rule;
 mod base_rule;
+mod bool_rule;
 mod not_rule;
 mod or_rule;
 mod xor_rule;
