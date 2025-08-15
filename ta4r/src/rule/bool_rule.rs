@@ -1,17 +1,17 @@
 use crate::rule::{Rule, base_rule::BaseRule};
 
 /// BooleanRule: 总是返回固定 true/false 的规则
-pub struct BooleanRule<'a, T>
+pub struct BooleanRule<'a, R>
 where
-    T: Rule<'a>,
+    R: Rule<'a>,
 {
-    base: BaseRule<'a, T>,
+    base: BaseRule<'a, R>,
     satisfied: bool,
 }
 
-impl<'a, T> BooleanRule<'a, T>
+impl<'a, R> BooleanRule<'a, R>
 where
-    T: Rule<'a>,
+    R: Rule<'a>,
 {
     /// 构造函数
     pub fn new(satisfied: bool) -> Self {
@@ -32,15 +32,15 @@ where
     }
 }
 
-impl<'a, T> Rule<'a> for BooleanRule<'a, T>
+impl<'a, R> Rule<'a> for BooleanRule<'a, R>
 where
-    T: Rule<'a>,
+    R: Rule<'a>,
 {
-    type Num = T::Num;
-    type CostBuy = T::CostBuy;
-    type CostSell = T::CostSell;
-    type Series = T::Series;
-    type TradingRec = T::TradingRec;
+    type Num = R::Num;
+    type CostBuy = R::CostBuy;
+    type CostSell = R::CostSell;
+    type Series = R::Series;
+    type TradingRec = R::TradingRec;
 
     fn is_satisfied_with_record(
         &self,

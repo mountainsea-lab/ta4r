@@ -28,6 +28,7 @@ mod average_true_range_stop_gain_rule;
 mod base_rule;
 mod bool_rule;
 mod chain_rule;
+mod fixed_rule;
 mod helper;
 mod not_rule;
 mod or_rule;
