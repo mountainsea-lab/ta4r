@@ -33,6 +33,7 @@ mod helper;
 mod just_once_rule;
 mod not_rule;
 mod or_rule;
+mod wait_for_rule;
 mod xor_rule;
 
 use crate::TradingRecord;
