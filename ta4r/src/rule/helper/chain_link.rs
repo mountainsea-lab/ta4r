@@ -21,7 +21,11 @@ where
 {
     /// 构造函数
     pub fn new(rule: R, threshold: usize) -> Self {
-        Self { rule, threshold , _marker: PhantomData }
+        Self {
+            rule,
+            threshold,
+            _marker: PhantomData,
+        }
     }
 
     /// 获取 rule
