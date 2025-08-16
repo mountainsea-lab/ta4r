@@ -91,6 +91,10 @@ impl NumFactory<DoubleNum> for DoubleNumFactory {
         DoubleNum::new(val as f64)
     }
 
+    fn num_of_usize(&self, val: usize) -> DoubleNum {
+        DoubleNum::new(val as f64)
+    }
+
     fn num_of_f64(&self, val: f64) -> DoubleNum {
         DoubleNum::new(val)
     }

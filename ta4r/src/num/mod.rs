@@ -52,6 +52,7 @@ pub trait NumFactory<T: TrNum> {
 
     fn num_of_str(&self, s: &str) -> Result<T, NumError>;
     fn num_of_i64(&self, val: i64) -> T;
+    fn num_of_usize(&self, val: usize) -> T;
     fn num_of_f64(&self, val: f64) -> T;
     /// 检查数值是否由该工厂创建
     fn produces(&self, num: &T) -> bool;

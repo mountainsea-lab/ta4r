@@ -26,7 +26,7 @@ use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::averages::base_ema_indicator::BaseEmaIndicator;
 use crate::indicators::types::IndicatorError;
-use crate::num::TrNum;
+use crate::num::{NumFactory, TrNum};
 
 /// 等价于 Java 的 EMAIndicator，封装标准 multiplier 的构造
 pub struct EmaIndicator<'a, T, S, I>
@@ -58,8 +58,9 @@ where
     I: Indicator<Num = T, Series<'a> = S> + 'a,
 {
     pub fn new(indicator: &'a I, bar_count: usize) -> Self {
-        let multiplier = 2.0 / (bar_count as f64 + 1.0);
-        let inner = BaseEmaIndicator::new(indicator, bar_count, multiplier as i64);
+        let num_factory = indicator.get_bar_series().num_factory();
+        let multiplier: T = num_factory.num_of_f64(2.0 / (bar_count as f64 + 1.0));
+        let inner = BaseEmaIndicator::new(indicator, bar_count, multiplier);
         Self { inner }
     }
 

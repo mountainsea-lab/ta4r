@@ -27,7 +27,7 @@ use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::recursive_cached_indicator::RecursiveCachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
-use crate::num::{NumFactory, TrNum};
+use crate::num::TrNum;
 use std::marker::PhantomData;
 
 /// BaseEmaCalculator 持有对 indicator 的引用
@@ -111,12 +111,7 @@ where
     I: Indicator<Num = T, Series<'a> = S> + 'a,
 {
     /// 标准构造器：传入 T 类型 multiplier（等价 Java 中 Num 类型）
-    pub fn new(indicator: &'a I, bar_count: usize, multiplier: i64) -> Self {
-        let multiplier = indicator
-            .get_bar_series()
-            .num_factory()
-            .num_of_i64(multiplier);
-
+    pub fn new(indicator: &'a I, bar_count: usize, multiplier: T) -> Self {
         let calculator = BaseEmaCalculator {
             indicator,
             multiplier: multiplier.clone(),

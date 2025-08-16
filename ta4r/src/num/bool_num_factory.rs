@@ -94,6 +94,10 @@ impl NumFactory<BoolNum> for BoolNumFactory {
         BoolNum(val != 0)
     }
 
+    fn num_of_usize(&self, val: usize) -> BoolNum {
+        BoolNum(val != 0)
+    }
+
     fn num_of_f64(&self, val: f64) -> BoolNum {
         BoolNum(val != 0.0)
     }

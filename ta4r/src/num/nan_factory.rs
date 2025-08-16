@@ -83,6 +83,10 @@ impl NumFactory<NaN> for NaNFactory {
         NaN
     }
 
+    fn num_of_usize(&self, _val: usize) -> NaN {
+        NaN
+    }
+
     fn num_of_f64(&self, _val: f64) -> NaN {
         NaN
     }

@@ -135,6 +135,10 @@ impl NumFactory<DecimalNum> for DecimalNumFactory {
         DecimalNum::with_context(val, self.math_context.clone())
     }
 
+    fn num_of_usize(&self, val: usize) -> DecimalNum {
+        DecimalNum::with_context(val as u64, self.math_context.clone())
+    }
+
     fn num_of_f64(&self, val: f64) -> DecimalNum {
         let dec = Decimal::from_f64(val).unwrap_or_else(|| Decimal::ZERO);
         DecimalNum::with_context(dec, self.math_context.clone())
