@@ -27,7 +27,6 @@ use crate::num::TrNum;
 use crate::num::decimal_num_factory::DecimalNumFactory;
 use crate::num::types::{MathContext, NumError, NumberDelegate};
 use num_traits::Num;
-use num_traits::real::Real;
 use rust_decimal::prelude::*;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
