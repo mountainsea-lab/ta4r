@@ -33,7 +33,6 @@ pub mod nan;
 pub mod nan_factory;
 pub mod types;
 
-use crate::num::nan::NaN;
 use crate::num::types::{NumError, NumberDelegate};
 use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
 use rust_decimal::Decimal;
@@ -167,5 +166,11 @@ pub trait TrNum:
     /// 是否大于或者等于另一个数值
     fn is_greater_than_or_equal(&self, other: &Self) -> bool {
         self >= other
+    }
+    fn is_less_than(&self, other: &Self) -> bool {
+        self < other
+    }
+    fn is_less_than_or_equal(&self, other: &Self) -> bool {
+        self <= other
     }
 }

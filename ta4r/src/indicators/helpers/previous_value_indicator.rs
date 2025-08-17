@@ -1,9 +1,9 @@
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
+use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
-use crate::num::nan::NaN;
 use std::marker::PhantomData;
 
 pub struct PreviousValueCalculator<'a, T, S, I>
@@ -20,7 +20,7 @@ where
 impl<'a, T, S, I> Clone for PreviousValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
+    S: for<'any> BarSeries<'any, T>,
     I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn clone(&self) -> Self {
@@ -61,7 +61,7 @@ where
 
     fn calculate(
         &self,
-        _base: &crate::indicators::abstract_indicator::BaseIndicator<'a, T, S>,
+        _base: &BaseIndicator<'a, T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError> {
         if index < self.n {
