@@ -36,7 +36,7 @@ where
     C: IndicatorCalculator<'a, T, S> + Clone,
 {
     pub(crate) base: BaseIndicator<'a, T, S>,
-    results: RefCell<Vec<Option<T>>>,
+    results: RefCell<Vec<Option<C::Output>>>,
     pub(crate) highest_result_index: RefCell<isize>,
     pub(crate) calculator: C,
 }
@@ -61,7 +61,7 @@ impl<'a, T, S, C> CachedIndicator<'a, T, S, C>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    C: IndicatorCalculator<'a, T, S, Output = T> + Clone,
+    C: IndicatorCalculator<'a, T, S> + Clone,
 {
     /// 根据序列容量创建 CachedIndicator，缓存容量初始化为 max_count 大小，元素初始化为 None
     pub fn new_from_series(series: &'a S, calculator: C) -> Self {
@@ -83,7 +83,7 @@ where
     /// 通过已有指标构造，复用其 BarSeries
     pub fn new_from_indicator<I>(indicator: &'a I, calculator: C) -> Self
     where
-        I: Indicator<Num = T, Output = T, Series<'a> = S>,
+        I: Indicator<Num = T, Output = C::Output, Series<'a> = S>,
     {
         Self::new_from_series(indicator.get_bar_series(), calculator)
     }
@@ -229,10 +229,10 @@ impl<'a, T, S, C> Indicator for CachedIndicator<'a, T, S, C>
 where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T>,
-    C: IndicatorCalculator<'a, T, S, Output = T> + Clone,
+    C: IndicatorCalculator<'a, T, S> + Clone,
 {
     type Num = T;
-    type Output = T;
+    type Output = C::Output;
     type Series<'b>
         = S
     where
