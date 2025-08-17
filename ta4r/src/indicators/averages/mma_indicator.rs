@@ -38,7 +38,7 @@ pub struct MMAIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     inner: BaseEmaIndicator<'a, T, S, I>,
 }
@@ -47,7 +47,7 @@ impl<'a, T, S, I> Clone for MMAIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     fn clone(&self) -> Self {
         Self {
@@ -60,7 +60,7 @@ impl<'a, T, S, I> MMAIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     /// Constructs a new MMAIndicator
     ///
@@ -90,9 +90,10 @@ impl<'a, T, S, I> Indicator for MMAIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     type Num = T;
+    type Output = T;
     type Series<'b>
         = S
     where

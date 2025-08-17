@@ -31,8 +31,8 @@ use std::marker::PhantomData;
 pub struct BinaryOperation<T, L, R>
 where
     T: TrNum,
-    L: Indicator<Num = T>,
-    R: Indicator<Num = T>,
+    L: Indicator<Num = T, Output = T>,
+    R: Indicator<Num = T, Output = T>,
 {
     left: L,
     right: R,
@@ -43,8 +43,8 @@ where
 impl<T, L, R> Clone for BinaryOperation<T, L, R>
 where
     T: TrNum + Clone,
-    L: Indicator<Num = T> + Clone,
-    R: Indicator<Num = T> + Clone,
+    L: Indicator<Num = T, Output = T> + Clone,
+    R: Indicator<Num = T, Output = T> + Clone,
     BinaryOp<T>: Clone,
 {
     fn clone(&self) -> Self {
@@ -60,8 +60,8 @@ where
 impl<T, L, R> BinaryOperation<T, L, R>
 where
     T: TrNum + 'static,
-    L: Indicator<Num = T>,
-    R: Indicator<Num = T>,
+    L: Indicator<Num = T, Output = T>,
+    R: Indicator<Num = T, Output = T>,
 {
     pub fn new_simple(left: L, right: R, op: fn(&T, &T) -> T) -> Self {
         Self {
@@ -90,7 +90,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -109,7 +109,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -127,7 +127,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -142,7 +142,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -157,7 +157,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -172,7 +172,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -189,7 +189,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -204,7 +204,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
@@ -231,10 +231,11 @@ where
 impl<T, L, R> Indicator for BinaryOperation<T, L, R>
 where
     T: TrNum + 'static,
-    L: Indicator<Num = T>,
-    R: Indicator<Num = T>,
+    L: Indicator<Num = T, Output = T>,
+    R: Indicator<Num = T, Output = T>,
 {
     type Num = T;
+    type Output = T;
 
     type Series<'s>
         = L::Series<'s>

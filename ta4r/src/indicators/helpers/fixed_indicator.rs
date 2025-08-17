@@ -77,6 +77,7 @@ where
     S: for<'any> BarSeries<'any, T>,
 {
     type Num = T;
+    type Output = T;
 
     type Series<'b>
         = S

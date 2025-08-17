@@ -158,6 +158,7 @@ where
     C: IndicatorCalculator<'a, T, S> + Clone,
 {
     type Num = T;
+    type Output = T;
     type Series<'b>
         = S
     where

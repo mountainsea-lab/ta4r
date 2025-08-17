@@ -39,7 +39,7 @@ use std::sync::Arc;
 pub struct UnaryOperation<T, I>
 where
     T: TrNum,
-    I: Indicator<Num = T>,
+    I: Indicator<Num = T, Output = T>,
 {
     operand: I,
     operator: UnaryOp<T>,
@@ -49,7 +49,7 @@ where
 impl<T, I> Clone for UnaryOperation<T, I>
 where
     T: TrNum + Clone,
-    I: Indicator<Num = T> + Clone,
+    I: Indicator<Num = T, Output = T> + Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -63,7 +63,7 @@ where
 impl<T, I> UnaryOperation<T, I>
 where
     T: TrNum + 'static,
-    I: Indicator<Num = T>,
+    I: Indicator<Num = T, Output = T>,
 {
     pub fn new_simple(operand: I, op: fn(&T) -> T) -> Self {
         Self {
@@ -98,7 +98,7 @@ where
     ) -> Result<UnaryOperation<T, OI::IndicatorType>, IndicatorError>
     where
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
         let base = operand.as_ref();
@@ -112,7 +112,7 @@ where
     ) -> Result<UnaryOperation<T, IO::IndicatorType>, IndicatorError>
     where
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         IO: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
         // F: Fn(&T) -> Result<T, IndicatorError> + Send + Sync + 'static,
     {
@@ -128,7 +128,7 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
         UnaryOperation::<T, I>::from_fallible_op(operand, |v| {
@@ -142,33 +142,12 @@ where
     where
         T: TrNum + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
         UnaryOperation::<T, I>::from_simple_op(operand, |v| v.abs())
     }
 
-    // pub fn pow<'a, OI, S>(
-    //     operand: &'a OI,
-    //     exponent: impl Into<i64>,
-    // ) -> Result<UnaryOperation<T, OI::IndicatorType>, IndicatorError>
-    // where
-    //     T: TrNum + Clone + 'static,
-    //     S: for<'any> BarSeries<'any, T> + 'a,
-    //     I: Indicator<Num = T> + Clone + 'a,
-    //     OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-    // {
-    //     let series = operand.as_ref().get_bar_series();
-    //     let factory_ref: &T::Factory = series.factory_ref();
-    //     let num_exponent = factory_ref.num_of_i64(exponent.into());
-    //
-    //     let pow_op = move |base: &T| base.pow_num(&num_exponent).map_err(IndicatorError::NumError);
-    //
-    //     let operand_ref = operand.as_ref();
-    //     let op_ind = operand.as_indicator(operand_ref)?;
-    //
-    //     Ok(UnaryOperation::<T, I>::new_closure_fallible(op_ind, pow_op))
-    // }
     pub fn pow<'a, OI, S>(
         operand: &'a OI,
         exponent: impl Into<i64>,
@@ -176,7 +155,7 @@ where
     where
         T: TrNum + Clone + 'static,
         S: for<'any> BarSeries<'any, T> + 'a,
-        I: Indicator<Num = T> + Clone + 'a,
+        I: Indicator<Num = T, Output = T> + Clone + 'a,
         OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
     {
         // 1. 获取BarSeries和工厂
@@ -214,7 +193,7 @@ static DECIMAL_NUM_FACTORY: Lazy<Arc<DecimalNumFactory>> =
 
 impl<I> UnaryOperation<DecimalNum, I>
 where
-    I: Indicator<Num = DecimalNum> + Clone + 'static,
+    I: Indicator<Num = DecimalNum, Output = DecimalNum> + Clone + 'static,
 {
     fn decimal_log_fn(v: &DecimalNum) -> Result<DecimalNum, IndicatorError> {
         let factory = &*DECIMAL_NUM_FACTORY;
@@ -246,9 +225,10 @@ where
 impl<T, I> Indicator for UnaryOperation<T, I>
 where
     T: TrNum + 'static,
-    I: Indicator<Num = T>,
+    I: Indicator<Num = T, Output = T>,
 {
     type Num = T;
+    type Output = T;
 
     type Series<'s>
         = I::Series<'s>

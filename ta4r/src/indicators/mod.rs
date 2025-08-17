@@ -39,14 +39,15 @@ pub mod types;
 
 pub trait Indicator: Clone {
     type Num: TrNum + 'static;
-
+    /// 输出类型（可能是 Num，也可能是其他类型）
+    type Output: Clone + 'static;
     /// GAT 返回绑定生命周期的系列
     type Series<'a>: BarSeries<'a, Self::Num>
     where
         Self: 'a;
 
     /// 获取指定 index 处的指标值
-    fn get_value(&self, index: usize) -> Result<Self::Num, IndicatorError>;
+    fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError>;
 
     /// 返回该指标依赖的 BarSeries 引用
     fn get_bar_series(&self) -> &Self::Series<'_>;
@@ -100,9 +101,9 @@ pub trait IntoIndicator<'a, T, S, I>
 where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T> + 'a,
-    I: Indicator<Num = T> + Clone + 'a,
+    I: Indicator<Num = T, Output = T> + Clone + 'a,
 {
-    type IndicatorType: Indicator<Num = T> + Clone + 'a;
+    type IndicatorType: Indicator<Num = T, Output = T> + Clone + 'a;
 
     /// 传入第一个指标，用于获取 BarSeries 以构造 ConstantIndicator
     fn as_indicator(&self, first: &'a I) -> Result<Self::IndicatorType, IndicatorError>;
@@ -113,7 +114,7 @@ impl<'a, T, S, I, N> IntoIndicator<'a, T, S, I> for NumConst<N>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T> + 'a,
-    I: Indicator<Num = T, Series<'a> = S> + Clone + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + Clone + 'a,
     N: ToNumber<T> + Clone,
 {
     type IndicatorType = ConstantIndicator<'a, T, S>;
@@ -136,7 +137,7 @@ impl<'a, T, S, I> IntoIndicator<'a, T, S, I> for I
 where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T> + 'a,
-    I: Indicator<Num = T> + Clone + 'a,
+    I: Indicator<Num = T, Output = T> + Clone + 'a,
 {
     type IndicatorType = I;
 

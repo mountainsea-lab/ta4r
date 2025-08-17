@@ -33,7 +33,7 @@ pub struct EmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     inner: BaseEmaIndicator<'a, T, S, I>,
 }
@@ -42,7 +42,7 @@ impl<'a, T, S, I> Clone for EmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     fn clone(&self) -> Self {
         Self {
@@ -55,7 +55,7 @@ impl<'a, T, S, I> EmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     pub fn new(indicator: &'a I, bar_count: usize) -> Self {
         let num_factory = indicator.get_bar_series().num_factory();
@@ -73,9 +73,10 @@ impl<'a, T, S, I> Indicator for EmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Series<'a> = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
     type Num = T;
+    type Output = T;
     type Series<'b>
         = S
     where

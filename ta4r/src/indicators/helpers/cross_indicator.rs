@@ -35,8 +35,8 @@ pub struct CrossCalculator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     up: &'a IU,
     low: &'a IL,
@@ -47,8 +47,8 @@ impl<'a, T, S, IU, IL> Clone for CrossCalculator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -63,8 +63,8 @@ impl<'a, T, S, IU, IL> CrossCalculator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     pub fn new(up: &'a IU, low: &'a IL) -> Self {
         Self {
@@ -79,8 +79,8 @@ impl<'a, T, S, IU, IL> IndicatorCalculator<'a, T, S> for CrossCalculator<'a, T, 
 where
     T: TrNum + Clone + From<bool> + 'static, // ✅ 新增 From<bool> 约束
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn calculate(
         &self,
@@ -125,8 +125,8 @@ pub struct CrossIndicator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     cached: CachedIndicator<'a, T, S, CrossCalculator<'a, T, S, IU, IL>>,
     up: &'a IU,
@@ -137,8 +137,8 @@ impl<'a, T, S, IU, IL> Clone for CrossIndicator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -153,8 +153,8 @@ impl<'a, T, S, IU, IL> CrossIndicator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     pub fn new(up: &'a IU, low: &'a IL) -> Self {
         let calculator = CrossCalculator::new(up, low);
@@ -175,10 +175,11 @@ impl<'a, T, S, IU, IL> Indicator for CrossIndicator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S>,
-    IL: Indicator<Num = T, Series<'a> = S>,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S>,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     type Num = T;
+    type Output = T;
     type Series<'b>
         = S
     where
@@ -201,8 +202,8 @@ impl<'a, T, S, IU, IL> std::fmt::Debug for CrossIndicator<'a, T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: for<'any> BarSeries<'any, T>,
-    IU: Indicator<Num = T, Series<'a> = S> + std::fmt::Debug,
-    IL: Indicator<Num = T, Series<'a> = S> + std::fmt::Debug,
+    IU: Indicator<Num = T, Output = T, Series<'a> = S> + std::fmt::Debug,
+    IL: Indicator<Num = T, Output = T, Series<'a> = S> + std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CrossIndicator")

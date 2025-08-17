@@ -68,9 +68,9 @@ impl<'a, T, S> Indicator for ConstantIndicator<'a, T, S>
 where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T>,
-    // S: BarSeries<'a, T> + 'a,
 {
     type Num = T;
+    type Output = T;
     type Series<'b>
         = S
     where

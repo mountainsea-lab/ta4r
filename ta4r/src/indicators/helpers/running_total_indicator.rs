@@ -36,7 +36,7 @@ pub struct RunningTotalCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     indicator: &'a I,
     bar_count: usize,
@@ -49,7 +49,7 @@ impl<'a, T, S, I> Clone for RunningTotalCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -66,7 +66,7 @@ impl<'a, T, S, I> fmt::Debug for RunningTotalCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + fmt::Debug + 'static,
     S: BarSeries<'a, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("RunningTotalCalculator")
@@ -81,7 +81,7 @@ impl<'a, T, S, I> RunningTotalCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T> + 'a,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     pub fn new(indicator: &'a I, bar_count: usize) -> Self {
         let zero = indicator
@@ -126,7 +126,7 @@ impl<'a, T, S, I> IndicatorCalculator<'a, T, S> for RunningTotalCalculator<'a, T
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn calculate(
         &self,
@@ -164,7 +164,7 @@ pub struct RunningTotalIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     cached: CachedIndicator<'a, T, S, RunningTotalCalculator<'a, T, S, I>>,
 }
@@ -173,7 +173,7 @@ impl<'a, T, S, I> Clone for RunningTotalIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -186,7 +186,7 @@ impl<'a, T, S, I> RunningTotalIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     pub fn new(indicator: &'a I, bar_count: usize) -> Self {
         let calculator = RunningTotalCalculator::new(indicator, bar_count);
@@ -199,9 +199,10 @@ impl<'a, T, S, I> Indicator for RunningTotalIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     type Num = T;
+    type Output = T;
     type Series<'b>
         = S
     where
@@ -224,7 +225,7 @@ impl<'a, T, S, I> fmt::Display for RunningTotalIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + fmt::Debug + 'static,
     S: BarSeries<'a, T> + 'a,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -239,7 +240,7 @@ impl<'a, T, S, I> fmt::Debug for RunningTotalIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + fmt::Debug + 'static,
     S: BarSeries<'a, T> + 'a,
-    I: Indicator<Num = T, Series<'a> = S>,
+    I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("RunningTotalIndicator")

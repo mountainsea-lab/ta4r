@@ -106,7 +106,7 @@ pub struct IndicatorIterator<'a, I: Indicator> {
 }
 
 impl<'a, I: Indicator> Iterator for IndicatorIterator<'a, I> {
-    type Item = Result<I::Num, IndicatorError>;
+    type Item = Result<I::Output, IndicatorError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index > self.end {
