@@ -31,11 +31,10 @@ use crate::num::types::NumError;
 pub mod abstract_indicator;
 mod atr_indicator;
 pub mod averages;
-mod cached_aux_indicator;
 pub mod cached_indicator;
 pub mod helpers;
 pub mod numeric;
-mod recursive_cached_indicator;
+pub mod recursive_cached_indicator;
 pub mod types;
 
 pub trait Indicator: Clone {
@@ -85,42 +84,6 @@ pub trait Indicator: Clone {
                 end: 0,
             },
         }
-    }
-}
-
-/// 非数值型指标（辅助指标）
-/// 用于返回时间戳、字符串、标记值等，不参与数值计算。
-pub trait AuxIndicator: Clone {
-    /// 输出类型，不要求 TrNum，可以是 SystemTime / String / usize 等
-    type Output: Clone + 'static;
-
-    /// 底层数值类型（Series 必须绑定一个数值类型）
-    type Num: TrNum + 'static;
-
-    /// GAT 返回绑定生命周期的 BarSeries
-    type Series<'a>: BarSeries<'a, Self::Num>
-    where
-        Self: 'a;
-
-    /// 获取指定 index 处的指标值
-    fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError>;
-
-    /// 返回该指标依赖的 BarSeries 引用
-    fn get_bar_series(&self) -> &Self::Series<'_>;
-
-    /// 默认：辅助指标通常不涉及稳定性计算，直接返回 0
-    fn get_count_of_unstable_bars(&self) -> usize {
-        0
-    }
-
-    /// 判断 index 处是否稳定
-    fn is_stable_at(&self, index: usize) -> bool {
-        index >= self.get_count_of_unstable_bars()
-    }
-
-    /// 当前 series 是否已达到稳定计算条件
-    fn is_stable(&self) -> bool {
-        self.get_bar_series().get_bar_count() >= self.get_count_of_unstable_bars()
     }
 }
 

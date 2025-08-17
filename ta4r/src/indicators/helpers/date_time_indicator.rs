@@ -1,61 +1,73 @@
-// use std::rc::Rc;
-// use std::cell::RefCell;
-// use std::time::SystemTime;
+// use std::marker::PhantomData;
 // use crate::bar::types::BarSeries;
-// use crate::core::{BarSeries, Indicator, CachedIndicator, Bar};
-// use crate::indicators::cached_indicator::CachedIndicator;
+// use crate::indicators::abstract_indicator::BaseIndicator;
+// use crate::indicators::Indicator;
+// use crate::indicators::types::{IndicatorCalculator, IndicatorError};
+// use crate::num::TrNum;
 //
-// /// DateTimeIndicator
-// ///
-// /// 返回某个 bar 的时间戳（默认是 begin_time）。
-// pub struct DateTimeIndicator<'a, S>
-// where
-//     S: BarSeries<'a>,
-// {
-//     inner: CachedIndicator<'a, SystemTime, S, C>,
+// pub struct DateTimeCalculator<S> {
+//     _phantom: PhantomData<S>,
 // }
 //
-// impl<'a, S> DateTimeIndicator<'a, S>
+// impl<S> DateTimeCalculator<S> {
+//     pub fn new() -> Self {
+//         Self {
+//             _phantom: PhantomData,
+//         }
+//     }
+// }
+//
+// impl<'a, T, S> IndicatorCalculator<'a, T, S> for DateTimeCalculator<S>
 // where
-//     S: BarSeries<'a>,
+//     T: TrNum + Clone + 'static,
+//     S: for<'any> BarSeries<'any, T>,
 // {
-//     /// 默认构造函数，返回 bar 的 begin_time
+//     fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
+//         let series = base.get_bar_series();
+//         let datetime = series
+//             .get_bar(index)
+//             .ok_or(IndicatorError::IndexOutOfBounds{index})?
+//             .get_datetime();
+//         Ok(T::from_datetime(datetime)) // 你自己实现 TrNum::from_datetime
+//     }
+// }
+//
+// pub struct DateTimeIndicator<'a, T, S>
+// where
+//     T: TrNum + Clone + 'static,
+//     S: for<'any> BarSeries<'any, T>,
+// {
+//     cached: CachedIndicator<'a, T, S, DateTimeCalculator<S>>,
+// }
+//
+// impl<'a, T, S> DateTimeIndicator<'a, T, S>
+// where
+//     T: TrNum + Clone + 'static,
+//     S: for<'any> BarSeries<'any, T>,
+// {
 //     pub fn new(series: &'a S) -> Self {
-//         let calc = Rc::new(move |index: usize, s: &S| {
-//             s.get_bar(index).begin_time()
-//         });
-//
-//         Self {
-//             inner: CachedIndicator::new(series, calc),
-//         }
-//     }
-//
-//     /// 自定义构造函数，允许指定从 `Bar` 提取时间戳的逻辑
-//     pub fn with_action<F>(series: &'a S, action: F) -> Self
-//     where
-//         F: Fn(&Bar) -> SystemTime + 'static,
-//     {
-//         let calc = Rc::new(move |index: usize, s: &S| {
-//             let bar = s.get_bar(index);
-//             action(bar)
-//         });
-//
-//         Self {
-//             inner: CachedIndicator::new(series, calc),
-//         }
+//         let calculator = DateTimeCalculator::new();
+//         let cached = CachedIndicator::new_from_series(series, calculator);
+//         Self { cached }
 //     }
 // }
 //
-// impl<'a, S> Indicator<'a, SystemTime> for DateTimeIndicator<'a, S>
+// impl<'a, T, S> Indicator for DateTimeIndicator<'a, T, S>
 // where
-//     S: BarSeries<'a>,
+//     T: TrNum + Clone + 'static,
+//     S: for<'any> BarSeries<'any, T>,
 // {
-//     fn get_value(&self, index: usize) -> SystemTime {
-//         self.inner.get_value(index)
+//     type Num = T;
+//     type Series<'b> = S
+//     where
+//         Self: 'b;
+//
+//     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
+//         self.cached.get_cached_value(index)
 //     }
 //
-//     fn get_bar_series(&self) -> &S {
-//         self.inner.get_bar_series()
+//     fn get_bar_series(&self) -> &Self::Series<'_> {
+//         self.cached.get_bar_series()
 //     }
 //
 //     fn get_count_of_unstable_bars(&self) -> usize {
