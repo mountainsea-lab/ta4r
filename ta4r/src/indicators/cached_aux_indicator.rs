@@ -1,45 +1,54 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
+use crate::bar::types::BarSeries;
 use crate::indicators::AuxIndicator;
 use crate::indicators::types::IndicatorError;
+use std::cell::RefCell;
 
-/// 通用的非数值型缓存指标器
-#[derive(Clone)]
-pub struct CachedAuxIndicator<I>
+use crate::indicators::abstract_indicator::BaseIndicator;
+use crate::num::TrNum;
+
+/// 静态分发、组合 BaseIndicator 的缓存指标器
+pub struct CachedAuxIndicator<'a, I, T, S>
 where
-    I: AuxIndicator,
+    I: AuxIndicator<Num = T, Series<'a> = S> + 'a,
+    T: TrNum + 'static,
+    S: BarSeries<'a, T>,
 {
+    base: BaseIndicator<'a, T, S>,
     indicator: I,
-    cache: Rc<RefCell<Vec<Option<I::Output>>>>,
+    cache: RefCell<Vec<Option<I::Output>>>,
 }
 
-impl<I> CachedAuxIndicator<I>
+impl<'a, I, T, S> Clone for CachedAuxIndicator<'a, I, T, S>
 where
-    I: AuxIndicator,
+    I: AuxIndicator<Num = T, Series<'a> = S> + Clone,
+    T: TrNum + 'static,
+    S: BarSeries<'a, T>,
 {
-    pub fn new(indicator: I) -> Self {
+    fn clone(&self) -> Self {
         Self {
-            indicator,
-            cache: Rc::new(RefCell::new(Vec::new())),
+            base: self.base.clone(), // BaseIndicator 已经实现 Clone
+            indicator: self.indicator.clone(),
+            cache: RefCell::new(self.cache.borrow().clone()), // 克隆内部 Vec
         }
     }
 }
 
-impl<I> AuxIndicator for CachedAuxIndicator<I>
+impl<'a, I, T, S> CachedAuxIndicator<'a, I, T, S>
 where
-    I: AuxIndicator,
+    I: AuxIndicator<Num = T, Series<'a> = S> + 'a,
+    T: TrNum + 'static,
+    S: BarSeries<'a, T>,
 {
-    type Output = I::Output;
-    type Num = I::Num;
-    type Series<'a>
-        = I::Series<'a>
-    where
-        Self: 'a;
+    pub fn new(indicator: I, series: &'a S) -> Self {
+        Self {
+            base: BaseIndicator::new(series),
+            indicator,
+            cache: RefCell::new(Vec::new()),
+        }
+    }
 
-    fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
+    pub fn get_cached_value(&self, index: usize) -> Result<I::Output, IndicatorError> {
         let mut cache = self.cache.borrow_mut();
-
         if index >= cache.len() {
             cache.resize(index + 1, None);
         }
@@ -53,8 +62,29 @@ where
         }
     }
 
+    pub fn base(&self) -> &BaseIndicator<'a, T, S> {
+        &self.base
+    }
+}
+
+impl<'a, I, T, S> AuxIndicator for CachedAuxIndicator<'a, I, T, S>
+where
+    I: AuxIndicator<Num = T, Series<'a> = S> + 'a,
+    T: TrNum + 'static,
+    S: for<'any> BarSeries<'any, T>,
+{
+    type Output = I::Output;
+    type Num = T;
+    type Series<'b>
+        = S
+    where
+        Self: 'b;
+    fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
+        self.get_cached_value(index)
+    }
+
     fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.indicator.get_bar_series()
+        self.base.get_bar_series()
     }
 
     fn get_count_of_unstable_bars(&self) -> usize {
