@@ -131,5 +131,11 @@ where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
 {
-    fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError>;
+    /// 计算结果类型（数值指标 = T，其他指标 = 特定类型）
+    type Output: Clone + 'static;
+    fn calculate(
+        &self,
+        base: &BaseIndicator<'a, T, S>,
+        index: usize,
+    ) -> Result<Self::Output, IndicatorError>;
 }

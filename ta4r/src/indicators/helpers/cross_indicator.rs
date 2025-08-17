@@ -82,11 +82,13 @@ where
     IU: Indicator<Num = T, Output = T, Series<'a> = S>,
     IL: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
+    type Output = T;
+
     fn calculate(
         &self,
         _base: &BaseIndicator<'a, T, S>,
         index: usize,
-    ) -> Result<T, IndicatorError> {
+    ) -> Result<Self::Output, IndicatorError> {
         // index = 0 特殊处理，无法判断是否穿越
         if index == 0 {
             return Ok(false.into());

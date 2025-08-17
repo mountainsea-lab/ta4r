@@ -1,6 +1,8 @@
 // use std::marker::PhantomData;
+// use std::time::Instant;
 // use crate::bar::types::BarSeries;
 // use crate::indicators::abstract_indicator::BaseIndicator;
+// use crate::indicators::cached_indicator::CachedIndicator;
 // use crate::indicators::Indicator;
 // use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 // use crate::num::TrNum;
@@ -22,7 +24,9 @@
 //     T: TrNum + Clone + 'static,
 //     S: for<'any> BarSeries<'any, T>,
 // {
-//     fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
+//     type Output = T;
+//
+//     fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<Self::Output, IndicatorError> {
 //         let series = base.get_bar_series();
 //         let datetime = series
 //             .get_bar(index)
@@ -58,6 +62,7 @@
 //     S: for<'any> BarSeries<'any, T>,
 // {
 //     type Num = T;
+//     type Output = Instant;
 //     type Series<'b> = S
 //     where
 //         Self: 'b;

@@ -61,7 +61,7 @@ impl<'a, T, S, C> CachedIndicator<'a, T, S, C>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    C: IndicatorCalculator<'a, T, S, Output = T> + Clone,
 {
     /// 根据序列容量创建 CachedIndicator，缓存容量初始化为 max_count 大小，元素初始化为 None
     pub fn new_from_series(series: &'a S, calculator: C) -> Self {
@@ -83,7 +83,7 @@ where
     /// 通过已有指标构造，复用其 BarSeries
     pub fn new_from_indicator<I>(indicator: &'a I, calculator: C) -> Self
     where
-        I: Indicator<Num = T, Series<'a> = S>,
+        I: Indicator<Num = T, Output = T, Series<'a> = S>,
     {
         Self::new_from_series(indicator.get_bar_series(), calculator)
     }
@@ -93,12 +93,12 @@ where
     }
 
     /// 调用计算函数，计算指定索引的指标值
-    fn calculate(&self, index: usize) -> Result<T, IndicatorError> {
+    fn calculate(&self, index: usize) -> Result<C::Output, IndicatorError> {
         self.calculator.calculate(&self.base, index)
     }
 
     /// 获取指定索引的指标值，自动缓存和扩容
-    pub fn get_cached_value(&self, index: usize) -> Result<T, IndicatorError> {
+    pub fn get_cached_value(&self, index: usize) -> Result<C::Output, IndicatorError> {
         let series = self.base.get_bar_series();
 
         if series.get_bar_count() == 0 {
@@ -229,7 +229,7 @@ impl<'a, T, S, C> Indicator for CachedIndicator<'a, T, S, C>
 where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    C: IndicatorCalculator<'a, T, S, Output = T> + Clone,
 {
     type Num = T;
     type Output = T;
@@ -238,7 +238,7 @@ where
     where
         Self: 'b;
 
-    fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
+    fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
         self.get_cached_value(index)
     }
 

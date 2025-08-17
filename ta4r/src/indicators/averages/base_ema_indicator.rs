@@ -63,7 +63,13 @@ where
     S: for<'any> BarSeries<'any, T>,
     I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
 {
-    fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
+    type Output = T;
+
+    fn calculate(
+        &self,
+        base: &BaseIndicator<'a, T, S>,
+        index: usize,
+    ) -> Result<Self::Output, IndicatorError> {
         if index == 0 {
             return self.indicator.get_value(0);
         }

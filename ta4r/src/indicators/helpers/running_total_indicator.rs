@@ -128,11 +128,13 @@ where
     S: BarSeries<'a, T>,
     I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
+    type Output = T;
+
     fn calculate(
         &self,
         _base: &BaseIndicator<'a, T, S>,
         index: usize,
-    ) -> Result<T, IndicatorError> {
+    ) -> Result<Self::Output, IndicatorError> {
         let mut prev_index = self.prev_index.borrow_mut();
         let mut prev_sum = self.prev_sum.borrow_mut();
 

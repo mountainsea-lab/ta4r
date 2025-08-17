@@ -78,11 +78,13 @@ where
     S: for<'any> BarSeries<'any, T>,
     I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
+    type Output = T;
+
     fn calculate(
         &self,
         _base: &BaseIndicator<'a, T, S>,
         index: usize,
-    ) -> Result<T, IndicatorError> {
+    ) -> Result<Self::Output, IndicatorError> {
         let real_bar_count = (index + 1).min(self.bar_count);
 
         let sum = self.running_total.get_value(index)?;

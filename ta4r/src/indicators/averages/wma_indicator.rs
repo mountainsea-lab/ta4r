@@ -78,7 +78,13 @@ where
     S: for<'any> BarSeries<'any, T>,
     I: Indicator<Num = T, Output = T, Series<'a> = S>,
 {
-    fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
+    type Output = T;
+
+    fn calculate(
+        &self,
+        base: &BaseIndicator<'a, T, S>,
+        index: usize,
+    ) -> Result<Self::Output, IndicatorError> {
         let num_factory = base.get_bar_series().num_factory();
         let zero = num_factory.zero().as_ref().clone();
 

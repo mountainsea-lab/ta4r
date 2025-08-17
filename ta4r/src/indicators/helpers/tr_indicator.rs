@@ -43,7 +43,13 @@ where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
 {
-    fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
+    type Output = T;
+
+    fn calculate(
+        &self,
+        base: &BaseIndicator<'a, T, S>,
+        index: usize,
+    ) -> Result<Self::Output, IndicatorError> {
         let series = base.get_bar_series();
 
         // 当前 bar

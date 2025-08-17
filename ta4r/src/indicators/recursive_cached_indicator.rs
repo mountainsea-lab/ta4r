@@ -54,7 +54,13 @@ where
     S: BarSeries<'a, T>,
     C: IndicatorCalculator<'a, T, S> + Clone,
 {
-    fn calculate(&self, base: &BaseIndicator<'a, T, S>, index: usize) -> Result<T, IndicatorError> {
+    type Output = C::Output;
+
+    fn calculate(
+        &self,
+        base: &BaseIndicator<'a, T, S>,
+        index: usize,
+    ) -> Result<Self::Output, IndicatorError> {
         // 不负责递归预计算，直接调用内层计算器
         self.inner.calculate(base, index)
     }
@@ -86,7 +92,7 @@ impl<'a, T, S, C> RecursiveCachedIndicator<'a, T, S, C>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<'a, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    C: IndicatorCalculator<'a, T, S, Output = T> + Clone,
 {
     pub fn new(series: &'a S, calculator: C) -> Self {
         Self::new_with_threshold(series, calculator, RECURSION_THRESHOLD)
@@ -105,7 +111,7 @@ where
     /// 从现有 Indicator 构造，使用默认阈值
     pub fn from_indicator<I>(indicator: &'a I, calculator: C) -> Self
     where
-        I: Indicator<Num = T, Series<'a> = S>,
+        I: Indicator<Num = T, Output = T, Series<'a> = S>,
     {
         Self::from_indicator_with_threshold(indicator, calculator, RECURSION_THRESHOLD)
     }
@@ -117,7 +123,7 @@ where
         threshold: usize,
     ) -> Self
     where
-        I: Indicator<Num = T, Series<'a> = S>,
+        I: Indicator<Num = T, Output = T, Series<'a> = S>,
     {
         let wrapper = RecursiveCalcWrapper {
             inner: calculator,
@@ -127,7 +133,7 @@ where
         Self { cached }
     }
 
-    pub fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
+    pub fn get_value(&self, index: usize) -> Result<C::Output, IndicatorError> {
         let series = self.cached.base.get_bar_series();
 
         if series.get_bar_count() == 0 || index > series.get_end_index().unwrap_or(usize::MAX) {
@@ -155,7 +161,7 @@ impl<'a, T, S, C> Indicator for RecursiveCachedIndicator<'a, T, S, C>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    C: IndicatorCalculator<'a, T, S, Output = T> + Clone,
 {
     type Num = T;
     type Output = T;
@@ -164,7 +170,7 @@ where
     where
         Self: 'b;
 
-    fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
+    fn get_value(&self, index: usize) -> Result<C::Output, IndicatorError> {
         self.get_value(index)
     }
 
