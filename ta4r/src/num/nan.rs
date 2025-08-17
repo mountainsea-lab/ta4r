@@ -238,6 +238,10 @@ impl TrNum for NaN {
         "NaN"
     }
 
+    fn nan() -> Self {
+        NaN
+    }
+
     fn plus(&self, _augend: &Self) -> Self {
         NaN
     }

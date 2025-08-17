@@ -348,6 +348,11 @@ impl TrNum for DoubleNum {
         "DoubleNum"
     }
 
+    fn nan() -> Self {
+        // 默认实现，适用于 NaN 类型；其他类型可覆盖
+        unimplemented!("必须被具体类型覆盖，或者只用于 NaN 类型")
+    }
+
     #[inline]
     fn plus(&self, augend: &Self) -> Self {
         Self::new(self.delegate + augend.delegate)

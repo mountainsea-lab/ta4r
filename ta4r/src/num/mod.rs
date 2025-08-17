@@ -33,6 +33,7 @@ pub mod nan;
 pub mod nan_factory;
 pub mod types;
 
+use crate::num::nan::NaN;
 use crate::num::types::{NumError, NumberDelegate};
 use num_traits::{FromPrimitive, Num, One, Signed, ToPrimitive, Zero};
 use rust_decimal::Decimal;
@@ -88,7 +89,8 @@ pub trait TrNum:
 
     /// 类型名称
     fn get_name(&self) -> &'static str;
-
+    /// 默认NaN类型
+    fn nan() -> Self;
     // **必须实现，不提供默认实现**
     fn plus(&self, augend: &Self) -> Self;
 

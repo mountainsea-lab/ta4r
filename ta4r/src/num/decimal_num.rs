@@ -474,6 +474,11 @@ impl TrNum for DecimalNum {
         "DecimalNum"
     }
 
+    fn nan() -> Self {
+        // 默认实现，适用于 NaN 类型；其他类型可覆盖
+        unimplemented!("必须被具体类型覆盖，或者只用于 NaN 类型")
+    }
+
     fn plus(&self, augend: &Self) -> Self {
         let ctx = self.choose_math_context_with_greater_precision(augend);
         let result = self.delegate + augend.delegate;
