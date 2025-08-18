@@ -1,4 +1,5 @@
 pub mod and_strategy;
+pub mod base_strategy;
 pub mod opposite_strategy;
 pub mod or_strategy;
 
