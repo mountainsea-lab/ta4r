@@ -68,9 +68,9 @@ pub trait Strategy<'a> {
     }
 
     // 组合策略（静态分发）
-    fn and<S>(self, other: S) -> AndStrategy<'a, Self, S>
+    fn and<S>(&self, other: S) -> AndStrategy<'a, Self, S>
     where
-        Self: Sized,
+        Self: Clone,
         S: Strategy<
                 'a,
                 Num = Self::Num,
@@ -81,40 +81,30 @@ pub trait Strategy<'a> {
             >,
     {
         AndStrategy {
-            left: self,
-            right: other,
-            _phantom: PhantomData,
-        }
-    }
-    fn or<
-        S: Strategy<
-                'a,
-                Num = Self::Num,
-                CostBuy = Self::CostBuy,
-                CostSell = Self::CostSell,
-                Series = Self::Series,
-                TradingRec = Self::TradingRec,
-            >,
-    >(
-        self,
-        other: S,
-    ) -> OrStrategy<'a, Self, S>
-    where
-        Self: Sized,
-    {
-        OrStrategy {
-            left: self,
+            left: self.clone(),
             right: other,
             _phantom: PhantomData,
         }
     }
 
-    fn opposite(self) -> OppositeStrategy<'a, Self>
+    fn or<S>(&self, other: S) -> OrStrategy<'a, Self, S>
     where
-        Self: Sized,
+        Self: Clone,
+        S: Strategy<'a, Num = Self::Num, CostBuy = Self::CostBuy, CostSell = Self::CostSell, Series = Self::Series, TradingRec = Self::TradingRec>,
+    {
+        OrStrategy {
+            left: self.clone(),
+            right: other,
+            _phantom: PhantomData,
+        }
+    }
+
+    fn opposite(&self) -> OppositeStrategy<'a, Self>
+    where
+        Self: Clone,
     {
         OppositeStrategy {
-            strategy: self,
+            strategy: self.clone(),
             _phantom: Default::default(),
         }
     }
