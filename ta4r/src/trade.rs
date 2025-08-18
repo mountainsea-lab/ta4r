@@ -236,6 +236,11 @@ where
         self.price_per_asset.multiplied_by(&self.amount)
     }
 
+    /// 获取净成交价值：net_price * amount
+    pub fn get_net_value(&self) -> T {
+        self.net_price.multiplied_by(&self.amount)
+    }
+
     /// 静态工厂方法，调用 panic 版本（保持兼容）
     pub fn buy_at_with_amount_and_cost_model(
         index: usize,
@@ -390,15 +395,24 @@ where
 // 实现 Display，方便打印
 impl<'a, T, CM, S> fmt::Display for Trade<'a, T, CM, S>
 where
-    T: TrNum + Debug + 'static,
-    CM: CostModel<T> + Clone + Debug,
+    T: TrNum + fmt::Display + 'static,
+    CM: CostModel<T> + Clone,
     S: BarSeries<'a, T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Trade {{ type: {:?}, index: {}, price: {:?}, amount: {:?} }}",
-            self.trade_type, self.index, self.price_per_asset, self.amount
+            "{} Trade at index {}: price_per_asset = {}, net_price = {}, amount = {}, cost = {}, net_value = {}",
+            match self.trade_type {
+                TradeType::Buy => "Buy",
+                TradeType::Sell => "Sell",
+            },
+            self.index,
+            self.price_per_asset,
+            self.net_price,
+            self.amount,
+            self.cost,
+            self.get_net_value()
         )
     }
 }

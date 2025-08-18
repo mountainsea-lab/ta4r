@@ -1,8 +1,16 @@
+pub mod and_strategy;
+pub mod opposite_strategy;
+pub mod or_strategy;
+
+use crate::TradingRecord;
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
 use crate::num::TrNum;
 use crate::rule::Rule;
-use crate::TradingRecord;
+use crate::strategy::and_strategy::AndStrategy;
+use crate::strategy::opposite_strategy::OppositeStrategy;
+use crate::strategy::or_strategy::OrStrategy;
+use std::marker::PhantomData;
 
 pub trait Strategy<'a> {
     type Num: TrNum + 'static;
@@ -12,35 +20,39 @@ pub trait Strategy<'a> {
     type TradingRec: TradingRecord<'a, Self::Num, Self::CostBuy, Self::CostSell, Self::Series>;
 
     type EntryRule: Rule<
-        'a,
-        crate::rule::Num= Self::Num,
-        crate::rule::CostBuy= Self::CostBuy,
-        crate::rule::CostSell= Self::CostSell,
-        crate::rule::Series= Self::Series,
-        crate::rule::TradingRec= Self::TradingRec,
-    >;
+            'a,
+            Num = Self::Num,
+            CostBuy = Self::CostBuy,
+            CostSell = Self::CostSell,
+            Series = Self::Series,
+            TradingRec = Self::TradingRec,
+        >;
     type ExitRule: Rule<
-        'a,
-        crate::rule::Num= Self::Num,
-        crate::rule::CostBuy= Self::CostBuy,
-        crate::rule::CostSell= Self::CostSell,
-        crate::rule::Series= Self::Series,
-        crate::rule::TradingRec= Self::TradingRec,
-    >;
+            'a,
+            Num = Self::Num,
+            CostBuy = Self::CostBuy,
+            CostSell = Self::CostSell,
+            Series = Self::Series,
+            TradingRec = Self::TradingRec,
+        >;
 
-    fn entry_rule(&self) -> &Self::EntryRule;
-    fn exit_rule(&self) -> &Self::ExitRule;
+    fn entry_rule(&self) -> Self::EntryRule;
+    fn exit_rule(&self) -> Self::ExitRule;
 
     fn unstable_bars(&self) -> usize;
 
     fn should_enter(&self, index: usize, trading_record: Option<&Self::TradingRec>) -> bool {
         index >= self.unstable_bars()
-            && self.entry_rule().is_satisfied_with_record(index, trading_record)
+            && self
+                .entry_rule()
+                .is_satisfied_with_record(index, trading_record)
     }
 
     fn should_exit(&self, index: usize, trading_record: Option<&Self::TradingRec>) -> bool {
         index >= self.unstable_bars()
-            && self.exit_rule().is_satisfied_with_record(index, trading_record)
+            && self
+                .exit_rule()
+                .is_satisfied_with_record(index, trading_record)
     }
 
     fn should_operate(&self, index: usize, trading_record: &Self::TradingRec) -> bool {
@@ -55,20 +67,34 @@ pub trait Strategy<'a> {
     }
 
     // 组合策略（静态分发）
-    fn and<S: Strategy<'a, Num = Self::Num, CostBuy = Self::CostBuy, CostSell = Self::CostSell, Series = Self::Series, TradingRec = Self::TradingRec>>(
-        self,
-        other: S,
-    ) -> AndStrategy<'a, Self, S>
+    fn and<S>(self, other: S) -> AndStrategy<'a, Self, S>
     where
         Self: Sized,
+        S: Strategy<
+                'a,
+                Num = Self::Num,
+                CostBuy = Self::CostBuy,
+                CostSell = Self::CostSell,
+                Series = Self::Series,
+                TradingRec = Self::TradingRec,
+            >,
     {
         AndStrategy {
             left: self,
             right: other,
+            _phantom: PhantomData,
         }
     }
-
-    fn or<S: Strategy<'a, Num = Self::Num, CostBuy = Self::CostBuy, CostSell = Self::CostSell, Series = Self::Series, TradingRec = Self::TradingRec>>(
+    fn or<
+        S: Strategy<
+                'a,
+                Num = Self::Num,
+                CostBuy = Self::CostBuy,
+                CostSell = Self::CostSell,
+                Series = Self::Series,
+                TradingRec = Self::TradingRec,
+            >,
+    >(
         self,
         other: S,
     ) -> OrStrategy<'a, Self, S>
@@ -78,6 +104,7 @@ pub trait Strategy<'a> {
         OrStrategy {
             left: self,
             right: other,
+            _phantom: PhantomData,
         }
     }
 
@@ -85,8 +112,9 @@ pub trait Strategy<'a> {
     where
         Self: Sized,
     {
-        OppositeStrategy { strategy: self }
+        OppositeStrategy {
+            strategy: self,
+            _phantom: Default::default(),
+        }
     }
 }
-
-

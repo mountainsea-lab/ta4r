@@ -1,15 +1,15 @@
-use crate::rule::and_rule::AndRule;
+use crate::rule::or_rule::OrRule;
 use crate::strategy::Strategy;
 use std::marker::PhantomData;
 
-/// AndStrategy 组合两个策略
-pub struct AndStrategy<'a, L, R> {
+/// OrStrategy 组合两个策略
+pub struct OrStrategy<'a, L, R> {
     pub(crate) left: L,
     pub(crate) right: R,
     pub(crate) _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, L, R> AndStrategy<'a, L, R>
+impl<'a, L, R> OrStrategy<'a, L, R>
 where
     L: Strategy<'a>,
     R: Strategy<
@@ -30,7 +30,7 @@ where
     }
 }
 
-impl<'a, L, R> Strategy<'a> for AndStrategy<'a, L, R>
+impl<'a, L, R> Strategy<'a> for OrStrategy<'a, L, R>
 where
     L: Strategy<'a>,
     R: Strategy<
@@ -52,17 +52,17 @@ where
     type Series = L::Series;
     type TradingRec = L::TradingRec;
 
-    type EntryRule = AndRule<'a, L::EntryRule, R::EntryRule>;
-    type ExitRule = AndRule<'a, L::ExitRule, R::ExitRule>;
+    type EntryRule = OrRule<'a, L::EntryRule, R::EntryRule>;
+    type ExitRule = OrRule<'a, L::ExitRule, R::ExitRule>;
 
     /// 返回组合后的 EntryRule（每次调用生成新的对象）
     fn entry_rule(&self) -> Self::EntryRule {
-        AndRule::new(self.left.entry_rule(), self.right.entry_rule())
+        OrRule::new(self.left.entry_rule(), self.right.entry_rule())
     }
 
     /// 返回组合后的 ExitRule（每次调用生成新的对象）
     fn exit_rule(&self) -> Self::ExitRule {
-        AndRule::new(self.left.exit_rule(), self.right.exit_rule())
+        OrRule::new(self.left.exit_rule(), self.right.exit_rule())
     }
 
     fn unstable_bars(&self) -> usize {
