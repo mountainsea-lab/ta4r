@@ -24,16 +24,20 @@
  */
 use crate::bar::types::{Bar, BarSeries};
 use crate::indicators::Indicator;
-use crate::indicators::types::{IndicatorError, IndicatorIterator};
+use crate::indicators::types::{ArcRwSeries, IndicatorError, IndicatorIterator};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::Arc;
+use parking_lot::RwLock;
 
 pub struct BaseIndicator<'a, T, S>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    // S: BarSeries<'a, T>,
+    S: for<'any> BarSeries<'any, T>,
 {
-    series: &'a S,
+    // series: &'a S,
+    series: Arc<RwLock<S>>,
     _marker: PhantomData<T>,
 }
 
@@ -44,7 +48,7 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            series: self.series,
+            series: self.series.clone(),
             _marker: PhantomData,
         }
     }
@@ -53,18 +57,19 @@ where
 impl<'a, T, S> BaseIndicator<'a, T, S>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    // S: BarSeries<'a, T>,
+    S: for<'any> BarSeries<'any, T>,
 {
-    pub fn new(series: &'a S) -> Self {
+    pub fn new(series: Arc<RwLock<S>>) -> Self {
         Self {
             series,
-            _marker: Default::default(),
+            _marker: PhantomData,
         }
     }
 
-    pub fn get_bar_series(&self) -> &'a S {
-        self.series
-    }
+    // pub fn get_bar_series(&self) -> &'a S {
+    //     self.series
+    // }
 
     pub fn is_stable_at(&self, index: usize, unstable_count: usize) -> bool {
         index >= unstable_count
@@ -116,8 +121,8 @@ where
         Ok(price)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.series
+    fn get_bar_series(&self) -> Self::Series<'_> {
+        ArcRwSeries::new(self.series.clone())
     }
 
     fn get_count_of_unstable_bars(&self) -> usize {

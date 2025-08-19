@@ -22,12 +22,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+use std::marker::PhantomData;
 use crate::bar::types::BarSeries;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::{Indicator, OptionExt, ToNumber};
 use crate::num::types::NumError;
 use crate::num::{NumFactory, TrNum};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use parking_lot::RwLock;
 use thiserror::Error;
 
 ///===========================base sturct types======================
@@ -138,4 +141,133 @@ where
         base: &BaseIndicator<'a, T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError>;
+}
+
+
+// ----------------- ArcRwSeries 封装 -----------------
+#[derive(Clone)]
+pub struct ArcRwSeries<T, S>
+where
+    T: TrNum,
+    S: for<'any> BarSeries<'any, T>,
+{
+    inner: Arc<RwLock<S>>,
+    _marker: PhantomData<T>,
+}
+
+impl<T, S> ArcRwSeries<T, S>
+where
+    T: TrNum,
+    S: for<'any> BarSeries<'any, T>,
+{
+    pub fn new(inner: Arc<RwLock<S>>) -> Self {
+        Self {
+            inner,
+            _marker: PhantomData,
+        }
+    }
+}
+
+// impl<S> ArcRwSeries<S> {
+//     pub fn new(inner: Arc<RwLock<S>>) -> Self {
+//         Self { inner }
+//     }
+//
+//     pub fn read(&self) -> std::sync::RwLockReadGuard<'_, S> {
+//         self.inner.read().unwrap()
+//     }
+//
+//     pub fn write(&self) -> std::sync::RwLockWriteGuard<'_, S> {
+//         self.inner.write().unwrap()
+//     }
+// }
+
+// 为 ArcRwSeries 实现 BarSeries trait，代理调用内部对象
+impl<'a, S, T> BarSeries<'a, T> for ArcRwSeries< S, T>
+where
+    T: TrNum + 'static,
+    S: for<'any> BarSeries<'any, T>,
+{
+    type Bar = ();
+    type Builder<'b>
+    where
+        Self: 'b
+    = ();
+    type NumFactory = ();
+    type SubSeries = ();
+
+    fn num_factory(&self) -> Arc<Self::NumFactory> {
+        todo!()
+    }
+
+    fn factory_ref(&self) -> &T::Factory {
+        todo!()
+    }
+
+    fn bar_builder(&mut self) -> Self::Builder<'_> {
+        todo!()
+    }
+
+    fn bar_builder_shared(&mut self, shared_series: Arc<Mutex<Self>>) -> Self::Builder<'static>
+    where
+        Self: Sized + 'static
+    {
+        todo!()
+    }
+
+    fn get_name(&self) -> &str {
+        todo!()
+    }
+
+    fn get_bar(&self, index: usize) -> Option<&Self::Bar> {
+        todo!()
+    }
+
+    fn get_bar_mut(&mut self, index: usize) -> Option<&mut Self::Bar> {
+        todo!()
+    }
+
+    fn get_bar_count(&self) -> usize {
+        self.read().get_bar_count()
+    }
+
+    fn get_bar_data(&self) -> &[Self::Bar] {
+        todo!()
+    }
+
+    fn get_begin_index(&self) -> Option<usize> {
+        self.read().get_begin_index()
+    }
+
+    fn get_end_index(&self) -> Option<usize> {
+        self.read().get_end_index()
+    }
+
+    fn get_maximum_bar_count(&self) -> usize {
+        todo!()
+    }
+
+    fn set_maximum_bar_count(&mut self, maximum_bar_count: usize) -> Result<(), String> {
+        todo!()
+    }
+
+    fn get_removed_bars_count(&self) -> usize {
+        todo!()
+    }
+
+    fn add_bar_with_replace(&mut self, bar: Self::Bar, replace: bool) -> Result<(), String> {
+        todo!()
+    }
+
+    fn add_trade(&mut self, trade_volume: T, trade_price: T) {
+        todo!()
+    }
+
+    fn add_price(&mut self, price: T) {
+        todo!()
+    }
+
+    fn get_sub_series(&self, start_index: usize, end_index: usize) -> Result<Self::SubSeries, String> {
+        todo!()
+    }
 }

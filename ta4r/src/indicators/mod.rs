@@ -45,12 +45,11 @@ pub trait Indicator: Clone {
     type Series<'a>: BarSeries<'a, Self::Num>
     where
         Self: 'a;
-
     /// 获取指定 index 处的指标值
     fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError>;
 
     /// 返回该指标依赖的 BarSeries 引用
-    fn get_bar_series(&self) -> &Self::Series<'_>;
+    fn get_bar_series(&self) -> Self::Series<'_>;
 
     /// 返回在多少根 bar 之前该指标是不稳定的（计算值不可靠）
     fn get_count_of_unstable_bars(&self) -> usize;
