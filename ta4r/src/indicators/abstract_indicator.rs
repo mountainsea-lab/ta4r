@@ -22,21 +22,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-use crate::bar::types::{Bar, BarSeries};
-use crate::indicators::types::{ArcRwSeries, IndicatorError};
-use crate::indicators::Indicator;
-use crate::num::TrNum;
-use parking_lot::RwLock;
+
 use std::marker::PhantomData;
 use std::sync::Arc;
+use parking_lot::RwLock;
+use crate::bar::types::{Bar, BarSeries};
+use crate::indicators::Indicator;
+use crate::indicators::types::IndicatorError;
+use crate::num::TrNum;
+
 
 pub struct BaseIndicator<T, S>
 where
     T: TrNum + 'static,
-    // S: BarSeries<'a, T>,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T>,
 {
-    // series: &'a S,
     series: Arc<RwLock<S>>,
     _marker: PhantomData<T>,
 }
@@ -44,7 +44,7 @@ where
 impl<T, S> Clone for BaseIndicator<T, S>
 where
     T: TrNum + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     fn clone(&self) -> Self {
         Self {
@@ -57,8 +57,7 @@ where
 impl<T, S> BaseIndicator<T, S>
 where
     T: TrNum + 'static,
-    // S: BarSeries<'a, T>,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     pub fn new(series: Arc<RwLock<S>>) -> Self {
         Self {
@@ -67,66 +66,40 @@ where
         }
     }
 
-    // pub fn get_bar_series(&self) -> &'a S {
-    //     self.series
-    // }
-
+    /// 指标在 index 是否稳定
     pub fn is_stable_at(&self, index: usize, unstable_count: usize) -> bool {
         index >= unstable_count
     }
 
+    /// 整个指标是否稳定
     pub fn is_stable(&self, unstable_count: usize) -> bool {
-        self.series.get_bar_count() >= unstable_count
+        self.series.read().get_bar_count() >= unstable_count
     }
-
-    // pub fn iter<I>(&self, indicator: &I) -> IndicatorIterator<I>
-    // where
-    //     S: for<'any> BarSeries<'any, T>,
-    //     I: Indicator<Num = T, Series<_> = S>,
-    // {
-    //     match (self.series.get_begin_index(), self.series.get_end_index()) {
-    //         (Some(begin), Some(end)) if begin <= end => IndicatorIterator {
-    //             indicator,
-    //             index: begin,
-    //             end,
-    //         },
-    //         _ => IndicatorIterator {
-    //             indicator,
-    //             index: 1, // 让 index > end，表示空迭代器
-    //             end: 0,
-    //         },
-    //     }
-    // }
 }
 
 impl<T, S> Indicator for BaseIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
-        let bar = self
-            .series
+        let series = self.series.read();
+        let bar = series
             .get_bar(index)
             .ok_or(IndicatorError::OutOfBounds { index })?;
-        let price = bar
-            .get_close_price()
-            .ok_or(IndicatorError::OutOfBounds { index })?;
-        Ok(price)
+        bar.get_close_price()
+            .ok_or(IndicatorError::OutOfBounds { index })
     }
 
-    fn get_bar_series(&self) -> Self::Series<'_> {
-        ArcRwSeries::new(self.series.clone())
+    fn bar_series(&self) -> Arc<RwLock<Self::Series>> {
+        self.series.clone()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         0
     }
 }

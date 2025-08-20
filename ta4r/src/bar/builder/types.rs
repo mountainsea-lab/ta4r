@@ -132,6 +132,67 @@ impl<S> BarSeriesRef<S> {
             _ => None,
         }
     }
+
+    /// 安全访问不可变引用
+    pub fn with_ref<F, R>(&self, f: F) -> Result<R, String>
+    where
+        F: FnOnce(&S) -> R,
+    {
+        match self {
+            BarSeriesRef::Mut(cell) => {
+                let borrow = cell
+                    .try_borrow()
+                    .map_err(|_| "Failed to borrow RefCell immutably".to_string())?;
+                Ok(f(&*borrow))
+            }
+            BarSeriesRef::Shared(arc_mutex) => {
+                let lock = arc_mutex
+                    .lock()
+                    .map_err(|_| "Failed to lock Arc<Mutex>".to_string())?;
+                Ok(f(&*lock))
+            }
+            BarSeriesRef::RawMut(ptr) => {
+                if ptr.is_null() {
+                    return Err("Raw pointer is null".to_string());
+                }
+                let s: &S = unsafe { &*(*ptr) };
+                Ok(f(s))
+            }
+            BarSeriesRef::None => Err("No series bound".to_string()),
+        }
+    }
+
+    /// 检查裸指针是否为空
+    pub fn is_raw_null(&self) -> bool {
+        matches!(self, BarSeriesRef::RawMut(ptr) if ptr.is_null())
+    }
+
+    /// 统一获取 begin index
+    pub fn get_begin_index<F>(&self, f: F) -> Option<usize>
+    where
+        F: Fn(&S) -> usize,
+    {
+        self.with_ref(f).ok()
+    }
+
+    /// 统一获取 end index
+    pub fn get_end_index<F>(&self, f: F) -> Option<usize>
+    where
+        F: Fn(&S) -> usize,
+    {
+        self.with_ref(f).ok()
+    }
+}
+
+impl<S> fmt::Display for BarSeriesRef<S> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BarSeriesRef::Mut(_) => write!(f, "BarSeriesRef::Mut"),
+            BarSeriesRef::Shared(_) => write!(f, "BarSeriesRef::Shared"),
+            BarSeriesRef::RawMut(_) => write!(f, "BarSeriesRef::RawMut"),
+            BarSeriesRef::None => write!(f, "BarSeriesRef::None"),
+        }
+    }
 }
 
 // 枚举包装不同的 BarBuilderFactory 实现

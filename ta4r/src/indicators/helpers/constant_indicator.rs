@@ -22,6 +22,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+use std::sync::Arc;
+use parking_lot::RwLock;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
@@ -29,19 +32,19 @@ use crate::indicators::types::IndicatorError;
 use crate::num::TrNum;
 
 /// 常数指标：所有索引返回同一个值
-pub struct ConstantIndicator<'a, T, S>
+pub struct ConstantIndicator<T, S>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     base: BaseIndicator<T, S>,
     value: T,
 }
 
-impl<'a, T, S> Clone for ConstantIndicator<'a, T, S>
+impl<T, S> Clone for ConstantIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T> + 'static,
 {
     fn clone(&self) -> Self {
         Self {
@@ -51,12 +54,12 @@ where
     }
 }
 
-impl<'a, T, S> ConstantIndicator<'a, T, S>
+impl<T, S> ConstantIndicator<T, S>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T> + 'static,
 {
-    pub fn new(series: &'a S, value: T) -> Self {
+    pub fn new(series: Arc<RwLock<S>>, value: T) -> Self {
         Self {
             base: BaseIndicator::new(series),
             value,
@@ -64,26 +67,22 @@ where
     }
 }
 
-impl<'a, T, S> Indicator for ConstantIndicator<'a, T, S>
+impl<T, S> Indicator for ConstantIndicator<T, S>
 where
     T: TrNum + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
     fn get_value(&self, _index: usize) -> Result<T, IndicatorError> {
         Ok(self.value.clone())
     }
 
-    fn get_bar_series(&self) -> Self::Series<'_> {
-        self.base.get_bar_series()
+    fn bar_series(&self) -> Arc<RwLock<Self::Series>> {
+        self.base.bar_series()
     }
-
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         0
     }
 }

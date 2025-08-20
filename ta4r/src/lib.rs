@@ -1,3 +1,4 @@
+#![feature(associated_type_defaults)]
 /*!
  * MIT License
  *
@@ -28,7 +29,7 @@ use crate::num::TrNum;
 pub mod aggregator;
 pub mod analysis;
 pub mod bar;
-// pub mod indicators;
+pub mod indicators;
 pub mod num;
 // pub mod position;
 // pub mod rule;

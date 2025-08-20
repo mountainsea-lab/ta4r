@@ -23,18 +23,15 @@
  * SOFTWARE.
  */
 
-use std::marker::PhantomData;
 use crate::bar::types::BarSeries;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::{Indicator, OptionExt, ToNumber};
 use crate::num::types::NumError;
 use crate::num::{NumFactory, TrNum};
-use std::sync::{Arc, Mutex};
 use parking_lot::RwLock;
+use std::sync::Arc;
 use thiserror::Error;
-use crate::bar::base_bar::BaseBar;
-use crate::bar::base_bar_series::BaseBarSeries;
-use crate::bar::builder::types::BarBuilders;
+use crate::bar::builder::types::BarSeriesRef;
 
 ///===========================base sturct types======================
 #[derive(Debug, Clone, Error)]
@@ -105,26 +102,6 @@ where
 /// ========================tools=============================
 pub type IndicatorResult<T> = Result<T, IndicatorError>;
 
-pub struct IndicatorIterator<'a, I: Indicator> {
-    pub(crate) indicator: &'a I,
-    pub(crate) index: usize,
-    pub(crate) end: usize,
-}
-
-impl<'a, I: Indicator> Iterator for IndicatorIterator<'a, I> {
-    type Item = Result<I::Output, IndicatorError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index > self.end {
-            None
-        } else {
-            let result = self.indicator.get_value(self.index);
-            self.index += 1;
-            Some(result)
-        }
-    }
-}
-
 impl<T> OptionExt<T> for Option<T> {
     fn or_invalid_index(self, index: usize, max: usize) -> Result<T, IndicatorError> {
         self.ok_or(IndicatorError::InvalidIndex { index, max })
@@ -132,10 +109,10 @@ impl<T> OptionExt<T> for Option<T> {
 }
 
 /// IndicatorCalculator trait —— 不再引用 `CachedIndicator`，改为 `BaseIndicator`
-pub trait IndicatorCalculator<'a, T, S>
+pub trait IndicatorCalculator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     /// 计算结果类型（数值指标 = T，其他指标 = 特定类型）
     type Output: Clone + 'static;
@@ -147,132 +124,189 @@ where
 }
 
 
-// ----------------- ArcRwSeries 封装 -----------------
-#[derive(Clone)]
-pub struct ArcRwSeries<T, S>
-where
-    T: TrNum + 'static,
-    S: for<'any> BarSeries<'any, T>,
-{
-    inner: Arc<RwLock<S>>,
-    _marker: PhantomData<T>,
+// pub enum IterMode<'a, S: 'a> {
+//     Snapshot(parking_lot::RwLockReadGuard<'a, S>),
+//     Incremental(&'a Arc<RwLock<S>>),
+// }
+//
+// pub struct IndicatorIterator<'a, I>
+// where
+//     I: 'a + Indicator,
+// {
+//     indicator: &'a I,
+//     index: usize,
+//     end: usize,
+//     mode: IterMode<'a, I::Series>,
+// }
+//
+// impl<'a, I> IndicatorIterator<'a, I>
+// where
+//     I: Indicator,
+// {
+//     /// 快照模式迭代器
+//     pub fn snapshot(indicator: &'a I) -> Self {
+//         let series = indicator.bar_series();
+//         let series_read = series.read();
+//         let begin = series_read.get_begin_index().unwrap_or(0);
+//         let end = series_read.get_end_index().unwrap_or(0);
+//
+//         Self {
+//             indicator,
+//             index: begin,
+//             end,
+//             mode: IterMode::Snapshot(series_read),
+//         }
+//     }
+//
+//     /// 增量模式迭代器
+//     pub fn incremental(indicator: &'a I) -> Self {
+//         let series = indicator.bar_series();
+//         let begin = series.read().get_begin_index().unwrap_or(0);
+//         let end = series.read().get_end_index().unwrap_or(0);
+//
+//         Self {
+//             indicator,
+//             index: begin,
+//             end,
+//             mode: IterMode::Incremental(&series),
+//         }
+//     }
+// }
+//
+// impl<'a, I> Iterator for IndicatorIterator<'a, I>
+// where
+//     I: Indicator,
+// {
+//     type Item = Result<I::Output, IndicatorError>;
+//
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.index > self.end {
+//             return None;
+//         }
+//
+//         let value = match &self.mode {
+//             IterMode::Snapshot(_series_read) => {
+//                 // snapshot 模式直接读
+//                 self.indicator.get_value(self.index)
+//             }
+//             IterMode::Incremental(series_arc) => {
+//                 // incremental 模式每次临时读锁
+//                 let series_read = series_arc.read();
+//                 // 更新 end，实时感知追加 bar
+//                 self.end = series_read.get_end_index().unwrap_or(self.end);
+//                 self.indicator.get_value(self.index)
+//             }
+//         };
+//
+//         self.index += 1;
+//         Some(value)
+//     }
+// }
+
+pub enum IterMode<T, S> {
+    /// Snapshot 模式，持有 Vec<T> 拷贝
+    Snapshot(Vec<T>),
+    /// Incremental 模式，持有 BarSeriesRef
+    Incremental(BarSeriesRef<S>),
 }
 
-impl<T, S> ArcRwSeries<T, S>
+pub struct IndicatorIterator<'a, I, T, S>
 where
-    T: TrNum,
-    S: for<'any> BarSeries<'any, T>,
+    I: Indicator<Num = T, Series = S>,
+    T: Clone,
 {
-    pub fn new(inner: Arc<RwLock<S>>) -> Self {
+    indicator: &'a I,
+    index: usize,
+    end: usize,
+    mode: IterMode<T, S>,
+}
+
+impl<'a, I, T, S> IndicatorIterator<'a, I, T, S>
+where
+    I: Indicator<Num = T, Series = S>,
+    T: Clone,
+{
+    /// Snapshot 模式
+    pub fn snapshot(indicator: &'a I) -> Self {
+        let series = indicator.bar_series();
+        let begin = series.get_begin_index().unwrap_or(0);
+        let end = series.get_end_index().unwrap_or(0);
+
+        let bars: Vec<_> = (begin..=end)
+            .map(|i| indicator.get_value(i).unwrap()) // 或 clone
+            .collect();
+
         Self {
-            inner,
-            _marker: PhantomData,
+            indicator,
+            index: 0,
+            end: bars.len(),
+            mode: IterMode::Snapshot(bars),
+        }
+    }
+
+    /// Incremental 模式
+    pub fn incremental(indicator: &'a I, series_ref: BarSeriesRef<S>) -> Self {
+        let begin = match &series_ref {
+            BarSeriesRef::Mut(rc) => rc.borrow().get_begin_index().unwrap_or(0),
+            BarSeriesRef::Shared(mutex) => mutex.lock().unwrap().get_begin_index().unwrap_or(0),
+            BarSeriesRef::RawMut(ptr) => unsafe { (**ptr).get_begin_index().unwrap_or(0) },
+            BarSeriesRef::None => 0,
+        };
+
+        let end = match &series_ref {
+            BarSeriesRef::Mut(rc) => rc.borrow().get_end_index().unwrap_or(0),
+            BarSeriesRef::Shared(mutex) => mutex.lock().unwrap().get_end_index().unwrap_or(0),
+            BarSeriesRef::RawMut(ptr) => unsafe { (**ptr).get_end_index().unwrap_or(0) },
+            BarSeriesRef::None => 0,
+        };
+
+        Self {
+            indicator,
+            index: begin,
+            end,
+            mode: IterMode::Incremental(series_ref),
         }
     }
 }
 
-// impl<S> ArcRwSeries<S> {
-//     pub fn new(inner: Arc<RwLock<S>>) -> Self {
-//         Self { inner }
-//     }
-//
-//     pub fn read(&self) -> std::sync::RwLockReadGuard<'_, S> {
-//         self.inner.read().unwrap()
-//     }
-//
-//     pub fn write(&self) -> std::sync::RwLockWriteGuard<'_, S> {
-//         self.inner.write().unwrap()
-//     }
-// }
-
-// 为 ArcRwSeries 实现 BarSeries trait，代理调用内部对象
-impl<'a, S, T> BarSeries<'a, T> for ArcRwSeries< S, T>
+impl<'a, I, T, S> Iterator for IndicatorIterator<'a, I, T, S>
 where
-    T: TrNum + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    I: Indicator<Num = T, Series = S>,
+    T: Clone,
 {
-    type Bar = BaseBar<T>;
+    type Item = Result<I::Output, IndicatorError>;
 
-    // 关联类型 Builder 改成带生命周期参数的 GAT
-    type Builder<'b>
-    = BarBuilders<'b, T>
-    where
-        Self: 'b;
-    type NumFactory = T::Factory;
-    type SubSeries = BaseBarSeries<T>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.end {
+            return None;
+        }
 
-    fn num_factory(&self) -> Arc<Self::NumFactory> {
-        todo!()
-    }
+        let value = match &mut self.mode {
+            IterMode::Snapshot(bars) => {
+                self.indicator.get_value(self.index)
+            }
+            IterMode::Incremental(series_ref) => match series_ref {
+                BarSeriesRef::Mut(rc) => {
+                    let series = rc.borrow();
+                    self.end = series.get_end_index().unwrap_or(self.end);
+                    self.indicator.get_value(self.index)
+                }
+                BarSeriesRef::Shared(mutex) => {
+                    let series = mutex.lock().unwrap();
+                    self.end = series.get_end_index().unwrap_or(self.end);
+                    self.indicator.get_value(self.index)
+                }
+                BarSeriesRef::RawMut(ptr) => unsafe {
+                    let series = &**ptr;
+                    self.end = series.get_end_index().unwrap_or(self.end);
+                    self.indicator.get_value(self.index)
+                }
+                BarSeriesRef::None => return None,
+            },
+        };
 
-    fn factory_ref(&self) -> &T::Factory {
-        todo!()
-    }
-
-    fn bar_builder(&mut self) -> Self::Builder<'_> {
-        todo!()
-    }
-
-    fn bar_builder_shared(&mut self, shared_series: Arc<Mutex<Self>>) -> Self::Builder<'static>
-    where
-        Self: Sized + 'static
-    {
-        todo!()
-    }
-
-    fn get_name(&self) -> &str {
-        todo!()
-    }
-
-    fn get_bar(&self, index: usize) -> Option<&Self::Bar> {
-        todo!()
-    }
-
-    fn get_bar_mut(&mut self, index: usize) -> Option<&mut Self::Bar> {
-        todo!()
-    }
-
-    fn get_bar_count(&self) -> usize {
-        self.read().get_bar_count()
-    }
-
-    fn get_bar_data(&self) -> &[Self::Bar] {
-        todo!()
-    }
-
-    fn get_begin_index(&self) -> Option<usize> {
-        self.read().get_begin_index()
-    }
-
-    fn get_end_index(&self) -> Option<usize> {
-        self.read().get_end_index()
-    }
-
-    fn get_maximum_bar_count(&self) -> usize {
-        todo!()
-    }
-
-    fn set_maximum_bar_count(&mut self, maximum_bar_count: usize) -> Result<(), String> {
-        todo!()
-    }
-
-    fn get_removed_bars_count(&self) -> usize {
-        todo!()
-    }
-
-    fn add_bar_with_replace(&mut self, bar: Self::Bar, replace: bool) -> Result<(), String> {
-        todo!()
-    }
-
-    fn add_trade(&mut self, trade_volume: T, trade_price: T) {
-        todo!()
-    }
-
-    fn add_price(&mut self, price: T) {
-        todo!()
-    }
-
-    fn get_sub_series(&self, start_index: usize, end_index: usize) -> Result<Self::SubSeries, String> {
-        todo!()
+        self.index += 1;
+        Some(value)
     }
 }
+

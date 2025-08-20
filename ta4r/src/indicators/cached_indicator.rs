@@ -28,12 +28,14 @@ use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::cell::RefCell;
+use std::sync::Arc;
+use parking_lot::RwLock;
 
-pub struct CachedIndicator<'a, T, S, C>
+pub struct CachedIndicator<T, S, C>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    S: BarSeries<T>,
+    C: IndicatorCalculator<T, S> + Clone,
 {
     pub(crate) base: BaseIndicator<T, S>,
     results: RefCell<Vec<Option<C::Output>>>,
@@ -41,11 +43,11 @@ where
     pub(crate) calculator: C,
 }
 
-impl<'a, T, S, C> Clone for CachedIndicator<'a, T, S, C>
+impl<'a, T, S, C> Clone for CachedIndicator<T, S, C>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<'a, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    S: BarSeries<T> + 'static,
+    C: IndicatorCalculator<T, S> + Clone,
 {
     fn clone(&self) -> Self {
         CachedIndicator {
@@ -57,15 +59,15 @@ where
     }
 }
 
-impl<'a, T, S, C> CachedIndicator<'a, T, S, C>
+impl<T, S, C> CachedIndicator<T, S, C>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<'a, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    S: BarSeries<T> + 'static,
+    C: IndicatorCalculator<T, S> + Clone,
 {
     /// 根据序列容量创建 CachedIndicator，缓存容量初始化为 max_count 大小，元素初始化为 None
-    pub fn new_from_series(series: &'a S, calculator: C) -> Self {
-        let max_count = series.get_maximum_bar_count();
+    pub fn new_from_series(series: Arc<RwLock<S>>, calculator: C) -> Self {
+        let max_count = series.read().get_maximum_bar_count();
         let capacity = if max_count == usize::MAX {
             0
         } else {
@@ -81,11 +83,11 @@ where
     }
 
     /// 通过已有指标构造，复用其 BarSeries
-    pub fn new_from_indicator<I>(indicator: &'a I, calculator: C) -> Self
+    pub fn new_from_indicator<I>(indicator: &I, calculator: C) -> Self
     where
-        I: Indicator<Num = T, Output = C::Output, Series<'a> = S>,
+        I: Indicator<Num = T, Output = C::Output, Series = S>,
     {
-        Self::new_from_series(indicator.get_bar_series(), calculator)
+        Self::new_from_series(indicator.bar_series(), calculator)
     }
 
     pub fn calculator(&self) -> &C {
@@ -101,7 +103,7 @@ where
     pub fn get_cached_value(&self, index: usize) -> Result<C::Output, IndicatorError> {
         let series = self.base.get_bar_series();
 
-        if series.get_bar_count() == 0 {
+        if series.bar_count() == 0 {
             // 无序列，直接计算不缓存
             return self.calculate(index);
         }
@@ -225,28 +227,25 @@ where
     }
 }
 
-impl<'a, T, S, C> Indicator for CachedIndicator<'a, T, S, C>
+impl<T, S, C> Indicator for CachedIndicator<T, S, C>
 where
     T: TrNum + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    C: IndicatorCalculator<'a, T, S> + Clone,
+    S: BarSeries<T> + 'static,
+    C: IndicatorCalculator<T, S> + Clone,
 {
     type Num = T;
     type Output = C::Output;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
         self.get_cached_value(index)
     }
 
-    fn get_bar_series(&self) -> Self::Series<'_> {
-        self.base.get_bar_series()
+    fn bar_series(&self) -> Arc<RwLock<Self::Series>> {
+        self.base.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         0
     }
 }
