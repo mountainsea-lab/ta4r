@@ -55,7 +55,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for MockBarBuilderFactory<T> {
     type Series = BaseBarSeries<T>;
     // GAT 的合法实现写法（注意这里声明了一个 GAT）
     type Builder<'a>
-        = MockBarBuilder<'a, T, Self::Series>
+        = MockBarBuilder<T, Self::Series>
     where
         Self::Series: 'a;
 

@@ -30,15 +30,15 @@ use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
 
 /// Heikin-Ashi Bar 构建器
-pub struct HeikinAshiBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
-    time_bar_builder: TimeBarBuilder<'a, T, S>,
+pub struct HeikinAshiBarBuilder<T: TrNum + 'static, S: BarSeries<T>> {
+    time_bar_builder: TimeBarBuilder<T, S>,
     previous_heikin_ashi_open_price: Option<T>,
     previous_heikin_ashi_close_price: Option<T>,
 }
 
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> BarBuilder<T> for HeikinAshiBarBuilder<'a, T, S>
+impl<T: TrNum + 'static, S: BarSeries<T>> BarBuilder<T> for HeikinAshiBarBuilder<T, S>
 where
-    S: BarSeries<'a, T, Bar = BaseBar<T>>,
+    S: BarSeries<T, Bar = BaseBar<T>>,
 {
     type Bar = BaseBar<T>;
 
@@ -151,7 +151,7 @@ where
     }
 }
 
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> HeikinAshiBarBuilder<'a, T, S> {
+impl<T: TrNum + 'static, S: BarSeries<T>> HeikinAshiBarBuilder<T, S> {
     pub fn new_with_factory(num_factory: Arc<T::Factory>) -> Self {
         Self {
             time_bar_builder: TimeBarBuilder::new_with_factory(num_factory),
@@ -159,7 +159,7 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> HeikinAshiBarBuilder<'a, T, S>
             previous_heikin_ashi_close_price: None,
         }
     }
-    pub fn bind_to(mut self, series: &'a mut S) -> Self {
+    pub fn bind_to(mut self, series: &mut S) -> Self {
         self.time_bar_builder = self.time_bar_builder.bind_to(series);
         self
     }

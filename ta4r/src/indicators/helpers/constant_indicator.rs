@@ -34,7 +34,7 @@ where
     T: TrNum + 'static,
     S: BarSeries<'a, T>,
 {
-    base: BaseIndicator<'a, T, S>,
+    base: BaseIndicator<T, S>,
     value: T,
 }
 
@@ -79,7 +79,7 @@ where
         Ok(self.value.clone())
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
+    fn get_bar_series(&self) -> Self::Series<'_> {
         self.base.get_bar_series()
     }
 

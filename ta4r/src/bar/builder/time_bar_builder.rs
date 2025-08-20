@@ -36,11 +36,11 @@ use time_macros::datetime;
 
 /// TimeBarBuilder 结构体 - 使用泛型参数避免动态分发
 #[derive(Debug)]
-pub struct TimeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
+pub struct TimeBarBuilder<T: TrNum + 'static, S: BarSeries<T>> {
     /// 数值工厂
     pub num_factory: Arc<T::Factory>,
     /// 绑定的 BarSeries（可选，使用泛型参数）
-    pub(crate) bar_series: Option<BarSeriesRef<'a, S>>,
+    pub(crate) bar_series: Option<BarSeriesRef<S>>,
 
     // Bar 构建字段
     pub time_period: Option<Duration>,
@@ -56,14 +56,14 @@ pub struct TimeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
 }
 
 // 针对DoubleNum的具体实现，直接调用DoubleNumFactory::instance()
-impl<'a, S: BarSeries<'a, DoubleNum>> TimeBarBuilder<'a, DoubleNum, S> {
+impl<'a, S: BarSeries<DoubleNum>> TimeBarBuilder<DoubleNum, S> {
     pub fn new() -> Self {
         Self::new_with_factory(Arc::new(DoubleNumFactory::instance()))
     }
 }
 
 // 额外为泛型实现 Default trait
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> Default for TimeBarBuilder<'a, T, S>
+impl<'a, T: TrNum + 'static, S: BarSeries<T>> Default for TimeBarBuilder<T, S>
 where
     T::Factory: Default,
 {
@@ -72,7 +72,7 @@ where
     }
 }
 
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TimeBarBuilder<'a, T, S> {
+impl<T: TrNum + 'static, S: BarSeries<T>> TimeBarBuilder<T, S> {
     /// 创建新的 TimeBarBuilder，指定数值工厂
     pub fn new_with_factory(num_factory: Arc<T::Factory>) -> Self {
         Self {
@@ -91,14 +91,21 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TimeBarBuilder<'a, T, S> {
         }
     }
 
-    /// 绑定到 BarSeries
-    pub fn bind_to(mut self, series: &'a mut S) -> Self {
-        self.bar_series = Some(BarSeriesRef::Mut(series));
+    /// 绑定到单线程可变引用（使用 RawMut）
+    pub fn bind_to(mut self, series: &mut S) -> Self {
+        self.bar_series = Some(BarSeriesRef::RawMut(series as *mut S));
         self
     }
 
+    /// 绑定到多线程共享 Arc<Mutex<S>>
     pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
         self.bar_series = Some(BarSeriesRef::Shared(series));
+        self
+    }
+
+    /// 绑定到裸指针 RawMut（完全 unsafe，调用者保证唯一可变访问）
+    pub fn bind_raw(mut self, ptr: *mut S) -> Self {
+        self.bar_series = Some(BarSeriesRef::RawMut(ptr));
         self
     }
 
@@ -108,12 +115,24 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TimeBarBuilder<'a, T, S> {
         F: FnOnce(&mut S) -> R,
     {
         match &mut self.bar_series {
-            Some(BarSeriesRef::Mut(series)) => Ok(f(*series)),
+            Some(BarSeriesRef::Mut(cell)) => {
+                let mut borrow = cell
+                    .try_borrow_mut()
+                    .map_err(|_| "Failed to borrow RefCell mutably".to_string())?;
+                Ok(f(&mut *borrow))
+            }
             Some(BarSeriesRef::Shared(arc_mutex)) => {
                 let mut locked = arc_mutex.lock().map_err(|_| "Failed to lock bar_series")?;
                 Ok(f(&mut *locked))
             }
-            None => Err("No bound bar_series".to_string()),
+            Some(BarSeriesRef::RawMut(ptr)) => {
+                if ptr.is_null() {
+                    return Err("Raw pointer is null".to_string());
+                }
+                let s: &mut S = unsafe { &mut **ptr };
+                Ok(f(s))
+            }
+            Some(BarSeriesRef::None) | None => Err("No bound bar_series".to_string()),
         }
     }
 
@@ -136,9 +155,9 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> TimeBarBuilder<'a, T, S> {
     }
 }
 
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> BarBuilder<T> for TimeBarBuilder<'a, T, S>
+impl<T: TrNum + 'static, S: BarSeries<T>> BarBuilder<T> for TimeBarBuilder<T, S>
 where
-    S: BarSeries<'a, T, Bar = BaseBar<T>>,
+    S: BarSeries<T, Bar = BaseBar<T>>,
 {
     type Bar = BaseBar<T>;
 

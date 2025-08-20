@@ -22,28 +22,116 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::bar::base_bar::BaseBar;
 use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::factory::tick_bar_builder_factory::TickBarBuilderFactory;
 use crate::bar::builder::factory::time_bar_builder_factory::TimeBarBuilderFactory;
 use crate::bar::builder::factory::volume_bar_builder_factory::VolumeBarBuilderFactory;
+#[cfg(any(test, feature = "enable-mocks"))]
 use crate::bar::builder::mocks::mock_bar_builder::MockBarBuilder;
+#[cfg(any(test, feature = "enable-mocks"))]
 use crate::bar::builder::mocks::mock_bar_builder_factory::MockBarBuilderFactory;
 use crate::bar::builder::tick_bar_builder::TickBarBuilder;
 use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::builder::volume_bar_builder::VolumeBarBuilder;
 use crate::bar::types::{BarBuilder, BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use std::cell::RefCell;
 use std::fmt;
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
 
-/// BarSeries类型封装两种引用方式
-#[derive(Debug)]
-pub enum BarSeriesRef<'a, S> {
-    Mut(&'a mut S),
+/// BarSeries类型封装多种引用方式
+#[derive(Debug, Clone)]
+pub enum BarSeriesRef<S> {
+    /// 单线程安全访问
+    Mut(Arc<RefCell<S>>),
+    /// 多线程共享
     Shared(Arc<Mutex<S>>),
+    /// 原始裸指针访问（零开销，但 unsafe）
+    RawMut(*mut S),
+    /// 未绑定
+    None,
+}
+
+impl<S> Default for BarSeriesRef<S> {
+    fn default() -> Self {
+        BarSeriesRef::None
+    }
+}
+
+impl<S> BarSeriesRef<S> {
+    /// 从单线程 RefCell 创建
+    pub fn from_mut(series: S) -> Self {
+        BarSeriesRef::Mut(Arc::new(RefCell::new(series)))
+    }
+
+    /// 从共享 Arc<Mutex> 创建
+    pub fn from_shared(shared: Arc<Mutex<S>>) -> Self {
+        BarSeriesRef::Shared(shared)
+    }
+
+    /// 从裸指针创建（性能极致，但调用者必须保证唯一性）
+    pub fn from_raw(ptr: *mut S) -> Self {
+        BarSeriesRef::RawMut(ptr)
+    }
+
+    /// 安全访问可变引用，闭包操作统一接口
+    pub fn with_mut<F, R>(&self, f: F) -> Result<R, String>
+    where
+        F: FnOnce(&mut S) -> R,
+    {
+        match self {
+            BarSeriesRef::Mut(cell) => {
+                let mut borrow = cell
+                    .try_borrow_mut()
+                    .map_err(|_| "Failed to borrow RefCell mutably".to_string())?;
+                Ok(f(&mut *borrow))
+            }
+            BarSeriesRef::Shared(arc_mutex) => {
+                let mut lock = arc_mutex
+                    .lock()
+                    .map_err(|_| "Failed to lock Arc<Mutex>".to_string())?;
+                Ok(f(&mut *lock))
+            }
+            // 裸指针 unsafe
+            BarSeriesRef::RawMut(ptr) => {
+                if ptr.is_null() {
+                    return Err("Raw pointer is null".to_string());
+                }
+                // 复制 ptr，然后在 unsafe 中解引用为 &mut S
+                let raw_ptr = *ptr;
+                let s: &mut S = unsafe { &mut *raw_ptr };
+                Ok(f(s))
+            }
+            BarSeriesRef::None => Err("No series bound".to_string()),
+        }
+    }
+
+    /// 绑定单线程 RefCell
+    pub fn bind_to(&mut self, series: S) {
+        *self = BarSeriesRef::Mut(Arc::new(RefCell::new(series)));
+    }
+
+    /// 绑定多线程 Arc<Mutex>
+    pub fn bind_shared(&mut self, shared: Arc<Mutex<S>>) {
+        *self = BarSeriesRef::Shared(shared);
+    }
+
+    /// 绑定裸指针（unsafe，调用者负责唯一性）
+    pub fn bind_raw(&mut self, ptr: *mut S) {
+        *self = BarSeriesRef::RawMut(ptr);
+    }
+
+    /// 获取共享 Arc 版本（仅供多线程使用）
+    pub fn get_shared(&self) -> Option<Arc<Mutex<S>>> {
+        match self {
+            BarSeriesRef::Shared(arc_mutex) => Some(arc_mutex.clone()),
+            _ => None,
+        }
+    }
 }
 
 // 枚举包装不同的 BarBuilderFactory 实现
@@ -68,7 +156,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
     // 这里使用枚举自身作为 Series 的 F 类型参数
     type Series = BaseBarSeries<T>;
     type Builder<'a>
-        = BarBuilders<'a, T>
+        = BarBuilders<T>
     where
         Self::Series: 'a;
 
@@ -143,15 +231,15 @@ impl<T: TrNum> fmt::Debug for BarBuilderFactories<T> {
 }
 
 #[derive(Debug)]
-pub enum BarBuilders<'a, T: TrNum + 'static> {
-    Time(TimeBarBuilder<'a, T, BaseBarSeries<T>>),
-    Tick(TickBarBuilder<'a, T, BaseBarSeries<T>>),
-    Volume(VolumeBarBuilder<'a, T, BaseBarSeries<T>>),
+pub enum BarBuilders<T: TrNum + 'static> {
+    Time(TimeBarBuilder<T, BaseBarSeries<T>>),
+    Tick(TickBarBuilder<T, BaseBarSeries<T>>),
+    Volume(VolumeBarBuilder<T, BaseBarSeries<T>>),
     #[cfg(feature = "enable-mocks")]
-    Mock(MockBarBuilder<'a, T, BaseBarSeries<T>>),
+    Mock(MockBarBuilder<T, BaseBarSeries<T>>),
 }
 
-impl<'a, T: TrNum + 'static> BarBuilder<T> for BarBuilders<'a, T> {
+impl<T: TrNum + 'static> BarBuilder<T> for BarBuilders<T> {
     type Bar = BaseBar<T>;
 
     fn time_period(&mut self, period: Duration) -> &mut Self {

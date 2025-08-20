@@ -54,7 +54,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for TimeBarBuilderFactory<T> {
     type Series = BaseBarSeries<T>;
     // GAT 的合法实现写法（注意这里声明了一个 GAT）
     type Builder<'a>
-        = TimeBarBuilder<'a, T, Self::Series>
+        = TimeBarBuilder<T, Self::Series>
     where
         Self::Series: 'a;
 

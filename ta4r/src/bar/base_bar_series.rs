@@ -155,17 +155,17 @@ impl<T: TrNum> BaseBarSeries<T> {
     }
 }
 
-impl<'a, T: TrNum + 'static> BarSeries<'a, T> for BaseBarSeries<T>
+impl<T: TrNum + 'static> BarSeries<T> for BaseBarSeries<T>
 where
     T::Factory: NumFactory<T>,
 {
     type Bar = BaseBar<T>;
 
-    // 关联类型 Builder 改成带生命周期参数的 GAT
-    type Builder<'b>
-        = BarBuilders<'b, T>
+    // Builder 用 GAT 表达
+    type Builder<'a>
+        = BarBuilders<T>
     where
-        Self: 'b;
+        Self: 'a;
 
     type NumFactory = T::Factory;
 

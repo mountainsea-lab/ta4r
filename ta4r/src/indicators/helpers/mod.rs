@@ -22,19 +22,19 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-pub mod close_price_indicator;
+// pub mod close_price_indicator;
 pub mod constant_indicator;
-pub mod cross_indicator;
-pub mod date_time_indicator;
-pub mod fixed_indicator;
-pub mod gain_indicator;
-pub mod high_price_indicator;
-pub mod highest_value_indicator;
-pub mod low_price_indicator;
-pub mod lowest_value_indicator;
-pub mod open_price_indicator;
-pub mod previous_value_indicator;
-pub mod running_total_indicator;
-pub mod tr_indicator;
-pub mod typical_price_indicator;
-pub mod volume_indicator;
+// pub mod cross_indicator;
+// pub mod date_time_indicator;
+// pub mod fixed_indicator;
+// pub mod gain_indicator;
+// pub mod high_price_indicator;
+// pub mod highest_value_indicator;
+// pub mod low_price_indicator;
+// pub mod lowest_value_indicator;
+// pub mod open_price_indicator;
+// pub mod previous_value_indicator;
+// pub mod running_total_indicator;
+// pub mod tr_indicator;
+// pub mod typical_price_indicator;
+// pub mod volume_indicator;

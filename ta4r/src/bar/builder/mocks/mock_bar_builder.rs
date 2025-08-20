@@ -33,18 +33,18 @@ use time::{Duration, OffsetDateTime};
 static NEXT_BAR_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 #[derive(Debug)]
-pub struct MockBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
-    time_bar_builder: TimeBarBuilder<'a, T, S>,
+pub struct MockBarBuilder<T: TrNum + 'static, S: BarSeries<T>> {
+    time_bar_builder: TimeBarBuilder<T, S>,
     period_set: bool,
     end_time_set: bool,
     time_period: Option<Duration>,
     begin_time: OffsetDateTime,
 }
 
-impl<'a, T, S> MockBarBuilder<'a, T, S>
+impl<T, S> MockBarBuilder<T, S>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     pub fn new_with_factory(num_factory: Arc<T::Factory>) -> Self {
         Self {
@@ -56,7 +56,7 @@ where
         }
     }
 
-    pub fn bind_to(mut self, series: &'a mut S) -> Self {
+    pub fn bind_to(mut self, series: &mut S) -> Self {
         self.time_bar_builder = self.time_bar_builder.bind_to(series);
         self
     }
@@ -67,9 +67,9 @@ where
     }
 }
 
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> BarBuilder<T> for MockBarBuilder<'a, T, S>
+impl<T: TrNum + 'static, S: BarSeries<T>> BarBuilder<T> for MockBarBuilder<T, S>
 where
-    S: BarSeries<'a, T, Bar = BaseBar<T>>,
+    S: BarSeries<T, Bar = BaseBar<T>>,
 {
     type Bar = BaseBar<T>;
 

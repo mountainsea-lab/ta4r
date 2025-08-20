@@ -40,7 +40,7 @@ pub trait BarAggregator<T: TrNum + 'static> {
 
 pub trait BarSeriesAggregator<T: TrNum + 'static> {
     type Bar: Bar<T>;
-    type Series: for<'a> BarSeries<'a, T, Bar = Self::Bar>;
+    type Series: BarSeries<T, Bar = Self::Bar>;
 
     /// 使用默认名称聚合整个 BarSeries，返回新的 BarSeries
     fn aggregate(&self, series: &Self::Series) -> Result<Self::Series, String> {

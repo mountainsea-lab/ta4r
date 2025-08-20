@@ -22,8 +22,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-pub mod base_ema_indicator;
-pub mod ema_indicator;
-pub mod mma_indicator;
-pub mod sma_indicator;
-pub mod wma_indicator;
+// pub mod base_ema_indicator;
+// pub mod ema_indicator;
+// pub mod mma_indicator;
+// pub mod sma_indicator;
+// pub mod wma_indicator;

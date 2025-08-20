@@ -58,7 +58,7 @@ impl<T: TrNum> VolumeBarBuilderFactory<T> {
 impl<T: TrNum + 'static> BarBuilderFactory<T> for VolumeBarBuilderFactory<T> {
     type Series = BaseBarSeries<T>;
     type Builder<'a>
-        = VolumeBarBuilder<'a, T, BaseBarSeries<T>>
+        = VolumeBarBuilder<T, BaseBarSeries<T>>
     where
         Self::Series: 'a;
 

@@ -35,7 +35,7 @@ where
     S: BarSeries<'a, T>,
     C: IndicatorCalculator<'a, T, S> + Clone,
 {
-    pub(crate) base: BaseIndicator<'a, T, S>,
+    pub(crate) base: BaseIndicator<T, S>,
     results: RefCell<Vec<Option<C::Output>>>,
     pub(crate) highest_result_index: RefCell<isize>,
     pub(crate) calculator: C,
@@ -242,7 +242,7 @@ where
         self.get_cached_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
+    fn get_bar_series(&self) -> Self::Series<'_> {
         self.base.get_bar_series()
     }
 

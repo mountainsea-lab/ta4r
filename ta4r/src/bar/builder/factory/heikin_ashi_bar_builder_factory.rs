@@ -35,7 +35,7 @@ pub struct HeikinAshiBarBuilderFactory;
 impl<T: TrNum + 'static> BarBuilderFactory<T> for HeikinAshiBarBuilderFactory {
     type Series = BaseBarSeries<T>;
     type Builder<'a>
-        = HeikinAshiBarBuilder<'a, T, Self::Series>
+        = HeikinAshiBarBuilder<T, Self::Series>
     where
         Self::Series: 'a;
 

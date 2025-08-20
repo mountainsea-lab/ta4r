@@ -67,13 +67,19 @@ pub trait BarBuilder<T: TrNum + 'static> {
     fn add(&mut self) -> Result<(), String>;
 }
 
-// BarBuilderFactory trait - 使用关联类型
 pub trait BarBuilderFactory<T: TrNum + 'static> {
-    type Series: for<'a> BarSeries<'a, T>;
-    type Builder<'a>: BarBuilder<T>
+    /// 对应的 BarSeries 类型
+    type Series: BarSeries<T>;
+
+    /// Builder 类型，生命周期依赖 Series
+    type Builder<'a>: BarBuilder<T, Bar = <Self::Series as BarSeries<T>>::Bar>
     where
         Self::Series: 'a;
+
+    /// 基于可变引用创建构建器
     fn create_bar_builder<'a>(&self, series: &'a mut Self::Series) -> Self::Builder<'a>;
+
+    /// 基于 Arc<Mutex<Series>> 创建共享构建器
     fn create_bar_builder_shared(
         &self,
         num_factory: Arc<T::Factory>,
@@ -84,12 +90,12 @@ pub trait BarBuilderFactory<T: TrNum + 'static> {
 }
 
 // BarSeries trait - 对应 ta4j 的 BarSeries 接口
-pub trait BarSeries<'a, T: TrNum + 'static> {
+pub trait BarSeries<T: TrNum + 'static> {
     type Bar: Bar<T>;
-    // GAT，Builder 关联类型带生命周期参数 'b
-    type Builder<'b>: BarBuilder<T, Bar = Self::Bar>
+    /// Builder 类型，用 GAT 表达生命周期
+    type Builder<'a>: BarBuilder<T, Bar = Self::Bar>
     where
-        Self: 'b;
+        Self: 'a;
     type NumFactory: NumFactory<T>;
     type SubSeries;
 
@@ -273,7 +279,10 @@ pub trait BarSeries<'a, T: TrNum + 'static> {
 
 // BarSeriesBuilder trait - 对应 ta4j 的 BarSeriesBuilder 接口
 pub trait BarSeriesBuilder<T: TrNum + 'static> {
-    type BarSeries: for<'a> BarSeries<'a, T>;
+    /// 构建出来的 BarSeries 类型
+    type BarSeries: BarSeries<T>;
+
+    /// 构建并返回一个 BarSeries
     fn build(self) -> Result<Self::BarSeries, String>;
 }
 

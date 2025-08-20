@@ -36,10 +36,10 @@ use std::sync::{Arc, Mutex};
 use time::{Duration, OffsetDateTime};
 
 #[derive(Debug)]
-pub struct VolumeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
+pub struct VolumeBarBuilder<T: TrNum + 'static, S: BarSeries<T>> {
     pub(crate) num_factory: Arc<T::Factory>,
     pub(crate) volume_threshold: T,
-    pub(crate) bar_series: Option<BarSeriesRef<'a, S>>,
+    pub(crate) bar_series: Option<BarSeriesRef<S>>,
 
     pub(crate) time_period: Option<Duration>,
     pub(crate) end_time: Option<OffsetDateTime>,
@@ -53,13 +53,13 @@ pub struct VolumeBarBuilder<'a, T: TrNum + 'static, S: BarSeries<'a, T>> {
 }
 
 // 针对DoubleNum的具体实现，直接调用DoubleNumFactory::instance()
-impl<'a, S: BarSeries<'a, DoubleNum>> VolumeBarBuilder<'a, DoubleNum, S> {
+impl<'a, S: BarSeries<DoubleNum>> VolumeBarBuilder<DoubleNum, S> {
     pub fn new_with_default_factory(volume_threshold: i64) -> Self {
         Self::new_with_factory(Arc::new(DoubleNumFactory::instance()), volume_threshold)
     }
 }
 
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> VolumeBarBuilder<'a, T, S> {
+impl<T: TrNum + 'static, S: BarSeries<T>> VolumeBarBuilder<T, S> {
     pub fn new(volume_threshold: i64) -> Self {
         Self::new_with_factory(Arc::new(T::Factory::default()), volume_threshold)
     }
@@ -82,16 +82,23 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> VolumeBarBuilder<'a, T, S> {
         }
     }
 
-    pub fn bind_to(mut self, series: &'a mut S) -> Self {
-        self.bar_series = Some(BarSeriesRef::Mut(series));
+    /// 绑定到单线程可变引用（使用 RawMut）
+    pub fn bind_to(mut self, series: &mut S) -> Self {
+        self.bar_series = Some(BarSeriesRef::RawMut(series as *mut S));
         self
     }
 
+    /// 绑定到多线程共享 Arc<Mutex<S>>
     pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
         self.bar_series = Some(BarSeriesRef::Shared(series));
         self
     }
 
+    /// 绑定到裸指针 RawMut（完全 unsafe，调用者保证唯一可变访问）
+    pub fn bind_raw(mut self, ptr: *mut S) -> Self {
+        self.bar_series = Some(BarSeriesRef::RawMut(ptr));
+        self
+    }
     // ❗ 保留 self.volume 和 self.end_time
     fn reset(&mut self) {
         self.time_period = None;
@@ -107,18 +114,30 @@ impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> VolumeBarBuilder<'a, T, S> {
         F: FnOnce(&mut S) -> R,
     {
         match &mut self.bar_series {
-            Some(BarSeriesRef::Mut(series)) => Ok(f(*series)),
+            Some(BarSeriesRef::Mut(cell)) => {
+                let mut borrow = cell
+                    .try_borrow_mut()
+                    .map_err(|_| "Failed to borrow RefCell mutably".to_string())?;
+                Ok(f(&mut *borrow))
+            }
             Some(BarSeriesRef::Shared(arc_mutex)) => {
                 let mut locked = arc_mutex.lock().map_err(|_| "Failed to lock bar_series")?;
                 Ok(f(&mut *locked))
             }
-            None => Err("No bound bar_series".to_string()),
+            Some(BarSeriesRef::RawMut(ptr)) => {
+                if ptr.is_null() {
+                    return Err("Raw pointer is null".to_string());
+                }
+                let s: &mut S = unsafe { &mut **ptr };
+                Ok(f(s))
+            }
+            Some(BarSeriesRef::None) | None => Err("No bound bar_series".to_string()),
         }
     }
 }
-impl<'a, T: TrNum + 'static, S: BarSeries<'a, T>> BarBuilder<T> for VolumeBarBuilder<'a, T, S>
+impl<T: TrNum + 'static, S: BarSeries<T>> BarBuilder<T> for VolumeBarBuilder<T, S>
 where
-    S: BarSeries<'a, T, Bar = BaseBar<T>>,
+    S: BarSeries<T, Bar = BaseBar<T>>,
 {
     type Bar = BaseBar<T>;
 

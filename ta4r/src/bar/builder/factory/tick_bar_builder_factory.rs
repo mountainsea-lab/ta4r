@@ -50,7 +50,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for TickBarBuilderFactory<T> {
     type Series = BaseBarSeries<T>;
 
     type Builder<'a>
-        = TickBarBuilder<'a, T, Self::Series>
+        = TickBarBuilder<T, Self::Series>
     where
         Self::Series: 'a;
 

@@ -29,12 +29,12 @@ use crate::num::TrNum;
 use crate::num::types::NumError;
 
 pub mod abstract_indicator;
-mod atr_indicator;
+// mod atr_indicator;
 pub mod averages;
 pub mod cached_indicator;
 pub mod helpers;
-pub mod numeric;
-pub mod recursive_cached_indicator;
+// pub mod numeric;
+// pub mod recursive_cached_indicator;
 pub mod types;
 
 pub trait Indicator: Clone {

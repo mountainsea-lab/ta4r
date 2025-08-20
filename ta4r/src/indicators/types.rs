@@ -32,6 +32,9 @@ use crate::num::{NumFactory, TrNum};
 use std::sync::{Arc, Mutex};
 use parking_lot::RwLock;
 use thiserror::Error;
+use crate::bar::base_bar::BaseBar;
+use crate::bar::base_bar_series::BaseBarSeries;
+use crate::bar::builder::types::BarBuilders;
 
 ///===========================base sturct types======================
 #[derive(Debug, Clone, Error)]
@@ -138,7 +141,7 @@ where
     type Output: Clone + 'static;
     fn calculate(
         &self,
-        base: &BaseIndicator<'a, T, S>,
+        base: &BaseIndicator<T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError>;
 }
@@ -148,7 +151,7 @@ where
 #[derive(Clone)]
 pub struct ArcRwSeries<T, S>
 where
-    T: TrNum,
+    T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T>,
 {
     inner: Arc<RwLock<S>>,
@@ -188,13 +191,15 @@ where
     T: TrNum + 'static,
     S: for<'any> BarSeries<'any, T>,
 {
-    type Bar = ();
+    type Bar = BaseBar<T>;
+
+    // 关联类型 Builder 改成带生命周期参数的 GAT
     type Builder<'b>
+    = BarBuilders<'b, T>
     where
-        Self: 'b
-    = ();
-    type NumFactory = ();
-    type SubSeries = ();
+        Self: 'b;
+    type NumFactory = T::Factory;
+    type SubSeries = BaseBarSeries<T>;
 
     fn num_factory(&self) -> Arc<Self::NumFactory> {
         todo!()

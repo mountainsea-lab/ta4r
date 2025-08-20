@@ -23,14 +23,14 @@
  * SOFTWARE.
  */
 use crate::bar::types::{Bar, BarSeries};
+use crate::indicators::types::{ArcRwSeries, IndicatorError};
 use crate::indicators::Indicator;
-use crate::indicators::types::{ArcRwSeries, IndicatorError, IndicatorIterator};
 use crate::num::TrNum;
+use parking_lot::RwLock;
 use std::marker::PhantomData;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
-pub struct BaseIndicator<'a, T, S>
+pub struct BaseIndicator<T, S>
 where
     T: TrNum + 'static,
     // S: BarSeries<'a, T>,
@@ -41,10 +41,10 @@ where
     _marker: PhantomData<T>,
 }
 
-impl<'a, T, S> Clone for BaseIndicator<'a, T, S>
+impl<T, S> Clone for BaseIndicator<T, S>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: for<'any> BarSeries<'any, T>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -54,7 +54,7 @@ where
     }
 }
 
-impl<'a, T, S> BaseIndicator<'a, T, S>
+impl<T, S> BaseIndicator<T, S>
 where
     T: TrNum + 'static,
     // S: BarSeries<'a, T>,
@@ -79,26 +79,27 @@ where
         self.series.get_bar_count() >= unstable_count
     }
 
-    pub fn iter<I>(&'a self, indicator: &'a I) -> IndicatorIterator<'a, I>
-    where
-        I: Indicator<Num = T, Series<'a> = S>,
-    {
-        match (self.series.get_begin_index(), self.series.get_end_index()) {
-            (Some(begin), Some(end)) if begin <= end => IndicatorIterator {
-                indicator,
-                index: begin,
-                end,
-            },
-            _ => IndicatorIterator {
-                indicator,
-                index: 1, // 让 index > end，表示空迭代器
-                end: 0,
-            },
-        }
-    }
+    // pub fn iter<I>(&self, indicator: &I) -> IndicatorIterator<I>
+    // where
+    //     S: for<'any> BarSeries<'any, T>,
+    //     I: Indicator<Num = T, Series<_> = S>,
+    // {
+    //     match (self.series.get_begin_index(), self.series.get_end_index()) {
+    //         (Some(begin), Some(end)) if begin <= end => IndicatorIterator {
+    //             indicator,
+    //             index: begin,
+    //             end,
+    //         },
+    //         _ => IndicatorIterator {
+    //             indicator,
+    //             index: 1, // 让 index > end，表示空迭代器
+    //             end: 0,
+    //         },
+    //     }
+    // }
 }
 
-impl<'a, T, S> Indicator for BaseIndicator<'a, T, S>
+impl<T, S> Indicator for BaseIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
     S: for<'any> BarSeries<'any, T>,
