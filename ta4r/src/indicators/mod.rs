@@ -35,7 +35,7 @@ pub mod abstract_indicator;
 pub mod averages;
 pub mod cached_indicator;
 pub mod helpers;
-// pub mod numeric;
+pub mod numeric;
 // pub mod recursive_cached_indicator;
 pub mod types;
 

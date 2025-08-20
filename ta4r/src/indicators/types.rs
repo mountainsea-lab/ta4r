@@ -198,7 +198,7 @@ where
 
         let value = match &self.mode {
             IterMode::Snapshot(bars) => bars.get(self.index).cloned(),
-            IterMode::Incremental(series_ref) => {
+            IterMode::Incremental(_series_ref) => {
                 // 安全处理 Result -> Option
                 self.indicator
                     .get_value(self.index)
