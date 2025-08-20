@@ -23,8 +23,7 @@
  * SOFTWARE.
  */
 
-use std::sync::Arc;
-use parking_lot::RwLock;
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::helpers::constant_indicator::ConstantIndicator;
 use crate::indicators::types::{IndicatorError, IndicatorIterator, NumConst};
@@ -42,14 +41,16 @@ pub mod types;
 
 pub trait Indicator: Clone {
     type Num: TrNum + 'static;
-    type Output: Clone + 'static = Self::Num;
+    type Output: Clone + 'static;
     type Series: BarSeries<Self::Num> + 'static;
 
     /// 获取指标值
     fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError>;
 
-    /// 获取共享 BarSeries
-    fn bar_series(&self) -> Arc<RwLock<Self::Series>>;
+    // /// 获取共享 BarSeries
+    // fn bar_series(&self) -> Arc<RwLock<Self::Series>>;
+    /// 获取绑定的 BarSeriesRef
+    fn bar_series(&self) -> BarSeriesRef<Self::Series>;
 
     /// 不稳定 bar 的数量
     fn count_of_unstable_bars(&self) -> usize;
@@ -62,21 +63,25 @@ pub trait Indicator: Clone {
     /// 当前 series 是否稳定
     fn is_stable(&self) -> bool {
         let series = self.bar_series();
-        series.read().get_bar_count() >= self.count_of_unstable_bars()
+        let bar_count = series.with_ref_or(0, |s| s.get_bar_count());
+        bar_count >= self.count_of_unstable_bars()
     }
 
     /// 默认迭代器（实盘增量模式）
-    fn iter(&self) -> IndicatorIterator<'_, Self>
+    fn iter(&self) -> IndicatorIterator<'_, Self, Self::Num, Self::Series>
     where
-        Self: Sized,
+        Self: Clone,
+        Self::Num: Clone + From<Self::Output>,
     {
-        IndicatorIterator::incremental(self)
+        let series_ref = self.bar_series();
+        IndicatorIterator::incremental(self, series_ref)
     }
 
     /// 快照迭代器（历史数据遍历，高性能）
-    fn iter_snapshot(&self) -> IndicatorIterator<'_, Self>
+    fn iter_snapshot(&self) -> IndicatorIterator<'_, Self, Self::Num, Self::Series>
     where
-        Self: Sized,
+        Self: Clone,
+        Self::Num: Clone + From<Self::Output>,
     {
         IndicatorIterator::snapshot(self)
     }
@@ -107,22 +112,39 @@ where
 impl<T, S, I, N> IntoIndicator<T, S, I> for NumConst<N>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<T>,
-    I: Indicator<Num = T, Output = T, Series= S> + Clone,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + Clone,
     N: ToNumber<T> + Clone,
 {
     type IndicatorType = ConstantIndicator<T, S>;
 
+    // fn as_indicator(&self, first: &I) -> Result<Self::IndicatorType, IndicatorError> {
+    //     // 直接复用 first 的 BarSeriesRef
+    //     let series_ref = first.bar_series();
+    //
+    //     // 获取 factory 并构造数值
+    //     let value = self
+    //         .0
+    //         .to_number(
+    //             series_ref
+    //                 .with_ref(|s| s.factory_ref())
+    //                 .expect("BarSeries factory not available"),
+    //         )
+    //         .map_err(IndicatorError::NumError)?;
+    //
+    //     // 构造 ConstantIndicator，持有 BarSeriesRef
+    //     Ok(ConstantIndicator::new(series_ref, value))
+    // }
     fn as_indicator(&self, first: &I) -> Result<Self::IndicatorType, IndicatorError> {
-        let series = first.bar_series(); // &S
-        let factory_ref: &T::Factory = series.factory_ref(); // 封装了解 deref
-
-        let value = self
-            .0
-            .to_number(factory_ref)
-            .map_err(IndicatorError::NumError)?;
-
-        Ok(ConstantIndicator::new(series, value))
+        first
+            .bar_series()
+            .with_ref(|series| {
+                self.0
+                    .to_number(series.factory_ref())
+                    .map(|num| ConstantIndicator::new(first.bar_series(), num))
+                    .map_err(IndicatorError::NumError)
+            })
+            .map_err(|e| IndicatorError::Other { message: e })?
     }
 }
 

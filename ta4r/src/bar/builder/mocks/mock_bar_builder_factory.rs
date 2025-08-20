@@ -27,8 +27,9 @@ use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::mocks::mock_bar_builder::MockBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use parking_lot::RwLock;
 use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct MockBarBuilderFactory<T: TrNum> {
@@ -67,7 +68,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for MockBarBuilderFactory<T> {
     fn create_bar_builder_shared(
         &self,
         num_factory: Arc<T::Factory>,
-        shared_series: Arc<Mutex<Self::Series>>,
+        shared_series: Arc<RwLock<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static,

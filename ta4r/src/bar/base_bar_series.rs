@@ -28,9 +28,10 @@ use crate::bar::builder::types::{BarBuilderFactories, BarBuilders};
 use crate::bar::types::{Bar, BarBuilderFactory, BarSeries, BarSeriesBuilder};
 use crate::num::{NumFactory, TrNum};
 use log::trace;
+use parking_lot::RwLock;
 use std::fmt;
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// BaseBarSeries 结构体 - 使用泛型参数避免动态分发
 #[derive(Debug)]
@@ -150,8 +151,8 @@ impl<T: TrNum> BaseBarSeries<T> {
         })
     }
 
-    pub(crate) fn into_shared(self) -> Arc<Mutex<Self>> {
-        Arc::new(Mutex::new(self))
+    pub(crate) fn into_shared(self) -> Arc<RwLock<Self>> {
+        Arc::new(RwLock::new(self))
     }
 }
 
@@ -184,7 +185,7 @@ where
         factory.create_bar_builder(self)
     }
 
-    fn bar_builder_shared(&mut self, shared_series: Arc<Mutex<Self>>) -> Self::Builder<'static>
+    fn bar_builder_shared(&mut self, shared_series: Arc<RwLock<Self>>) -> Self::Builder<'static>
     where
         Self: Sized + 'static,
     {

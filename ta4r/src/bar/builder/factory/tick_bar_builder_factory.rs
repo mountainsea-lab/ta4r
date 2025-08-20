@@ -27,8 +27,9 @@ use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::tick_bar_builder::TickBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use parking_lot::RwLock;
 use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// TickBarBuilderFactory - 创建 TickBarBuilder 的工厂
 #[derive(Debug, Clone, Default)]
@@ -62,7 +63,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for TickBarBuilderFactory<T> {
     fn create_bar_builder_shared(
         &self,
         num_factory: Arc<T::Factory>,
-        shared_series: Arc<Mutex<Self::Series>>,
+        shared_series: Arc<RwLock<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static,

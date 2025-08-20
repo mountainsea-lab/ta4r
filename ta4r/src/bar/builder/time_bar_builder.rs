@@ -30,7 +30,8 @@ use crate::bar::types::{BarBuilder, BarSeries, BarSeriesBuilder};
 use crate::num::TrNum;
 use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
-use std::sync::{Arc, Mutex};
+use parking_lot::RwLock;
+use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 use time_macros::datetime;
 
@@ -98,7 +99,7 @@ impl<T: TrNum + 'static, S: BarSeries<T>> TimeBarBuilder<T, S> {
     }
 
     /// 绑定到多线程共享 Arc<Mutex<S>>
-    pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
+    pub fn bind_shared(mut self, series: Arc<RwLock<S>>) -> Self {
         self.bar_series = Some(BarSeriesRef::Shared(series));
         self
     }
@@ -121,8 +122,8 @@ impl<T: TrNum + 'static, S: BarSeries<T>> TimeBarBuilder<T, S> {
                     .map_err(|_| "Failed to borrow RefCell mutably".to_string())?;
                 Ok(f(&mut *borrow))
             }
-            Some(BarSeriesRef::Shared(arc_mutex)) => {
-                let mut locked = arc_mutex.lock().map_err(|_| "Failed to lock bar_series")?;
+            Some(BarSeriesRef::Shared(arc_rwlock)) => {
+                let mut locked = arc_rwlock.write();
                 Ok(f(&mut *locked))
             }
             Some(BarSeriesRef::RawMut(ptr)) => {

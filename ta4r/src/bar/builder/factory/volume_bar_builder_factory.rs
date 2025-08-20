@@ -27,8 +27,9 @@ use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::volume_bar_builder::VolumeBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use parking_lot::RwLock;
 use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// VolumeBarBuilderFactory - 创建 VolumeBarBuilder 的工厂（单例复用）
 #[derive(Debug, Clone)]
@@ -70,7 +71,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for VolumeBarBuilderFactory<T> {
     fn create_bar_builder_shared(
         &self,
         num_factory: Arc<T::Factory>,
-        shared_series: Arc<Mutex<Self::Series>>,
+        shared_series: Arc<RwLock<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static,

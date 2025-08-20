@@ -23,21 +23,22 @@
  * SOFTWARE.
  */
 
-use std::marker::PhantomData;
-use std::sync::Arc;
-use parking_lot::RwLock;
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::{Bar, BarSeries};
 use crate::indicators::Indicator;
 use crate::indicators::types::IndicatorError;
 use crate::num::TrNum;
-
+use parking_lot::RwLock;
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::sync::Arc;
 
 pub struct BaseIndicator<T, S>
 where
     T: TrNum + 'static,
     S: BarSeries<T>,
 {
-    series: Arc<RwLock<S>>,
+    series: BarSeriesRef<S>,
     _marker: PhantomData<T>,
 }
 
@@ -59,21 +60,22 @@ where
     T: TrNum + 'static,
     S: BarSeries<T> + 'static,
 {
-    pub fn new(series: Arc<RwLock<S>>) -> Self {
+    /// 通过 BarSeriesRef 构造
+    pub fn new(series_ref: BarSeriesRef<S>) -> Self {
         Self {
-            series,
+            series: series_ref,
             _marker: PhantomData,
         }
     }
 
-    /// 指标在 index 是否稳定
-    pub fn is_stable_at(&self, index: usize, unstable_count: usize) -> bool {
-        index >= unstable_count
+    /// 快捷方式：从 Arc<RwLock<S>> 构造
+    pub fn from_shared(series: Arc<RwLock<S>>) -> Self {
+        Self::new(BarSeriesRef::Shared(series))
     }
 
-    /// 整个指标是否稳定
-    pub fn is_stable(&self, unstable_count: usize) -> bool {
-        self.series.read().get_bar_count() >= unstable_count
+    /// 快捷方式：从 Rc<RefCell<S>> 构造
+    pub fn from_mut(series: Arc<RefCell<S>>) -> Self {
+        Self::new(BarSeriesRef::Mut(series))
     }
 }
 
@@ -87,15 +89,18 @@ where
     type Series = S;
 
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
-        let series = self.series.read();
-        let bar = series
-            .get_bar(index)
-            .ok_or(IndicatorError::OutOfBounds { index })?;
-        bar.get_close_price()
-            .ok_or(IndicatorError::OutOfBounds { index })
-    }
+        self.series
+            .with_ref(|series| {
+                let bar = series
+                    .get_bar(index)
+                    .ok_or(IndicatorError::OutOfBounds { index })?;
 
-    fn bar_series(&self) -> Arc<RwLock<Self::Series>> {
+                bar.get_close_price()
+                    .ok_or(IndicatorError::OutOfBounds { index })
+            })
+            .map_err(|e| IndicatorError::Other { message: e })? // 将 with_ref 的 String 错误转换为 IndicatorError
+    }
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
         self.series.clone()
     }
 

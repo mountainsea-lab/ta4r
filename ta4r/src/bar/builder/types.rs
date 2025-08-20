@@ -37,23 +37,35 @@ use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::builder::volume_bar_builder::VolumeBarBuilder;
 use crate::bar::types::{BarBuilder, BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
+use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::fmt;
 use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
 /// BarSeries类型封装多种引用方式
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum BarSeriesRef<S> {
     /// 单线程安全访问
     Mut(Arc<RefCell<S>>),
     /// 多线程共享
-    Shared(Arc<Mutex<S>>),
+    Shared(Arc<RwLock<S>>),
     /// 原始裸指针访问（零开销，但 unsafe）
     RawMut(*mut S),
     /// 未绑定
     None,
+}
+
+impl<S> Clone for BarSeriesRef<S> {
+    fn clone(&self) -> Self {
+        match self {
+            BarSeriesRef::Mut(rc) => BarSeriesRef::Mut(rc.clone()), // Arc<RefCell<S>> 可以 clone
+            BarSeriesRef::Shared(arc_rwlock) => BarSeriesRef::Shared(arc_rwlock.clone()), // Arc<RwLock<S>>
+            BarSeriesRef::RawMut(ptr) => BarSeriesRef::RawMut(*ptr), // 仅复制指针
+            BarSeriesRef::None => BarSeriesRef::None,
+        }
+    }
 }
 
 impl<S> Default for BarSeriesRef<S> {
@@ -69,7 +81,7 @@ impl<S> BarSeriesRef<S> {
     }
 
     /// 从共享 Arc<Mutex> 创建
-    pub fn from_shared(shared: Arc<Mutex<S>>) -> Self {
+    pub fn from_shared(shared: Arc<RwLock<S>>) -> Self {
         BarSeriesRef::Shared(shared)
     }
 
@@ -90,20 +102,15 @@ impl<S> BarSeriesRef<S> {
                     .map_err(|_| "Failed to borrow RefCell mutably".to_string())?;
                 Ok(f(&mut *borrow))
             }
-            BarSeriesRef::Shared(arc_mutex) => {
-                let mut lock = arc_mutex
-                    .lock()
-                    .map_err(|_| "Failed to lock Arc<Mutex>".to_string())?;
-                Ok(f(&mut *lock))
+            BarSeriesRef::Shared(arc_rwlock) => {
+                let mut locked = arc_rwlock.write();
+                Ok(f(&mut *locked))
             }
-            // 裸指针 unsafe
             BarSeriesRef::RawMut(ptr) => {
                 if ptr.is_null() {
                     return Err("Raw pointer is null".to_string());
                 }
-                // 复制 ptr，然后在 unsafe 中解引用为 &mut S
-                let raw_ptr = *ptr;
-                let s: &mut S = unsafe { &mut *raw_ptr };
+                let s: &mut S = unsafe { &mut **ptr };
                 Ok(f(s))
             }
             BarSeriesRef::None => Err("No series bound".to_string()),
@@ -116,7 +123,7 @@ impl<S> BarSeriesRef<S> {
     }
 
     /// 绑定多线程 Arc<Mutex>
-    pub fn bind_shared(&mut self, shared: Arc<Mutex<S>>) {
+    pub fn bind_shared(&mut self, shared: Arc<RwLock<S>>) {
         *self = BarSeriesRef::Shared(shared);
     }
 
@@ -126,7 +133,7 @@ impl<S> BarSeriesRef<S> {
     }
 
     /// 获取共享 Arc 版本（仅供多线程使用）
-    pub fn get_shared(&self) -> Option<Arc<Mutex<S>>> {
+    pub fn get_shared(&self) -> Option<Arc<RwLock<S>>> {
         match self {
             BarSeriesRef::Shared(arc_mutex) => Some(arc_mutex.clone()),
             _ => None,
@@ -145,10 +152,8 @@ impl<S> BarSeriesRef<S> {
                     .map_err(|_| "Failed to borrow RefCell immutably".to_string())?;
                 Ok(f(&*borrow))
             }
-            BarSeriesRef::Shared(arc_mutex) => {
-                let lock = arc_mutex
-                    .lock()
-                    .map_err(|_| "Failed to lock Arc<Mutex>".to_string())?;
+            BarSeriesRef::Shared(arc_rwlock) => {
+                let lock = arc_rwlock.read();
                 Ok(f(&*lock))
             }
             BarSeriesRef::RawMut(ptr) => {
@@ -159,6 +164,19 @@ impl<S> BarSeriesRef<S> {
                 Ok(f(s))
             }
             BarSeriesRef::None => Err("No series bound".to_string()),
+        }
+    }
+
+    /// 访问内部 BarSeries，并在 None 或空时返回默认值
+    pub fn with_ref_or<R, F>(&self, default: R, f: F) -> R
+    where
+        F: FnOnce(&S) -> R,
+    {
+        match self {
+            BarSeriesRef::Mut(rc) => f(&rc.borrow()),
+            BarSeriesRef::Shared(arc_rwlock) => f(&arc_rwlock.read()),
+            BarSeriesRef::RawMut(ptr) => unsafe { if ptr.is_null() { default } else { f(&**ptr) } },
+            BarSeriesRef::None => default,
         }
     }
 
@@ -243,7 +261,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for BarBuilderFactories<T> {
     fn create_bar_builder_shared(
         &self,
         num_factory: Arc<T::Factory>,
-        shared_series: Arc<Mutex<Self::Series>>,
+        shared_series: Arc<RwLock<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static,
