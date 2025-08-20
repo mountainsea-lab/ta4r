@@ -200,6 +200,15 @@ impl<S> BarSeriesRef<S> {
     {
         self.with_ref(f).ok()
     }
+
+    /// 从内部安全提取一个值（需要返回可克隆对象）
+    pub fn with_cloned<R, F>(&self, f: F) -> Result<R, String>
+    where
+        R: Clone,
+        F: FnOnce(&S) -> &R,
+    {
+        self.with_ref(|s| f(s).clone())
+    }
 }
 
 impl<S> fmt::Display for BarSeriesRef<S> {

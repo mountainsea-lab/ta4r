@@ -47,8 +47,6 @@ pub trait Indicator: Clone {
     /// 获取指标值
     fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError>;
 
-    // /// 获取共享 BarSeries
-    // fn bar_series(&self) -> Arc<RwLock<Self::Series>>;
     /// 获取绑定的 BarSeriesRef
     fn bar_series(&self) -> BarSeriesRef<Self::Series>;
 
@@ -118,23 +116,6 @@ where
 {
     type IndicatorType = ConstantIndicator<T, S>;
 
-    // fn as_indicator(&self, first: &I) -> Result<Self::IndicatorType, IndicatorError> {
-    //     // 直接复用 first 的 BarSeriesRef
-    //     let series_ref = first.bar_series();
-    //
-    //     // 获取 factory 并构造数值
-    //     let value = self
-    //         .0
-    //         .to_number(
-    //             series_ref
-    //                 .with_ref(|s| s.factory_ref())
-    //                 .expect("BarSeries factory not available"),
-    //         )
-    //         .map_err(IndicatorError::NumError)?;
-    //
-    //     // 构造 ConstantIndicator，持有 BarSeriesRef
-    //     Ok(ConstantIndicator::new(series_ref, value))
-    // }
     fn as_indicator(&self, first: &I) -> Result<Self::IndicatorType, IndicatorError> {
         first
             .bar_series()

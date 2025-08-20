@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::types::{IndicatorError, UnaryOp};
 use crate::indicators::{Indicator, IntoIndicator};
@@ -97,9 +98,9 @@ where
         op: fn(&T) -> T,
     ) -> Result<UnaryOperation<T, OI::IndicatorType>, IndicatorError>
     where
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        OI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         let base = operand.as_ref();
         let op_ind = operand.as_indicator(base)?;
@@ -111,9 +112,9 @@ where
         op: fn(&T) -> Result<T, IndicatorError>,
     ) -> Result<UnaryOperation<T, IO::IndicatorType>, IndicatorError>
     where
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        IO: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        IO: IntoIndicator<T, S, I> + AsRef<I> + 'a,
         // F: Fn(&T) -> Result<T, IndicatorError> + Send + Sync + 'static,
     {
         let base = operand.as_ref();
@@ -127,9 +128,9 @@ where
     ) -> Result<UnaryOperation<T, OI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        OI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         UnaryOperation::<T, I>::from_fallible_op(operand, |v| {
             v.sqrt().map_err(IndicatorError::NumError)
@@ -141,9 +142,9 @@ where
     ) -> Result<UnaryOperation<T, OI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        OI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         UnaryOperation::<T, I>::from_simple_op(operand, |v| v.abs())
     }
@@ -154,13 +155,15 @@ where
     ) -> Result<UnaryOperation<T, OI::IndicatorType>, IndicatorError>
     where
         T: TrNum + Clone + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        OI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        OI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         // 1. 获取BarSeries和工厂
-        let series = operand.as_ref().get_bar_series();
-        let factory_ref: &T::Factory = series.factory_ref();
+        let series = operand.as_ref().bar_series();
+        let factory_ref = series
+            .with_cloned(|s| s.factory_ref())
+            .map_err(|e| IndicatorError::Other { message: e })?;
 
         // 2. 将普通整数转自定义数字类型
         let num_exponent = factory_ref.num_of_i64(exponent.into());
@@ -215,8 +218,8 @@ where
         operand: &'a OI,
     ) -> Result<UnaryOperation<DecimalNum, OI::IndicatorType>, IndicatorError>
     where
-        S: for<'any> BarSeries<'any, DecimalNum> + 'a,
-        OI: IntoIndicator<'a, DecimalNum, S, I> + AsRef<I> + 'a,
+        S: BarSeries<DecimalNum> + 'static,
+        OI: IntoIndicator<DecimalNum, S, I> + AsRef<I> + 'a,
     {
         UnaryOperation::<DecimalNum, I>::from_fallible_op(operand, Self::decimal_log_fn)
     }
@@ -230,20 +233,17 @@ where
     type Num = T;
     type Output = T;
 
-    type Series<'s>
-        = I::Series<'s>
-    where
-        Self: 's;
+    type Series = I::Series;
 
     fn get_value(&self, index: usize) -> Result<Self::Num, IndicatorError> {
         self.get_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.operand.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.operand.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         0
     }
 }
