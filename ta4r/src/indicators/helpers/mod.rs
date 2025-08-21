@@ -24,7 +24,7 @@
  */
 pub mod close_price_indicator;
 pub mod constant_indicator;
-// pub mod cross_indicator;
+pub mod cross_indicator;
 // pub mod date_time_indicator;
 // pub mod fixed_indicator;
 // pub mod gain_indicator;
