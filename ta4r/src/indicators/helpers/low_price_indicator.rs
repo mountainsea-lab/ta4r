@@ -59,7 +59,7 @@ where
     T: TrNum + 'static,
     S: BarSeries<T> + 'static,
 {
-    /// Creates a new low price indicator based on the given bar series. General construction
+    ///  General construction Creates a new low price indicator based on the given bar series.
     pub fn new(series_ref: BarSeriesRef<S>) -> Self {
         Self {
             base: BaseIndicator::new(series_ref),

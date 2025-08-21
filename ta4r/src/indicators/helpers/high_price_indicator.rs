@@ -59,7 +59,7 @@ where
     T: TrNum + 'static,
     S: BarSeries<T> + 'static,
 {
-    /// 通过 BarSeriesRef 通用构造
+    /// General construction Creates a new high price indicator based on the given bar series.
     pub fn new(series_ref: BarSeriesRef<S>) -> Self {
         Self {
             base: BaseIndicator::new(series_ref),
