@@ -22,13 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::{Bar, BarSeries};
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::{NumFactory, TrNum};
+use parking_lot::RwLock;
+use std::cell::RefCell;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// Volume计算器，实现 IndicatorCalculator trait
 pub struct VolumeCalculator<T, S> {
@@ -54,48 +59,53 @@ impl<T, S> VolumeCalculator<T, S> {
     }
 }
 
-impl<'a, T, S> IndicatorCalculator<'a, T, S> for VolumeCalculator<T, S>
+impl<T, S> IndicatorCalculator<T, S> for VolumeCalculator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     type Output = T;
 
     fn calculate(
         &self,
-        base: &BaseIndicator<'a, T, S>,
+        base: &BaseIndicator<T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError> {
-        let series = base.get_bar_series();
+        let series_ref = base.bar_series();
         let start_index = index.saturating_sub(self.bar_count - 1);
 
-        let mut sum = series.num_factory().zero().as_ref().clone();
+        series_ref
+            .with_ref(|s| {
+                let factory_ref = s.factory_ref(); // 获取 NumFactory
+                let mut sum = factory_ref.zero().as_ref().clone(); // sum 是 T 类型
 
-        for i in start_index..=index {
-            let volume = series.get_bar(i).map_or_else(
-                || series.num_factory().zero().as_ref().clone(),
-                |bar| bar.get_volume(),
-            );
-            sum = sum.plus(&volume);
-        }
+                for i in start_index..=index {
+                    let volume = s.get_bar(i).map_or_else(
+                        || factory_ref.zero().as_ref().clone(),
+                        |bar| bar.get_volume(),
+                    );
+                    sum = sum.plus(&volume);
+                }
 
-        Ok(sum)
+                sum // 返回 T，类型安全
+            })
+            .map_err(|e| IndicatorError::Other { message: e })
     }
 }
 
 /// 基于 VolumeCalculator 的 VolumeIndicator
-pub struct VolumeIndicator<'a, T, S>
+pub struct VolumeIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
-    cached: CachedIndicator<'a, T, S, VolumeCalculator<T, S>>,
+    cached: CachedIndicator<T, S, VolumeCalculator<T, S>>,
 }
 
-impl<'a, T, S> Clone for VolumeIndicator<'a, T, S>
+impl<T, S> Clone for VolumeIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     fn clone(&self) -> Self {
         Self {
@@ -104,45 +114,52 @@ where
     }
 }
 
-impl<'a, T, S> VolumeIndicator<'a, T, S>
+impl<T, S> VolumeIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     /// 默认构造器，bar_count = 1
-    pub fn new(series: &'a S) -> Self {
-        Self::with_bar_count(series, 1)
+    pub fn new(series: Arc<RwLock<S>>) -> Self {
+        Self::from_shared_with_bar_count(series, 1)
     }
 
-    /// 自定义 bar_count 构造器
-    pub fn with_bar_count(series: &'a S, bar_count: usize) -> Self {
+    /// 快捷方式：从 Arc<RwLock<S>> 构造
+    pub fn from_shared_with_bar_count(series: Arc<RwLock<S>>, bar_count: usize) -> Self {
         let calculator = VolumeCalculator::new(bar_count);
-        let cached = CachedIndicator::new_from_series(series, calculator);
+        let cached = CachedIndicator::new_from_series(BarSeriesRef::Shared(series), calculator);
+        Self { cached }
+    }
+
+    /// 快捷方式：从 Rc<RefCell<S>> 构造
+    pub fn from_mut_with_bar_count(series: Arc<RefCell<S>>, bar_count: usize) -> Self {
+        let calculator = VolumeCalculator::new(bar_count);
+        let cached = CachedIndicator::new_from_series(BarSeriesRef::Mut(series), calculator);
         Self { cached }
     }
 }
 
-impl<'a, T, S> Indicator for VolumeIndicator<'a, T, S>
+impl<T, S> Indicator for VolumeIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
+    #[inline]
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         self.cached.get_cached_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.cached.get_bar_series()
+    #[inline]
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.cached.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    #[inline]
+    fn count_of_unstable_bars(&self) -> usize {
         self.cached.calculator.bar_count
     }
 }
