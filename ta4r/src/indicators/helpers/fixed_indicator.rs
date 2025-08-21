@@ -22,25 +22,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::types::IndicatorError;
 use crate::num::TrNum;
+use parking_lot::RwLock;
+use std::cell::RefCell;
+use std::sync::Arc;
 
-pub struct FixedIndicator<'a, T, S>
+pub struct FixedIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T> + 'static,
 {
-    base: BaseIndicator<'a, T, S>,
+    base: BaseIndicator<T, S>,
     values: Vec<T>,
 }
 
-impl<'a, T, S> Clone for FixedIndicator<'a, T, S>
+impl<'a, T, S> Clone for FixedIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T> + 'static,
 {
     fn clone(&self) -> Self {
         Self {
@@ -50,39 +55,45 @@ where
     }
 }
 
-impl<'a, T, S> FixedIndicator<'a, T, S>
+impl<T, S> FixedIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T> + 'static,
 {
-    pub fn new(series: &'a S, values: Vec<T>) -> Self {
+    pub fn new(series_ref: BarSeriesRef<S>, values: Vec<T>) -> Self {
         Self {
-            base: BaseIndicator::new(series),
+            base: BaseIndicator::new(series_ref),
             values,
         }
+    }
+    /// 快捷方式：从 Arc<RwLock<S>> 构造
+    pub fn from_shared(series: Arc<RwLock<S>>, values: Vec<T>) -> Self {
+        Self::new(BarSeriesRef::Shared(series), values)
+    }
+
+    /// 快捷方式：从 Rc<RefCell<S>> 构造
+    pub fn from_mut(series: Arc<RefCell<S>>, values: Vec<T>) -> Self {
+        Self::new(BarSeriesRef::Mut(series), values)
     }
 
     pub fn add_value(&mut self, value: T) {
         self.values.push(value);
     }
 
-    pub fn get_base(&self) -> &BaseIndicator<'a, T, S> {
+    pub fn get_base(&self) -> &BaseIndicator<T, S> {
         &self.base
     }
 }
 
-impl<'a, T, S> Indicator for FixedIndicator<'a, T, S>
+impl<T, S> Indicator for FixedIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     type Num = T;
     type Output = T;
 
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         self.values
@@ -91,11 +102,11 @@ where
             .ok_or_else(|| IndicatorError::OutOfBounds { index })
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.base.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.base.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         0
     }
 }
