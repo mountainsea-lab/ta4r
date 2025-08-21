@@ -35,6 +35,6 @@ pub mod lowest_value_indicator;
 pub mod open_price_indicator;
 pub mod previous_value_indicator;
 pub mod running_total_indicator;
-// pub mod tr_indicator;
+pub mod tr_indicator;
 // pub mod typical_price_indicator;
 pub mod volume_indicator;
