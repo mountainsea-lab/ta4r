@@ -92,7 +92,7 @@ where
             let bar = s.get_bar(index).or_invalid_index(index, max)?;
             bar.get_open_price()
                 .ok_or_else(|| IndicatorError::CalculationError {
-                    message: "Missing high price".to_string(),
+                    message: "Missing open price".to_string(),
                 })
         })?
     }

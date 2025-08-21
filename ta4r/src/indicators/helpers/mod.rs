@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-// pub mod close_price_indicator;
+pub mod close_price_indicator;
 pub mod constant_indicator;
 // pub mod cross_indicator;
 // pub mod date_time_indicator;
