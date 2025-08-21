@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
@@ -34,8 +35,8 @@ use std::marker::PhantomData;
 pub struct BaseEmaCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + 'a,
 {
     pub(crate) indicator: &'a I,
     pub(crate) multiplier: T,
@@ -45,8 +46,8 @@ where
 impl<'a, T, S, I> Clone for BaseEmaCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + 'a,
 {
     fn clone(&self) -> Self {
         BaseEmaCalculator {
@@ -57,17 +58,17 @@ where
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<'a, T, S> for BaseEmaCalculator<'a, T, S, I>
+impl<'a, T, S, I> IndicatorCalculator<T, S> for BaseEmaCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + 'a,
 {
     type Output = T;
 
     fn calculate(
         &self,
-        base: &BaseIndicator<'a, T, S>,
+        base: &BaseIndicator<T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError> {
         if index == 0 {
@@ -85,20 +86,20 @@ where
 pub struct BaseEmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + 'a,
 {
     pub(crate) indicator: &'a I,
     pub(crate) bar_count: usize,
     pub(crate) multiplier: T,
-    pub(crate) inner: RecursiveCachedIndicator<'a, T, S, BaseEmaCalculator<'a, T, S, I>>,
+    pub(crate) inner: RecursiveCachedIndicator<T, S, BaseEmaCalculator<'a, T, S, I>>,
 }
 
 impl<'a, T, S, I> Clone for BaseEmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + 'a,
 {
     fn clone(&self) -> Self {
         BaseEmaIndicator {
@@ -113,8 +114,8 @@ where
 impl<'a, T, S, I> BaseEmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + 'a,
 {
     /// 标准构造器：传入 T 类型 multiplier（等价 Java 中 Num 类型）
     pub fn new(indicator: &'a I, bar_count: usize, multiplier: T) -> Self {
@@ -142,25 +143,22 @@ where
 impl<'a, T, S, I> Indicator for BaseEmaIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + 'a,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         self.inner.get_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.indicator.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.indicator.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         self.bar_count()
     }
 }
