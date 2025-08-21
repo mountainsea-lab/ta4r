@@ -24,3 +24,4 @@ target
 # 例如 tests_indicator 可能生成的临时文件夹或输出（示例）
 tests_indicator/tmp/
 tests_strategy/tmp/
+Cargo.lock
