@@ -31,7 +31,7 @@ pub mod gain_indicator;
 pub mod high_price_indicator;
 pub mod highest_value_indicator;
 pub mod low_price_indicator;
-// pub mod lowest_value_indicator;
+pub mod lowest_value_indicator;
 pub mod open_price_indicator;
 // pub mod previous_value_indicator;
 // pub mod running_total_indicator;

@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
@@ -34,8 +35,8 @@ use std::marker::PhantomData;
 pub struct LowestValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     indicator: &'a I,
     bar_count: usize,
@@ -45,8 +46,8 @@ where
 impl<'a, T, S, I> Clone for LowestValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -57,17 +58,17 @@ where
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<'a, T, S> for LowestValueCalculator<'a, T, S, I>
+impl<'a, T, S, I> IndicatorCalculator<T, S> for LowestValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Output = T;
 
     fn calculate(
         &self,
-        base: &BaseIndicator<'a, T, S>,
+        base: &BaseIndicator<T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError> {
         let value = self.indicator.get_value(index)?;
@@ -99,18 +100,18 @@ where
 pub struct LowestValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<'a, T, S, LowestValueCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, LowestValueCalculator<'a, T, S, I>>,
     bar_count: usize,
 }
 
 impl<'a, T, S, I> LowestValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     pub fn new(indicator: &'a I, bar_count: usize) -> Self {
         let calculator = LowestValueCalculator {
@@ -128,8 +129,8 @@ where
 impl<'a, T, S, I> Clone for LowestValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -142,25 +143,22 @@ where
 impl<'a, T, S, I> Indicator for LowestValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
         self.cached.get_cached_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.cached.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.cached.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         self.bar_count
     }
 }
