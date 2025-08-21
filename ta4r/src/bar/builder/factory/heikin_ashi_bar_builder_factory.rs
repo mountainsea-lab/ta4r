@@ -27,7 +27,8 @@ use crate::bar::base_bar_series::BaseBarSeries;
 use crate::bar::builder::heikin_ashi_bar_builder::HeikinAshiBarBuilder;
 use crate::bar::types::{BarBuilderFactory, BarSeries};
 use crate::num::TrNum;
-use std::sync::{Arc, Mutex};
+use parking_lot::RwLock;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Default)]
 pub struct HeikinAshiBarBuilderFactory;
@@ -47,7 +48,7 @@ impl<T: TrNum + 'static> BarBuilderFactory<T> for HeikinAshiBarBuilderFactory {
     fn create_bar_builder_shared(
         &self,
         num_factory: Arc<T::Factory>,
-        shared_series: Arc<Mutex<Self::Series>>,
+        shared_series: Arc<RwLock<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static,

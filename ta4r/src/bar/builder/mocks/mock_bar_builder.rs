@@ -27,7 +27,8 @@ use crate::bar::base_bar::BaseBar;
 use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::types::{BarBuilder, BarSeries};
 use crate::num::TrNum;
-use std::sync::{Arc, Mutex};
+use parking_lot::RwLock;
+use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
 static NEXT_BAR_COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -61,7 +62,7 @@ where
         self
     }
 
-    pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
+    pub fn bind_shared(mut self, series: Arc<RwLock<S>>) -> Self {
         self.time_bar_builder = self.time_bar_builder.bind_shared(series);
         self
     }

@@ -32,7 +32,8 @@ use crate::num::double_num::DoubleNum;
 use crate::num::double_num_factory::DoubleNumFactory;
 use crate::num::{NumFactory, TrNum};
 use num_traits::FromPrimitive;
-use std::sync::{Arc, Mutex};
+use parking_lot::RwLock;
+use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
 #[derive(Debug)]
@@ -89,7 +90,7 @@ impl<T: TrNum + 'static, S: BarSeries<T>> VolumeBarBuilder<T, S> {
     }
 
     /// 绑定到多线程共享 Arc<Mutex<S>>
-    pub fn bind_shared(mut self, series: Arc<Mutex<S>>) -> Self {
+    pub fn bind_shared(mut self, series: Arc<RwLock<S>>) -> Self {
         self.bar_series = Some(BarSeriesRef::Shared(series));
         self
     }
@@ -120,8 +121,8 @@ impl<T: TrNum + 'static, S: BarSeries<T>> VolumeBarBuilder<T, S> {
                     .map_err(|_| "Failed to borrow RefCell mutably".to_string())?;
                 Ok(f(&mut *borrow))
             }
-            Some(BarSeriesRef::Shared(arc_mutex)) => {
-                let mut locked = arc_mutex.lock().map_err(|_| "Failed to lock bar_series")?;
+            Some(BarSeriesRef::Shared(arc_rwlock)) => {
+                let mut locked = arc_rwlock.write();
                 Ok(f(&mut *locked))
             }
             Some(BarSeriesRef::RawMut(ptr)) => {
@@ -387,7 +388,7 @@ fn test_volume_bar_builder_add_shared() {
 
     // 2. 不提前持锁，直接通过临时锁获取 builder
     let mut builder = {
-        let mut locked = shared_series.lock().unwrap();
+        let mut locked = shared_series.read();
         locked.bar_builder_shared(Arc::clone(&shared_series))
     }; // 🔓 locked dropped here, 锁立即释放，避免死锁
 
@@ -426,7 +427,7 @@ fn test_volume_bar_builder_add_shared() {
 
     // 🔄 只在验证时临时加锁
     {
-        let guard = shared_series.lock().unwrap();
+        let guard = shared_series.read();
         assert_eq!(guard.get_bar_count(), 1);
         let bar1 = guard.get_bar(0).unwrap();
 
@@ -466,7 +467,7 @@ fn test_volume_bar_builder_add_shared() {
         .unwrap();
 
     {
-        let guard = shared_series.lock().unwrap();
+        let guard = shared_series.read();
         assert_eq!(guard.get_bar_count(), 2);
         let bar2 = guard.get_bar(1).unwrap();
 

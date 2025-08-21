@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::types::{BinaryOp, IndicatorError};
 use crate::indicators::{Indicator, IntoIndicator};
@@ -89,10 +90,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         let first: &I = left.as_ref();
         let l = left.as_indicator(first)?;
@@ -108,10 +109,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         let first: &I = left.as_ref();
         let l = left.as_indicator(first)?;
@@ -126,10 +127,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.plus(b))
     }
@@ -141,10 +142,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.minus(b))
     }
@@ -156,10 +157,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.multiplied_by(b))
     }
@@ -171,10 +172,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         BinaryOperation::<T, L, R>::from_fallible_op(left, right, |a, b| {
             a.divided_by(b).map_err(IndicatorError::NumError)
@@ -188,10 +189,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.min(b))
     }
@@ -203,10 +204,10 @@ where
     ) -> Result<BinaryOperation<T, LI::IndicatorType, RI::IndicatorType>, IndicatorError>
     where
         T: TrNum + 'static,
-        S: for<'any> BarSeries<'any, T> + 'a,
+        S: BarSeries<T> + 'static,
         I: Indicator<Num = T, Output = T> + Clone + 'a,
-        LI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
-        RI: IntoIndicator<'a, T, S, I> + AsRef<I> + 'a,
+        LI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
+        RI: IntoIndicator<T, S, I> + AsRef<I> + 'a,
     {
         BinaryOperation::<T, L, R>::from_simple_op(left, right, |a, b| a.max(b))
     }
@@ -220,10 +221,10 @@ where
         }
     }
 
-    pub fn get_count_of_unstable_bars(&self) -> usize {
+    pub fn count_of_unstable_bars(&self) -> usize {
         usize::max(
-            self.left.get_count_of_unstable_bars(),
-            self.right.get_count_of_unstable_bars(),
+            self.left.count_of_unstable_bars(),
+            self.right.count_of_unstable_bars(),
         )
     }
 }
@@ -232,27 +233,23 @@ impl<T, L, R> Indicator for BinaryOperation<T, L, R>
 where
     T: TrNum + 'static,
     L: Indicator<Num = T, Output = T>,
-    R: Indicator<Num = T, Output = T>,
+    R: Indicator<Num = T, Output = T, Series = L::Series>,
 {
     type Num = T;
     type Output = T;
-
-    type Series<'s>
-        = L::Series<'s>
-    where
-        Self: 's;
+    type Series = L::Series;
 
     fn get_value(&self, index: usize) -> Result<Self::Num, IndicatorError> {
         self.get_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.left.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.left.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         self.left
-            .get_count_of_unstable_bars()
-            .max(self.right.get_count_of_unstable_bars())
+            .count_of_unstable_bars()
+            .max(self.right.count_of_unstable_bars())
     }
 }

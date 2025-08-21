@@ -23,15 +23,14 @@
  * SOFTWARE.
  */
 
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::{Indicator, OptionExt, ToNumber};
 use crate::num::types::NumError;
 use crate::num::{NumFactory, TrNum};
-use parking_lot::RwLock;
 use std::sync::Arc;
 use thiserror::Error;
-use crate::bar::builder::types::BarSeriesRef;
 
 ///===========================base sturct types======================
 #[derive(Debug, Clone, Error)]
@@ -123,97 +122,18 @@ where
     ) -> Result<Self::Output, IndicatorError>;
 }
 
-
-// pub enum IterMode<'a, S: 'a> {
-//     Snapshot(parking_lot::RwLockReadGuard<'a, S>),
-//     Incremental(&'a Arc<RwLock<S>>),
-// }
-//
-// pub struct IndicatorIterator<'a, I>
-// where
-//     I: 'a + Indicator,
-// {
-//     indicator: &'a I,
-//     index: usize,
-//     end: usize,
-//     mode: IterMode<'a, I::Series>,
-// }
-//
-// impl<'a, I> IndicatorIterator<'a, I>
-// where
-//     I: Indicator,
-// {
-//     /// 快照模式迭代器
-//     pub fn snapshot(indicator: &'a I) -> Self {
-//         let series = indicator.bar_series();
-//         let series_read = series.read();
-//         let begin = series_read.get_begin_index().unwrap_or(0);
-//         let end = series_read.get_end_index().unwrap_or(0);
-//
-//         Self {
-//             indicator,
-//             index: begin,
-//             end,
-//             mode: IterMode::Snapshot(series_read),
-//         }
-//     }
-//
-//     /// 增量模式迭代器
-//     pub fn incremental(indicator: &'a I) -> Self {
-//         let series = indicator.bar_series();
-//         let begin = series.read().get_begin_index().unwrap_or(0);
-//         let end = series.read().get_end_index().unwrap_or(0);
-//
-//         Self {
-//             indicator,
-//             index: begin,
-//             end,
-//             mode: IterMode::Incremental(&series),
-//         }
-//     }
-// }
-//
-// impl<'a, I> Iterator for IndicatorIterator<'a, I>
-// where
-//     I: Indicator,
-// {
-//     type Item = Result<I::Output, IndicatorError>;
-//
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.index > self.end {
-//             return None;
-//         }
-//
-//         let value = match &self.mode {
-//             IterMode::Snapshot(_series_read) => {
-//                 // snapshot 模式直接读
-//                 self.indicator.get_value(self.index)
-//             }
-//             IterMode::Incremental(series_arc) => {
-//                 // incremental 模式每次临时读锁
-//                 let series_read = series_arc.read();
-//                 // 更新 end，实时感知追加 bar
-//                 self.end = series_read.get_end_index().unwrap_or(self.end);
-//                 self.indicator.get_value(self.index)
-//             }
-//         };
-//
-//         self.index += 1;
-//         Some(value)
-//     }
-// }
-
 pub enum IterMode<T, S> {
     /// Snapshot 模式，持有 Vec<T> 拷贝
-    Snapshot(Vec<T>),
+    Snapshot(Vec<T>), // parking_lot::RwLockReadGuard<'a, S>
     /// Incremental 模式，持有 BarSeriesRef
     Incremental(BarSeriesRef<S>),
 }
 
 pub struct IndicatorIterator<'a, I, T, S>
 where
-    I: Indicator<Num = T, Series = S>,
-    T: Clone,
+    T: TrNum + 'static,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Series = S>,
 {
     indicator: &'a I,
     index: usize,
@@ -223,17 +143,21 @@ where
 
 impl<'a, I, T, S> IndicatorIterator<'a, I, T, S>
 where
-    I: Indicator<Num = T, Series = S>,
-    T: Clone,
+    T: TrNum + 'static,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Series = S>,
+    T: From<I::Output>, // 支持 Output 转 Num
 {
     /// Snapshot 模式
     pub fn snapshot(indicator: &'a I) -> Self {
-        let series = indicator.bar_series();
-        let begin = series.get_begin_index().unwrap_or(0);
-        let end = series.get_end_index().unwrap_or(0);
+        let series_ref = indicator.bar_series();
 
-        let bars: Vec<_> = (begin..=end)
-            .map(|i| indicator.get_value(i).unwrap()) // 或 clone
+        let begin = series_ref.with_ref_or(0, |s| s.get_begin_index().unwrap_or(0));
+        let end = series_ref.with_ref_or(0, |s| s.get_end_index().unwrap_or(0));
+
+        // 拷贝 Snapshot
+        let bars: Vec<T> = (begin..=end)
+            .map(|i| indicator.get_value(i).unwrap().into())
             .collect();
 
         Self {
@@ -246,19 +170,8 @@ where
 
     /// Incremental 模式
     pub fn incremental(indicator: &'a I, series_ref: BarSeriesRef<S>) -> Self {
-        let begin = match &series_ref {
-            BarSeriesRef::Mut(rc) => rc.borrow().get_begin_index().unwrap_or(0),
-            BarSeriesRef::Shared(mutex) => mutex.lock().unwrap().get_begin_index().unwrap_or(0),
-            BarSeriesRef::RawMut(ptr) => unsafe { (**ptr).get_begin_index().unwrap_or(0) },
-            BarSeriesRef::None => 0,
-        };
-
-        let end = match &series_ref {
-            BarSeriesRef::Mut(rc) => rc.borrow().get_end_index().unwrap_or(0),
-            BarSeriesRef::Shared(mutex) => mutex.lock().unwrap().get_end_index().unwrap_or(0),
-            BarSeriesRef::RawMut(ptr) => unsafe { (**ptr).get_end_index().unwrap_or(0) },
-            BarSeriesRef::None => 0,
-        };
+        let begin = series_ref.with_ref_or(0, |s| s.get_begin_index().unwrap_or(0));
+        let end = series_ref.with_ref_or(0, |s| s.get_end_index().unwrap_or(0));
 
         Self {
             indicator,
@@ -271,42 +184,30 @@ where
 
 impl<'a, I, T, S> Iterator for IndicatorIterator<'a, I, T, S>
 where
-    I: Indicator<Num = T, Series = S>,
-    T: Clone,
+    T: TrNum + 'static,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Series = S>,
+    T: From<I::Output>, // 支持 Output 转 Num
 {
-    type Item = Result<I::Output, IndicatorError>;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index >= self.end {
             return None;
         }
 
-        let value = match &mut self.mode {
-            IterMode::Snapshot(bars) => {
-                self.indicator.get_value(self.index)
+        let value = match &self.mode {
+            IterMode::Snapshot(bars) => bars.get(self.index).cloned(),
+            IterMode::Incremental(_series_ref) => {
+                // 安全处理 Result -> Option
+                self.indicator
+                    .get_value(self.index)
+                    .ok() // 将 Result<T, E> 转为 Option<T>
+                    .map(|v| v.into())
             }
-            IterMode::Incremental(series_ref) => match series_ref {
-                BarSeriesRef::Mut(rc) => {
-                    let series = rc.borrow();
-                    self.end = series.get_end_index().unwrap_or(self.end);
-                    self.indicator.get_value(self.index)
-                }
-                BarSeriesRef::Shared(mutex) => {
-                    let series = mutex.lock().unwrap();
-                    self.end = series.get_end_index().unwrap_or(self.end);
-                    self.indicator.get_value(self.index)
-                }
-                BarSeriesRef::RawMut(ptr) => unsafe {
-                    let series = &**ptr;
-                    self.end = series.get_end_index().unwrap_or(self.end);
-                    self.indicator.get_value(self.index)
-                }
-                BarSeriesRef::None => return None,
-            },
         };
 
         self.index += 1;
-        Some(value)
+        value
     }
 }
-

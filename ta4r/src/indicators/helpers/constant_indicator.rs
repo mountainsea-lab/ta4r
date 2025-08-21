@@ -22,9 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
-use std::sync::Arc;
-use parking_lot::RwLock;
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
@@ -59,9 +57,9 @@ where
     T: TrNum + 'static,
     S: BarSeries<T> + 'static,
 {
-    pub fn new(series: Arc<RwLock<S>>, value: T) -> Self {
+    pub fn new(series: BarSeriesRef<S>, value: T) -> Self {
         Self {
-            base: BaseIndicator::new(series),
+            base: BaseIndicator::new(series), // BaseIndicator 也改成持有 BarSeriesRef
             value,
         }
     }
@@ -79,7 +77,7 @@ where
         Ok(self.value.clone())
     }
 
-    fn bar_series(&self) -> Arc<RwLock<Self::Series>> {
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
         self.base.bar_series()
     }
     fn count_of_unstable_bars(&self) -> usize {

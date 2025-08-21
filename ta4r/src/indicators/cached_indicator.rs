@@ -22,14 +22,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::cell::RefCell;
-use std::sync::Arc;
-use parking_lot::RwLock;
 
 pub struct CachedIndicator<T, S, C>
 where
@@ -66,8 +65,9 @@ where
     C: IndicatorCalculator<T, S> + Clone,
 {
     /// 根据序列容量创建 CachedIndicator，缓存容量初始化为 max_count 大小，元素初始化为 None
-    pub fn new_from_series(series: Arc<RwLock<S>>, calculator: C) -> Self {
-        let max_count = series.read().get_maximum_bar_count();
+    pub fn new_from_series(series: BarSeriesRef<S>, calculator: C) -> Self {
+        let max_count = series.with_ref_or(0, |s| s.get_maximum_bar_count());
+
         let capacity = if max_count == usize::MAX {
             0
         } else {
@@ -101,72 +101,151 @@ where
 
     /// 获取指定索引的指标值，自动缓存和扩容
     pub fn get_cached_value(&self, index: usize) -> Result<C::Output, IndicatorError> {
-        let series = self.base.get_bar_series();
+        let series_guard = self.base.bar_series();
 
-        if series.bar_count() == 0 {
-            // 无序列，直接计算不缓存
+        // 获取 bar_count，空序列直接计算
+        let bar_count = series_guard.with_ref_or(0, |s| s.get_bar_count());
+        if bar_count == 0 {
             return self.calculate(index);
         }
 
-        let removed_bars_count = series.get_removed_bars_count();
-        let maximum_result_count = series.get_maximum_bar_count();
+        let removed_count = series_guard.with_ref_or(0, |s| s.get_removed_bars_count());
+        let max_count = series_guard.with_ref_or(usize::MAX, |s| s.get_maximum_bar_count());
+        let end_index = series_guard.with_ref_or(None, |s| s.get_end_index());
 
-        if index < removed_bars_count {
-            // 请求的索引在被移除的范围，返回第0个缓存或计算
-            self.increase_length_to(removed_bars_count, maximum_result_count);
-            *self.highest_result_index.borrow_mut() = removed_bars_count as isize;
+        // 请求索引在被移除的范围
+        if index < removed_count {
+            self.increase_length_to(removed_count, max_count);
+            *self.highest_result_index.borrow_mut() = removed_count as isize;
 
-            let mut results_ref = self.results.borrow_mut();
-            if let Some(Some(value)) = results_ref.get(0) {
-                Ok(value.clone())
-            } else {
-                let val = self.calculate(0)?;
-                if let Some(slot) = results_ref.get_mut(0) {
-                    *slot = Some(val.clone());
-                }
-                Ok(val)
+            let mut results = self.results.borrow_mut();
+            if results.is_empty() {
+                results.push(None);
             }
+
+            if let Some(Some(value)) = results.get(0) {
+                return Ok(value.clone());
+            }
+
+            let val = self.calculate(0)?;
+            results[0] = Some(val.clone());
+            return Ok(val);
+        }
+
+        // 最新 bar 不缓存
+        if end_index == Some(index) {
+            return self.calculate(index);
+        }
+
+        self.increase_length_to(index, max_count);
+
+        let mut highest_index = self.highest_result_index.borrow_mut();
+        let mut results = self.results.borrow_mut();
+
+        if (index as isize) > *highest_index {
+            // 新索引超过缓存最高索引
+            *highest_index = index as isize;
+            let val = self.calculate(index)?;
+
+            if results.len() < max_count {
+                results.push(Some(val.clone()));
+            } else {
+                // 循环缓冲写入
+                let write_pos = results.len() % max_count;
+                results[write_pos] = Some(val.clone());
+            }
+
+            return Ok(val);
+        }
+
+        // 索引已缓存，从缓存取值
+        let offset = (*highest_index as usize) - index;
+        let inner_index = (results.len() + results.len() - 1 - offset) % results.len();
+
+        if let Some(Some(value)) = results.get(inner_index) {
+            Ok(value.clone())
         } else {
-            if let Some(end_index) = series.get_end_index() {
-                if index == end_index {
-                    // 最新bar不缓存，直接计算
-                    return self.calculate(index);
-                }
+            let val = self.calculate(index)?;
+            if let Some(slot) = results.get_mut(inner_index) {
+                *slot = Some(val.clone());
             }
-
-            self.increase_length_to(index, maximum_result_count);
-
-            let mut highest_result_index_ref = self.highest_result_index.borrow_mut();
-            let mut results_ref = self.results.borrow_mut();
-
-            if (index as isize) > *highest_result_index_ref {
-                // 新索引超过缓存最高索引，计算并追加缓存
-                *highest_result_index_ref = index as isize;
-                let val = self.calculate(index)?;
-                if let Some(last) = results_ref.last_mut() {
-                    *last = Some(val.clone());
-                } else {
-                    results_ref.push(Some(val.clone()));
-                }
-                Ok(val)
-            } else {
-                // 索引已缓存，从缓存中取值
-                let result_inner_index =
-                    results_ref.len() - 1 - ((*highest_result_index_ref as usize) - index);
-
-                if let Some(Some(value)) = results_ref.get(result_inner_index) {
-                    Ok(value.clone())
-                } else {
-                    // 缓存中为空，计算后写入
-                    let val = self.calculate(index)?;
-                    if let Some(slot) = results_ref.get_mut(result_inner_index) {
-                        *slot = Some(val.clone());
-                    }
-                    Ok(val)
-                }
-            }
+            Ok(val)
         }
     }
+
+    // pub fn get_cached_value(&self, index: usize) -> Result<C::Output, IndicatorError> {
+    //     let series_guard = self.base.bar_series();
+    //     // 参考这个获取方式 修改相关代码
+    //     let bar_count = series_guard.with_ref_or(0, |s| s.get_bar_count());
+    //
+    //     // 空序列，直接计算
+    //     if bar_count == 0 {
+    //         return self.calculate(index);
+    //     }
+    //
+    //     let removed_count = series_guard.get_removed_bars_count();
+    //     let max_count = series_guard.get_maximum_bar_count();
+    //
+    //     // 请求索引在被移除的范围
+    //     if index < removed_count {
+    //         self.increase_length_to(removed_count, max_count);
+    //         *self.highest_result_index.borrow_mut() = removed_count as isize;
+    //
+    //         let mut results = self.results.borrow_mut();
+    //         if results.is_empty() {
+    //             results.push(None);
+    //         }
+    //
+    //         if let Some(Some(value)) = results.get(0) {
+    //             return Ok(value.clone());
+    //         }
+    //
+    //         let val = self.calculate(0)?;
+    //         results[0] = Some(val.clone());
+    //         return Ok(val);
+    //     }
+    //
+    //     // 最新 bar 不缓存
+    //     if series_guard.get_end_index() == Some(index) {
+    //         return self.calculate(index);
+    //     }
+    //
+    //     self.increase_length_to(index, max_count);
+    //
+    //     let mut highest_index = self.highest_result_index.borrow_mut();
+    //     let mut results = self.results.borrow_mut();
+    //
+    //     if (index as isize) > *highest_index {
+    //         // 新索引超过缓存最高索引
+    //         *highest_index = index as isize;
+    //         let val = self.calculate(index)?;
+    //
+    //         // 循环缓冲写入
+    //         if results.len() < max_count {
+    //             results.push(Some(val.clone()));
+    //         } else {
+    //             // 使用 modulo 替代 remove(0)
+    //             let write_pos = results.len() % max_count;
+    //             results[write_pos] = Some(val.clone());
+    //         }
+    //
+    //         return Ok(val);
+    //     }
+    //
+    //     // 索引已缓存，从缓存取值
+    //     let offset = (*highest_index as usize) - index;
+    //     let inner_index = (results.len() + results.len() - 1 - offset) % results.len();
+    //
+    //     if let Some(Some(value)) = results.get(inner_index) {
+    //         Ok(value.clone())
+    //     } else {
+    //         let val = self.calculate(index)?;
+    //         if let Some(slot) = results.get_mut(inner_index) {
+    //             *slot = Some(val.clone());
+    //         }
+    //         Ok(val)
+    //     }
+    // }
 
     /// 根据索引扩容缓存，确保缓存容量不超过最大限制
     fn increase_length_to(&self, index: usize, max_length: usize) {
@@ -241,7 +320,7 @@ where
         self.get_cached_value(index)
     }
 
-    fn bar_series(&self) -> Arc<RwLock<Self::Series>> {
+    fn bar_series(&self) -> BarSeriesRef<S> {
         self.base.bar_series()
     }
 

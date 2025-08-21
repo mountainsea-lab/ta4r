@@ -24,7 +24,8 @@
  */
 
 use crate::num::{NumFactory, TrNum};
-use std::sync::{Arc, Mutex};
+use parking_lot::RwLock;
+use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 
 // Bar trait - 对应 ta4j 的 Bar 接口
@@ -83,7 +84,7 @@ pub trait BarBuilderFactory<T: TrNum + 'static> {
     fn create_bar_builder_shared(
         &self,
         num_factory: Arc<T::Factory>,
-        shared_series: Arc<Mutex<Self::Series>>,
+        shared_series: Arc<RwLock<Self::Series>>,
     ) -> Self::Builder<'static>
     where
         Self::Series: 'static;
@@ -108,7 +109,7 @@ pub trait BarSeries<T: TrNum + 'static> {
     fn bar_builder(&mut self) -> Self::Builder<'_>;
 
     /// 基于 Arc<Mutex<Self>> 返回一个构建器，适用于多线程共享调用 create_bar_builder_shared
-    fn bar_builder_shared(&mut self, shared_series: Arc<Mutex<Self>>) -> Self::Builder<'static>
+    fn bar_builder_shared(&mut self, shared_series: Arc<RwLock<Self>>) -> Self::Builder<'static>
     where
         Self: Sized + 'static;
 
