@@ -51,6 +51,12 @@ pub enum IndicatorError {
     Other { message: String },
 }
 
+impl From<String> for IndicatorError {
+    fn from(message: String) -> Self {
+        IndicatorError::Other { message }
+    }
+}
+
 // 二元运算符定义
 #[derive(Clone, Copy)]
 pub enum BinaryOp<T: TrNum> {
