@@ -36,8 +36,9 @@ pub mod averages;
 pub mod cached_indicator;
 pub mod helpers;
 pub mod numeric;
-// pub mod recursive_cached_indicator;
+pub mod recursive_cached_indicator;
 pub mod types;
+// pub mod atr_indicator;
 
 pub trait Indicator: Clone {
     type Num: TrNum + 'static;
