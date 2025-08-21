@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
@@ -33,8 +34,8 @@ use std::marker::PhantomData;
 pub struct PreviousValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     n: usize,
     indicator: &'a I,
@@ -44,8 +45,8 @@ where
 impl<'a, T, S, I> Clone for PreviousValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -60,8 +61,8 @@ where
 impl<'a, T, S, I> PreviousValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     pub fn new(indicator: &'a I, n: usize) -> Self {
         if n < 1 {
@@ -75,17 +76,17 @@ where
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<'a, T, S> for PreviousValueCalculator<'a, T, S, I>
+impl<'a, T, S, I> IndicatorCalculator<T, S> for PreviousValueCalculator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Output = T;
 
     fn calculate(
         &self,
-        _base: &BaseIndicator<'a, T, S>,
+        _base: &BaseIndicator<T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError> {
         if index < self.n {
@@ -100,19 +101,19 @@ where
 pub struct PreviousValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<'a, T, S, PreviousValueCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, PreviousValueCalculator<'a, T, S, I>>,
     n: usize,
 }
 
 impl<'a, T, S, I> Clone for PreviousValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + Clone,
-    CachedIndicator<'a, T, S, PreviousValueCalculator<'a, T, S, I>>: Clone,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S> + Clone,
+    CachedIndicator<T, S, PreviousValueCalculator<'a, T, S, I>>: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -126,8 +127,8 @@ where
 impl<'a, T, S, I> PreviousValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     pub fn new(indicator: &'a I) -> Self {
         Self::with_n(indicator, 1)
@@ -147,24 +148,21 @@ where
 impl<'a, T, S, I> Indicator for PreviousValueIndicator<'a, T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
     fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
         self.cached.get_cached_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.cached.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.cached.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         self.n
     }
 }
