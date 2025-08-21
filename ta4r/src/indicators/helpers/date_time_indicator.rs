@@ -22,13 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::{Bar, BarSeries};
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
+use parking_lot::RwLock;
+use std::cell::RefCell;
 use std::marker::PhantomData;
+use std::sync::Arc;
 use time::OffsetDateTime;
 
 // ------------------- Calculator -------------------
@@ -60,43 +65,46 @@ pub fn default_get_begin_time<T: TrNum + 'static, B: Bar<T>>(bar: &B) -> OffsetD
     bar.get_begin_time()
 }
 
-impl<'a, T, S, F> IndicatorCalculator<'a, T, S> for DateTimeCalculator<S, F>
+impl<T, S, F> IndicatorCalculator<T, S> for DateTimeCalculator<S, F>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    F: Fn(&<S as BarSeries<'a, T>>::Bar) -> OffsetDateTime + Copy,
+    S: BarSeries<T> + 'static,
+    F: Fn(&<S as BarSeries<T>>::Bar) -> OffsetDateTime + Copy,
 {
     type Output = OffsetDateTime;
 
     fn calculate(
         &self,
-        base: &BaseIndicator<'a, T, S>,
+        base: &BaseIndicator<T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError> {
-        let series = base.get_bar_series();
-        let bar = series
-            .get_bar(index)
-            .ok_or(IndicatorError::OutOfBounds { index })?;
-        Ok((self.action)(bar))
+        let series_ref = base.bar_series();
+
+        series_ref
+            .with_ref(|s| match s.get_bar(index) {
+                Some(bar) => Ok((self.action)(bar)),
+                None => Err(IndicatorError::OutOfBounds { index }),
+            })
+            .map_err(|e| IndicatorError::Other { message: e })?
     }
 }
 
 // ------------------- Indicator -------------------
-pub struct DateTimeIndicator<'a, T, S, F>
+pub struct DateTimeIndicator<T, S, F>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    F: Fn(&<S as BarSeries<'a, T>>::Bar) -> OffsetDateTime + Copy,
+    S: BarSeries<T> + 'static,
+    F: Fn(&<S as BarSeries<T>>::Bar) -> OffsetDateTime + Copy,
 {
-    cached: CachedIndicator<'a, T, S, DateTimeCalculator<S, F>>,
+    cached: CachedIndicator<T, S, DateTimeCalculator<S, F>>,
 }
 
-impl<'a, T, S, F> Clone for DateTimeIndicator<'a, T, S, F>
+impl<T, S, F> Clone for DateTimeIndicator<T, S, F>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    F: Fn(&<S as BarSeries<'a, T>>::Bar) -> OffsetDateTime + Copy,
-    CachedIndicator<'a, T, S, DateTimeCalculator<S, F>>: Clone,
+    S: BarSeries<T> + 'static,
+    F: Fn(&<S as BarSeries<T>>::Bar) -> OffsetDateTime + Copy,
+    CachedIndicator<T, S, DateTimeCalculator<S, F>>: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -105,56 +113,66 @@ where
     }
 }
 
-impl<'a, T, S, F> DateTimeIndicator<'a, T, S, F>
+impl<T, S, F> DateTimeIndicator<T, S, F>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    F: Fn(&<S as BarSeries<'a, T>>::Bar) -> OffsetDateTime + Copy,
+    S: BarSeries<T> + 'static,
+    F: Fn(&<S as BarSeries<T>>::Bar) -> OffsetDateTime + Copy,
 {
-    /// 自定义函数构造
-    pub fn with_func(series: &'a S, f: F) -> Self {
+    /// General construction Creates DateTimeIndicator indicator based on the given bar series and function.
+    pub fn with_func(series: BarSeriesRef<S>, f: F) -> Self {
         let calculator = DateTimeCalculator::new(f);
         let cached = CachedIndicator::new_from_series(series, calculator);
         Self { cached }
     }
+    /// 快捷方式：从 Arc<RwLock<S>> 构造
+    pub fn from_shared(series: Arc<RwLock<S>>, f: F) -> Self {
+        let calculator = DateTimeCalculator::new(f);
+        let cached = CachedIndicator::new_from_series(BarSeriesRef::Shared(series), calculator);
+        Self { cached }
+    }
+
+    /// 快捷方式：从 Rc<RefCell<S>> 构造
+    pub fn from_mut(series: Arc<RefCell<S>>, f: F) -> Self {
+        let calculator = DateTimeCalculator::new(f);
+        let cached = CachedIndicator::new_from_series(BarSeriesRef::Mut(series), calculator);
+        Self { cached }
+    }
 }
 
-impl<'a, T, S> DateTimeIndicator<'a, T, S, fn(&<S as BarSeries<'a, T>>::Bar) -> OffsetDateTime>
+impl<T, S> DateTimeIndicator<T, S, fn(&<S as BarSeries<T>>::Bar) -> OffsetDateTime>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
+    S: BarSeries<T> + 'static,
 {
     /// 默认构造函数
-    pub fn new(series: &'a S) -> Self {
+    pub fn new(series: BarSeriesRef<S>) -> Self {
         Self::with_func(
             series,
-            default_get_begin_time::<T, <S as BarSeries<'a, T>>::Bar>,
+            default_get_begin_time::<T, <S as BarSeries<T>>::Bar>,
         )
     }
 }
 
-impl<'a, T, S, F> Indicator for DateTimeIndicator<'a, T, S, F>
+impl<T, S, F> Indicator for DateTimeIndicator<T, S, F>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    F: Fn(&<S as BarSeries<'a, T>>::Bar) -> OffsetDateTime + Copy,
+    S: BarSeries<T> + 'static,
+    F: Fn(&<S as BarSeries<T>>::Bar) -> OffsetDateTime + Copy,
 {
     type Num = T;
     type Output = OffsetDateTime;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
         self.cached.get_cached_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.cached.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.cached.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         0
     }
 }
