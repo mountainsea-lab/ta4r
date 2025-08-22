@@ -14,7 +14,7 @@ where
     S: BarSeries<T> + 'static,
 {
     tr_indicator: Arc<TRIndicator<T, S>>,
-    average_true_range: Arc<MMAIndicator<T, S, TRIndicator<T, S>>>,
+    average_true_range: MMAIndicator<T, S, TRIndicator<T, S>>,
 }
 
 impl<T, S> Clone for ATRIndicator<T, S>
@@ -40,7 +40,7 @@ where
         let atr = MMAIndicator::new(Arc::clone(&tr_indicator), bar_count).unwrap();
         Self {
             tr_indicator,
-            average_true_range: Arc::new(atr),
+            average_true_range: atr,
         }
     }
 
