@@ -50,11 +50,11 @@ impl TradeType {
 }
 
 /// 完整版 Trade
-pub struct Trade<'a, T, CM, S>
+pub struct Trade<T, CM, S>
 where
     T: TrNum + 'static,
     CM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     trade_type: TradeType,
     pub(crate) index: usize,
@@ -64,14 +64,14 @@ where
     cost: T,
     cost_model: CM,
     // 你可以加个 PhantomData 来标记生命周期
-    _marker: std::marker::PhantomData<&'a S>,
+    _marker: std::marker::PhantomData<S>,
 }
 
-impl<'a, T, CM, S> Clone for Trade<'a, T, CM, S>
+impl<T, CM, S> Clone for Trade<T, CM, S>
 where
     T: TrNum + Clone + 'static,
     CM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -87,11 +87,11 @@ where
     }
 }
 
-impl<'a, T, CM, S> Trade<'a, T, CM, S>
+impl<T, CM, S> Trade<T, CM, S>
 where
     T: TrNum + 'static,
     CM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     /// 带错误返回的通用构造（用于成本模型计算可能失败的情况）
     pub fn try_new(
@@ -131,7 +131,7 @@ where
     /// 带错误返回的通过 BarSeries 创建指定数量和成本模型买卖单
     pub fn try_new_from_series_with_amount_and_cost_model(
         index: usize,
-        series: &'a S,
+        series: &S,
         trade_type: TradeType,
         amount: T,
         cost_model: CM,
@@ -152,7 +152,7 @@ where
     /// 通过 BarSeries 创建指定数量和成本模型买卖单，panic 版本
     pub fn new_from_series_with_amount_and_cost_model(
         index: usize,
-        series: &'a S,
+        series: &S,
         trade_type: TradeType,
         amount: T,
         cost_model: CM,
@@ -196,7 +196,7 @@ where
         &self.price_per_asset
     }
 
-    pub fn get_price_per_asset_with_series(&self, series: &'a S) -> Result<T, String> {
+    pub fn get_price_per_asset_with_series(&self, series: &S) -> Result<T, String> {
         if !self.price_per_asset.is_nan() {
             return Ok(self.price_per_asset.clone());
         }
@@ -244,7 +244,7 @@ where
     /// 静态工厂方法，调用 panic 版本（保持兼容）
     pub fn buy_at_with_amount_and_cost_model(
         index: usize,
-        series: &'a S,
+        series: &S,
         amount: T,
         cost_model: CM,
     ) -> Self {
@@ -263,7 +263,7 @@ where
 
     pub fn sell_at_with_amount_and_cost_model(
         index: usize,
-        series: &'a S,
+        series: &S,
         amount: T,
         cost_model: CM,
     ) -> Self {
@@ -286,10 +286,10 @@ where
     }
 }
 
-impl<'a, T, S> Trade<'a, T, ZeroCostModel<T>, S>
+impl<T, S> Trade<T, ZeroCostModel<T>, S>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     /// 带错误返回的 ZeroCostModel 构造
     pub fn try_new_zero_cost(
@@ -310,7 +310,7 @@ where
     /// 通过 BarSeries 创建默认数量和零成本的买卖单，带错误返回
     pub fn try_new_from_series(
         index: usize,
-        series: &'a S,
+        series: &S,
         trade_type: TradeType,
     ) -> Result<Self, String> {
         let amount = T::one();
@@ -318,7 +318,7 @@ where
     }
 
     /// 通过 BarSeries 创建默认数量和零成本的买卖单，panic 版本
-    pub fn new_from_series(index: usize, series: &'a S, trade_type: TradeType) -> Self {
+    pub fn new_from_series(index: usize, series: &S, trade_type: TradeType) -> Self {
         Self::try_new_from_series(index, series, trade_type)
             .expect("Failed to create Trade with zero cost model from series")
     }
@@ -326,7 +326,7 @@ where
     /// 通过 BarSeries 创建指定数量和零成本买卖单，带错误返回
     pub fn try_new_from_series_with_amount(
         index: usize,
-        series: &'a S,
+        series: &S,
         trade_type: TradeType,
         amount: T,
     ) -> Result<Self, String> {
@@ -365,11 +365,11 @@ where
     }
 
     /// 静态工厂方法，调用默认零成本模型的构造函数，panic 版本
-    pub fn buy_at(index: usize, series: &'a S) -> Self {
+    pub fn buy_at(index: usize, series: &S) -> Self {
         Self::new_from_series(index, series, TradeType::Buy)
     }
 
-    pub fn buy_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
+    pub fn buy_at_with_amount(index: usize, series: &S, amount: T) -> Self {
         Self::try_new_from_series_with_amount(index, series, TradeType::Buy, amount)
             .expect("Failed to create Buy Trade with zero cost and amount")
     }
@@ -378,11 +378,11 @@ where
         Self::new_zero_cost(index, TradeType::Buy, price, amount)
     }
 
-    pub fn sell_at(index: usize, series: &'a S) -> Self {
+    pub fn sell_at(index: usize, series: &S) -> Self {
         Self::new_from_series(index, series, TradeType::Sell)
     }
 
-    pub fn sell_at_with_amount(index: usize, series: &'a S, amount: T) -> Self {
+    pub fn sell_at_with_amount(index: usize, series: &S, amount: T) -> Self {
         Self::try_new_from_series_with_amount(index, series, TradeType::Sell, amount)
             .expect("Failed to create Sell Trade with zero cost and amount")
     }
@@ -393,11 +393,11 @@ where
 }
 
 // 实现 Display，方便打印
-impl<'a, T, CM, S> fmt::Display for Trade<'a, T, CM, S>
+impl<T, CM, S> fmt::Display for Trade<T, CM, S>
 where
     T: TrNum + fmt::Display + 'static,
     CM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -417,11 +417,11 @@ where
     }
 }
 
-impl<'a, T, CM, S> Debug for Trade<'a, T, CM, S>
+impl<T, CM, S> Debug for Trade<T, CM, S>
 where
     T: TrNum + 'static + Debug,
     CM: CostModel<T> + Clone + Debug,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Trade")
@@ -438,11 +438,11 @@ where
 }
 
 // 实现 PartialEq 和 Hash
-impl<'a, T, CM, S> PartialEq for Trade<'a, T, CM, S>
+impl<T, CM, S> PartialEq for Trade<T, CM, S>
 where
     T: TrNum + PartialEq + 'static,
     CM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     fn eq(&self, other: &Self) -> bool {
         self.trade_type == other.trade_type
@@ -452,19 +452,19 @@ where
     }
 }
 
-impl<'a, T, CM, S> Eq for Trade<'a, T, CM, S>
+impl<T, CM, S> Eq for Trade<T, CM, S>
 where
     T: TrNum + PartialEq + Eq + 'static,
     CM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
 }
 
-impl<'a, T, CM, S> Hash for Trade<'a, T, CM, S>
+impl<T, CM, S> Hash for Trade<T, CM, S>
 where
     T: TrNum + Hash + 'static,
     CM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.trade_type.hash(state);

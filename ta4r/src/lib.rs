@@ -33,7 +33,7 @@ pub mod num;
 // pub mod position;
 // pub mod rule;
 // pub mod strategy;
-// pub mod trade;
+pub mod trade;
 
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
