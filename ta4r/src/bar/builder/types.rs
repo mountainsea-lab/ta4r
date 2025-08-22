@@ -36,13 +36,11 @@ use crate::bar::builder::tick_bar_builder::TickBarBuilder;
 use crate::bar::builder::time_bar_builder::TimeBarBuilder;
 use crate::bar::builder::volume_bar_builder::VolumeBarBuilder;
 use crate::bar::types::{BarBuilder, BarBuilderFactory, BarSeries};
-use crate::indicators::types::IndicatorError;
 use crate::num::TrNum;
 use parking_lot::RwLock;
 use std::cell::RefCell;
 use std::fmt;
 use std::marker::PhantomData;
-use std::ops::Deref;
 use std::sync::Arc;
 use time::{Duration, OffsetDateTime};
 

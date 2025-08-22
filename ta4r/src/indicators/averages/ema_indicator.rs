@@ -22,27 +22,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::averages::base_ema_indicator::BaseEmaIndicator;
 use crate::indicators::types::IndicatorError;
 use crate::num::{NumFactory, TrNum};
+use std::sync::Arc;
 
 /// 等价于 Java 的 EMAIndicator，封装标准 multiplier 的构造
-pub struct EmaIndicator<'a, T, S, I>
+pub struct EmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    inner: BaseEmaIndicator<'a, T, S, I>,
+    inner: BaseEmaIndicator<T, S, I>,
 }
 
-impl<'a, T, S, I> Clone for EmaIndicator<'a, T, S, I>
+impl<T, S, I> Clone for EmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -51,14 +54,17 @@ where
     }
 }
 
-impl<'a, T, S, I> EmaIndicator<'a, T, S, I>
+impl<T, S, I> EmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
-        let num_factory = indicator.get_bar_series().num_factory();
+    pub fn new(indicator: Arc<I>, bar_count: usize) -> Self {
+        let series_ref = indicator.bar_series();
+        let num_factory = series_ref
+            .with_ref(|s| s.num_factory())
+            .expect("num_factory fail"); // 获取 NumFactory
         let multiplier: T = num_factory.num_of_f64(2.0 / (bar_count as f64 + 1.0));
         let inner = BaseEmaIndicator::new(indicator, bar_count, multiplier);
         Self { inner }
@@ -69,28 +75,25 @@ where
     }
 }
 
-impl<'a, T, S, I> Indicator for EmaIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for EmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S> + 'a,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         self.inner.get_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.inner.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.inner.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         self.bar_count()
     }
 }
