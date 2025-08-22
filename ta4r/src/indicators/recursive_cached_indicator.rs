@@ -129,7 +129,7 @@ where
     }
 
     /// 从现有 Indicator 构造，使用默认阈值
-    pub fn from_indicator<I>(indicator: &I, calculator: C) -> Self
+    pub fn from_indicator<I>(indicator: Arc<I>, calculator: C) -> Self
     where
         I: Indicator<Num = T, Output = T, Series = S>,
     {
@@ -137,7 +137,11 @@ where
     }
 
     /// 从现有 Indicator 构造，自定义阈值
-    pub fn from_indicator_with_threshold<I>(indicator: &I, calculator: C, threshold: usize) -> Self
+    pub fn from_indicator_with_threshold<I>(
+        indicator: Arc<I>,
+        calculator: C,
+        threshold: usize,
+    ) -> Self
     where
         I: Indicator<Num = T, Output = T, Series = S>,
     {

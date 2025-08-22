@@ -29,6 +29,7 @@ use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::cell::RefCell;
+use std::sync::Arc;
 
 pub struct CachedIndicator<T, S, C>
 where
@@ -83,11 +84,12 @@ where
     }
 
     /// 通过已有指标构造，复用其 BarSeries
-    pub fn new_from_indicator<I>(indicator: &I, calculator: C) -> Self
+    pub fn new_from_indicator<I>(indicator: Arc<I>, calculator: C) -> Self
     where
         I: Indicator<Num = T, Output = C::Output, Series = S>,
     {
-        Self::new_from_series(indicator.bar_series(), calculator)
+        let bar_series = indicator.bar_series();
+        Self::new_from_series(bar_series, calculator)
     }
 
     pub fn calculator(&self) -> &C {

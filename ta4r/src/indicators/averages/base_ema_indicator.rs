@@ -30,39 +30,40 @@ use crate::indicators::recursive_cached_indicator::RecursiveCachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// BaseEmaCalculator 持有对 indicator 的引用
-pub struct BaseEmaCalculator<'a, T, S, I>
+pub struct BaseEmaCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
-    I: Indicator<Num = T, Output = T, Series = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub(crate) indicator: &'a I,
+    pub(crate) indicator: Arc<I>,
     pub(crate) multiplier: T,
-    pub(crate) _phantom: PhantomData<&'a S>,
+    pub(crate) _phantom: PhantomData<S>,
 }
 
-impl<'a, T, S, I> Clone for BaseEmaCalculator<'a, T, S, I>
+impl<T, S, I> Clone for BaseEmaCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
-    I: Indicator<Num = T, Output = T, Series = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         BaseEmaCalculator {
-            indicator: self.indicator, // 复制引用即可
+            indicator: Arc::clone(&self.indicator), // 复制引用即可
             multiplier: self.multiplier.clone(),
             _phantom: PhantomData,
         }
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<T, S> for BaseEmaCalculator<'a, T, S, I>
+impl<T, S, I> IndicatorCalculator<T, S> for BaseEmaCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
-    I: Indicator<Num = T, Output = T, Series = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Output = T;
 
@@ -83,27 +84,27 @@ where
 }
 
 /// BaseEmaIndicator 也持有 indicator 的引用
-pub struct BaseEmaIndicator<'a, T, S, I>
+pub struct BaseEmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
-    I: Indicator<Num = T, Output = T, Series = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub(crate) indicator: &'a I,
+    pub(crate) indicator: Arc<I>,
     pub(crate) bar_count: usize,
     pub(crate) multiplier: T,
-    pub(crate) inner: RecursiveCachedIndicator<T, S, BaseEmaCalculator<'a, T, S, I>>,
+    pub(crate) inner: RecursiveCachedIndicator<T, S, BaseEmaCalculator<T, S, I>>,
 }
 
-impl<'a, T, S, I> Clone for BaseEmaIndicator<'a, T, S, I>
+impl<T, S, I> Clone for BaseEmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
-    I: Indicator<Num = T, Output = T, Series = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         BaseEmaIndicator {
-            indicator: self.indicator, // 复制引用
+            indicator: Arc::clone(&self.indicator),
             bar_count: self.bar_count,
             multiplier: self.multiplier.clone(),
             inner: self.inner.clone(),
@@ -111,21 +112,21 @@ where
     }
 }
 
-impl<'a, T, S, I> BaseEmaIndicator<'a, T, S, I>
+impl<T, S, I> BaseEmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
-    I: Indicator<Num = T, Output = T, Series = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     /// 标准构造器：传入 T 类型 multiplier（等价 Java 中 Num 类型）
-    pub fn new(indicator: &'a I, bar_count: usize, multiplier: T) -> Self {
+    pub fn new(indicator: Arc<I>, bar_count: usize, multiplier: T) -> Self {
         let calculator = BaseEmaCalculator {
-            indicator,
+            indicator: Arc::clone(&indicator),
             multiplier: multiplier.clone(),
             _phantom: PhantomData,
         };
 
-        let inner = RecursiveCachedIndicator::from_indicator(indicator, calculator);
+        let inner = RecursiveCachedIndicator::from_indicator(Arc::clone(&indicator), calculator);
 
         Self {
             indicator,
@@ -140,11 +141,11 @@ where
     }
 }
 
-impl<'a, T, S, I> Indicator for BaseEmaIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for BaseEmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
-    I: Indicator<Num = T, Output = T, Series = S> + 'a,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Num = T;
     type Output = T;

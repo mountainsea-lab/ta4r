@@ -30,20 +30,21 @@ use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// 实际计算逻辑
-pub struct HighestValueCalculator<'a, T, S, I>
+pub struct HighestValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    indicator: &'a I,
+    indicator: Arc<I>,
     bar_count: usize,
-    _phantom: PhantomData<&'a S>,
+    _phantom: PhantomData<S>,
 }
 
-impl<'a, T, S, I> Clone for HighestValueCalculator<'a, T, S, I>
+impl<T, S, I> Clone for HighestValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -51,14 +52,14 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            indicator: self.indicator,
+            indicator: Arc::clone(&self.indicator),
             bar_count: self.bar_count,
             _phantom: PhantomData,
         }
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<T, S> for HighestValueCalculator<'a, T, S, I>
+impl<T, S, I> IndicatorCalculator<T, S> for HighestValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -74,7 +75,7 @@ where
 
         if value.is_nan() && self.bar_count > 1 {
             let tmp = HighestValueCalculator {
-                indicator: self.indicator,
+                indicator: Arc::clone(&self.indicator),
                 bar_count: self.bar_count - 1,
                 _phantom: PhantomData,
             };
@@ -95,25 +96,25 @@ where
         Ok(highest)
     }
 }
-pub struct HighestValueIndicator<'a, T, S, I>
+pub struct HighestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<T, S, HighestValueCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, HighestValueCalculator<T, S, I>>,
     bar_count: usize,
 }
 
-impl<'a, T, S, I> HighestValueIndicator<'a, T, S, I>
+impl<T, S, I> HighestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
+    pub fn new(indicator: Arc<I>, bar_count: usize) -> Self {
         let calculator = HighestValueCalculator {
-            indicator,
+            indicator: Arc::clone(&indicator),
             bar_count,
             _phantom: PhantomData,
         };
@@ -124,7 +125,7 @@ where
     }
 }
 
-impl<'a, T, S, I> Clone for HighestValueIndicator<'a, T, S, I>
+impl<'a, T, S, I> Clone for HighestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -138,7 +139,7 @@ where
     }
 }
 
-impl<'a, T, S, I> Indicator for HighestValueIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for HighestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,

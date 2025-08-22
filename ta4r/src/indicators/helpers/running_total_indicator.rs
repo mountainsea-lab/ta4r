@@ -32,21 +32,22 @@ use crate::num::{NumFactory, TrNum};
 use std::cell::{RefCell, RefMut};
 use std::fmt;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
-pub struct RunningTotalCalculator<'a, T, S, I>
+pub struct RunningTotalCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T>,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    indicator: &'a I,
+    indicator: Arc<I>,
     bar_count: usize,
     prev_index: RefCell<Option<usize>>,
     prev_sum: RefCell<T>,
     _phantom: PhantomData<(T, S)>,
 }
 
-impl<'a, T, S, I> Clone for RunningTotalCalculator<'a, T, S, I>
+impl<T, S, I> Clone for RunningTotalCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T>,
@@ -54,7 +55,7 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            indicator: self.indicator,
+            indicator: Arc::clone(&self.indicator),
             bar_count: self.bar_count,
             prev_index: RefCell::new(*self.prev_index.borrow()),
             prev_sum: RefCell::new(self.prev_sum.borrow().clone()),
@@ -63,7 +64,7 @@ where
     }
 }
 
-impl<'a, T, S, I> fmt::Debug for RunningTotalCalculator<'a, T, S, I>
+impl<T, S, I> fmt::Debug for RunningTotalCalculator<T, S, I>
 where
     T: TrNum + Clone + fmt::Debug + 'static,
     S: BarSeries<T>,
@@ -78,13 +79,13 @@ where
     }
 }
 
-impl<'a, T, S, I> RunningTotalCalculator<'a, T, S, I>
+impl<T, S, I> RunningTotalCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<T> + 'a,
+    S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
+    pub fn new(indicator: Arc<I>, bar_count: usize) -> Self {
         let zero = indicator.bar_series().with_ref_or(T::zero(), |series| {
             series.num_factory().zero().as_ref().clone()
         });
@@ -120,10 +121,10 @@ where
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<T, S> for RunningTotalCalculator<'a, T, S, I>
+impl<T, S, I> IndicatorCalculator<T, S> for RunningTotalCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<T>,
+    S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Output = T;
@@ -165,16 +166,16 @@ where
     }
 }
 
-pub struct RunningTotalIndicator<'a, T, S, I>
+pub struct RunningTotalIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: BarSeries<T>,
+    S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<T, S, RunningTotalCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, RunningTotalCalculator<T, S, I>>,
 }
 
-impl<'a, T, S, I> Clone for RunningTotalIndicator<'a, T, S, I>
+impl<T, S, I> Clone for RunningTotalIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -187,20 +188,20 @@ where
     }
 }
 
-impl<'a, T, S, I> RunningTotalIndicator<'a, T, S, I>
+impl<T, S, I> RunningTotalIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
-        let calculator = RunningTotalCalculator::new(indicator, bar_count);
+    pub fn new(indicator: Arc<I>, bar_count: usize) -> Self {
+        let calculator = RunningTotalCalculator::new(Arc::clone(&indicator), bar_count);
         let cached = CachedIndicator::new_from_indicator(indicator, calculator);
         Self { cached }
     }
 }
 
-impl<'a, T, S, I> Indicator for RunningTotalIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for RunningTotalIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -223,7 +224,7 @@ where
     }
 }
 
-impl<'a, T, S, I> fmt::Display for RunningTotalIndicator<'a, T, S, I>
+impl<T, S, I> fmt::Display for RunningTotalIndicator<T, S, I>
 where
     T: TrNum + Clone + fmt::Debug + 'static,
     S: BarSeries<T> + 'static,
@@ -238,7 +239,7 @@ where
     }
 }
 
-impl<'a, T, S, I> fmt::Debug for RunningTotalIndicator<'a, T, S, I>
+impl<T, S, I> fmt::Debug for RunningTotalIndicator<T, S, I>
 where
     T: TrNum + Clone + fmt::Debug + 'static,
     S: BarSeries<T> + 'static,

@@ -31,19 +31,20 @@ use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
-pub struct LowestValueCalculator<'a, T, S, I>
+pub struct LowestValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    indicator: &'a I,
+    indicator: Arc<I>,
     bar_count: usize,
-    _phantom: PhantomData<&'a S>,
+    _phantom: PhantomData<S>,
 }
 
-impl<'a, T, S, I> Clone for LowestValueCalculator<'a, T, S, I>
+impl<T, S, I> Clone for LowestValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -51,14 +52,14 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            indicator: self.indicator,
+            indicator: Arc::clone(&self.indicator),
             bar_count: self.bar_count,
             _phantom: PhantomData,
         }
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<T, S> for LowestValueCalculator<'a, T, S, I>
+impl<T, S, I> IndicatorCalculator<T, S> for LowestValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -75,7 +76,7 @@ where
 
         if value.is_nan() && self.bar_count > 1 {
             let tmp = LowestValueCalculator {
-                indicator: self.indicator,
+                indicator: Arc::clone(&self.indicator),
                 bar_count: self.bar_count - 1,
                 _phantom: PhantomData,
             };
@@ -97,25 +98,25 @@ where
     }
 }
 
-pub struct LowestValueIndicator<'a, T, S, I>
+pub struct LowestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<T, S, LowestValueCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, LowestValueCalculator<T, S, I>>,
     bar_count: usize,
 }
 
-impl<'a, T, S, I> LowestValueIndicator<'a, T, S, I>
+impl<T, S, I> LowestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
+    pub fn new(indicator: Arc<I>, bar_count: usize) -> Self {
         let calculator = LowestValueCalculator {
-            indicator,
+            indicator: Arc::clone(&indicator),
             bar_count,
             _phantom: PhantomData,
         };
@@ -126,7 +127,7 @@ where
     }
 }
 
-impl<'a, T, S, I> Clone for LowestValueIndicator<'a, T, S, I>
+impl<T, S, I> Clone for LowestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -140,7 +141,7 @@ where
     }
 }
 
-impl<'a, T, S, I> Indicator for LowestValueIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for LowestValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,

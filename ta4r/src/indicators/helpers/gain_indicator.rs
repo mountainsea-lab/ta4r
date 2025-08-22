@@ -30,19 +30,20 @@ use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::{NumFactory, TrNum};
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// GainCalculator 调用被包装的 indicator 计算 gain
-pub struct GainCalculator<'a, T, S, I>
+pub struct GainCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    indicator: &'a I,
+    indicator: Arc<I>,
     _phantom: PhantomData<(T, S)>,
 }
 
-impl<'a, T, S, I> Clone for GainCalculator<'a, T, S, I>
+impl<T, S, I> Clone for GainCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -50,19 +51,19 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            indicator: self.indicator,
+            indicator: Arc::clone(&self.indicator),
             _phantom: PhantomData,
         }
     }
 }
 
-impl<'a, T, S, I> GainCalculator<'a, T, S, I>
+impl<T, S, I> GainCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I) -> Self {
+    pub fn new(indicator: Arc<I>) -> Self {
         Self {
             indicator,
             _phantom: PhantomData,
@@ -70,7 +71,7 @@ where
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<T, S> for GainCalculator<'a, T, S, I>
+impl<T, S, I> IndicatorCalculator<T, S> for GainCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -105,16 +106,16 @@ where
 }
 
 /// GainIndicator 组合 CachedIndicator，持有泛型 Indicator
-pub struct GainIndicator<'a, T, S, I>
+pub struct GainIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<T, S, GainCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, GainCalculator<T, S, I>>,
 }
 
-impl<'a, T, S, I> Clone for GainIndicator<'a, T, S, I>
+impl<T, S, I> Clone for GainIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -127,21 +128,21 @@ where
     }
 }
 
-impl<'a, T, S, I> GainIndicator<'a, T, S, I>
+impl<T, S, I> GainIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
     /// 构造函数，传入被包装的 indicator 引用
-    pub fn new(indicator: &'a I) -> Self {
-        let calculator = GainCalculator::new(indicator);
+    pub fn new(indicator: Arc<I>) -> Self {
+        let calculator = GainCalculator::new(Arc::clone(&indicator));
         let cached = CachedIndicator::new_from_indicator(indicator, calculator);
         Self { cached }
     }
 }
 
-impl<'a, T, S, I> Indicator for GainIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for GainIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,

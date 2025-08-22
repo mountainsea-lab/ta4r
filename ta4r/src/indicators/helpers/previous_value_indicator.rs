@@ -30,19 +30,20 @@ use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
-pub struct PreviousValueCalculator<'a, T, S, I>
+pub struct PreviousValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
     n: usize,
-    indicator: &'a I,
+    indicator: Arc<I>,
     _phantom: PhantomData<S>,
 }
 
-impl<'a, T, S, I> Clone for PreviousValueCalculator<'a, T, S, I>
+impl<T, S, I> Clone for PreviousValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -51,20 +52,20 @@ where
     fn clone(&self) -> Self {
         Self {
             n: self.n,
-            indicator: self.indicator, // 引用直接复制
+            indicator: Arc::clone(&self.indicator), // 引用直接复制
             _phantom: PhantomData,
         }
     }
 }
 
 // 不实现 Clone
-impl<'a, T, S, I> PreviousValueCalculator<'a, T, S, I>
+impl<T, S, I> PreviousValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, n: usize) -> Self {
+    pub fn new(indicator: Arc<I>, n: usize) -> Self {
         if n < 1 {
             panic!("n must be positive, but was: {}", n);
         }
@@ -76,7 +77,7 @@ where
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<T, S> for PreviousValueCalculator<'a, T, S, I>
+impl<T, S, I> IndicatorCalculator<T, S> for PreviousValueCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -98,22 +99,22 @@ where
 }
 
 // ------------------- PreviousValueIndicator -------------------
-pub struct PreviousValueIndicator<'a, T, S, I>
+pub struct PreviousValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<T, S, PreviousValueCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, PreviousValueCalculator<T, S, I>>,
     n: usize,
 }
 
-impl<'a, T, S, I> Clone for PreviousValueIndicator<'a, T, S, I>
+impl<T, S, I> Clone for PreviousValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S> + Clone,
-    CachedIndicator<T, S, PreviousValueCalculator<'a, T, S, I>>: Clone,
+    CachedIndicator<T, S, PreviousValueCalculator<T, S, I>>: Clone,
 {
     fn clone(&self) -> Self {
         Self {
@@ -124,18 +125,18 @@ where
 }
 
 // 不实现 Clone
-impl<'a, T, S, I> PreviousValueIndicator<'a, T, S, I>
+impl<T, S, I> PreviousValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I) -> Self {
+    pub fn new(indicator: Arc<I>) -> Self {
         Self::with_n(indicator, 1)
     }
 
-    pub fn with_n(indicator: &'a I, n: usize) -> Self {
-        let calculator = PreviousValueCalculator::new(indicator, n);
+    pub fn with_n(indicator: Arc<I>, n: usize) -> Self {
+        let calculator = PreviousValueCalculator::new(Arc::clone(&indicator), n);
         let cached = CachedIndicator::new_from_indicator(indicator, calculator);
         Self { cached, n }
     }
@@ -145,7 +146,7 @@ where
     }
 }
 
-impl<'a, T, S, I> Indicator for PreviousValueIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for PreviousValueIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,

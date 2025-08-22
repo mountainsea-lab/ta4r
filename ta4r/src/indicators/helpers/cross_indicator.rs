@@ -30,21 +30,22 @@ use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// CrossCalculator 负责计算交叉逻辑 IU Indicator Up, IL Indicator Low
-pub struct CrossCalculator<'a, T, S, IU, IL>
+pub struct CrossCalculator<T, S, IU, IL>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     IU: Indicator<Num = T, Output = T, Series = S>,
     IL: Indicator<Num = T, Output = T, Series = S>,
 {
-    up: &'a IU,
-    low: &'a IL,
+    up: Arc<IU>,
+    low: Arc<IL>,
     _phantom: PhantomData<(T, S)>,
 }
 
-impl<'a, T, S, IU, IL> Clone for CrossCalculator<'a, T, S, IU, IL>
+impl<T, S, IU, IL> Clone for CrossCalculator<T, S, IU, IL>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
@@ -53,21 +54,21 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            up: self.up,
-            low: self.low,
+            up: Arc::clone(&self.up),
+            low: Arc::clone(&self.low),
             _phantom: PhantomData,
         }
     }
 }
 
-impl<'a, T, S, IU, IL> CrossCalculator<'a, T, S, IU, IL>
+impl<T, S, IU, IL> CrossCalculator<T, S, IU, IL>
 where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
     IU: Indicator<Num = T, Output = T, Series = S>,
     IL: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(up: &'a IU, low: &'a IL) -> Self {
+    pub fn new(up: Arc<IU>, low: Arc<IL>) -> Self {
         Self {
             up,
             low,
@@ -76,7 +77,7 @@ where
     }
 }
 
-impl<'a, T, S, IU, IL> IndicatorCalculator<T, S> for CrossCalculator<'a, T, S, IU, IL>
+impl<T, S, IU, IL> IndicatorCalculator<T, S> for CrossCalculator<T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static, // ✅ 新增 From<bool> 约束
     S: BarSeries<T> + 'static,
@@ -124,19 +125,19 @@ where
 }
 
 // CrossIndicator 结构体，缓存交叉指标结果
-pub struct CrossIndicator<'a, T, S, IU, IL>
+pub struct CrossIndicator<T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: BarSeries<T> + 'static,
     IU: Indicator<Num = T, Output = T, Series = S>,
     IL: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<T, S, CrossCalculator<'a, T, S, IU, IL>>,
-    up: &'a IU,
-    low: &'a IL,
+    cached: CachedIndicator<T, S, CrossCalculator<T, S, IU, IL>>,
+    up: Arc<IU>,
+    low: Arc<IL>,
 }
 
-impl<'a, T, S, IU, IL> Clone for CrossIndicator<'a, T, S, IU, IL>
+impl<T, S, IU, IL> Clone for CrossIndicator<T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: BarSeries<T> + 'static,
@@ -146,35 +147,35 @@ where
     fn clone(&self) -> Self {
         Self {
             cached: self.cached.clone(),
-            up: self.up,
-            low: self.low,
+            up: Arc::clone(&self.up),
+            low: Arc::clone(&self.low),
         }
     }
 }
 
-impl<'a, T, S, IU, IL> CrossIndicator<'a, T, S, IU, IL>
+impl<T, S, IU, IL> CrossIndicator<T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: BarSeries<T> + 'static,
     IU: Indicator<Num = T, Output = T, Series = S>,
     IL: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(up: &'a IU, low: &'a IL) -> Self {
-        let calculator = CrossCalculator::new(up, low);
-        let cached = CachedIndicator::new_from_indicator(up, calculator);
+    pub fn new(up: Arc<IU>, low: Arc<IL>) -> Self {
+        let calculator = CrossCalculator::new(Arc::clone(&up), Arc::clone(&low));
+        let cached = CachedIndicator::new_from_indicator(Arc::clone(&up), calculator);
         Self { cached, up, low }
     }
 
-    pub fn get_up(&self) -> &'a IU {
-        self.up
+    pub fn get_up(&self) -> Arc<IU> {
+        Arc::clone(&self.up)
     }
 
-    pub fn get_low(&self) -> &'a IL {
-        self.low
+    pub fn get_low(&self) -> Arc<IL> {
+        Arc::clone(&self.low)
     }
 }
 
-impl<'a, T, S, IU, IL> Indicator for CrossIndicator<'a, T, S, IU, IL>
+impl<T, S, IU, IL> Indicator for CrossIndicator<T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: BarSeries<T> + 'static,
@@ -198,7 +199,7 @@ where
     }
 }
 
-impl<'a, T, S, IU, IL> std::fmt::Debug for CrossIndicator<'a, T, S, IU, IL>
+impl<T, S, IU, IL> std::fmt::Debug for CrossIndicator<T, S, IU, IL>
 where
     T: TrNum + Clone + From<bool> + 'static,
     S: BarSeries<T> + 'static,
@@ -207,8 +208,8 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CrossIndicator")
-            .field("up", self.up)
-            .field("low", self.low)
+            .field("up", &self.up)
+            .field("low", &self.low)
             .finish()
     }
 }
