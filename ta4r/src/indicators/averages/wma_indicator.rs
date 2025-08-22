@@ -22,6 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::abstract_indicator::BaseIndicator;
@@ -29,41 +30,42 @@ use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::{NumFactory, TrNum};
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 /// WMA (Weighted Moving Average) 的计算器
-pub struct WmaCalculator<'a, T, S, I>
+pub struct WmaCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    indicator: &'a I,
+    indicator: Arc<I>,
     bar_count: usize,
     _phantom: PhantomData<(T, S)>,
 }
 
-impl<'a, T, S, I> Clone for WmaCalculator<'a, T, S, I>
+impl<T, S, I> Clone for WmaCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         Self {
-            indicator: self.indicator,
+            indicator: Arc::clone(&self.indicator),
             bar_count: self.bar_count,
             _phantom: PhantomData,
         }
     }
 }
 
-impl<'a, T, S, I> WmaCalculator<'a, T, S, I>
+impl<T, S, I> WmaCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
+    pub fn new(indicator: Arc<I>, bar_count: usize) -> Self {
         Self {
             indicator,
             bar_count,
@@ -72,20 +74,24 @@ where
     }
 }
 
-impl<'a, T, S, I> IndicatorCalculator<'a, T, S> for WmaCalculator<'a, T, S, I>
+impl<T, S, I> IndicatorCalculator<T, S> for WmaCalculator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Output = T;
 
     fn calculate(
         &self,
-        base: &BaseIndicator<'a, T, S>,
+        base: &BaseIndicator<T, S>,
         index: usize,
     ) -> Result<Self::Output, IndicatorError> {
-        let num_factory = base.get_bar_series().num_factory();
+        let num_factory = base
+            .bar_series()
+            .with_ref(|s| s.num_factory())
+            .expect("num_factory fail");
+
         let zero = num_factory.zero().as_ref().clone();
 
         if index == 0 {
@@ -117,20 +123,20 @@ where
     }
 }
 
-pub struct WmaIndicator<'a, T, S, I>
+pub struct WmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    cached: CachedIndicator<'a, T, S, WmaCalculator<'a, T, S, I>>,
+    cached: CachedIndicator<T, S, WmaCalculator<T, S, I>>,
 }
 
-impl<'a, T, S, I> Clone for WmaIndicator<'a, T, S, I>
+impl<T, S, I> Clone for WmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn clone(&self) -> Self {
         Self {
@@ -139,52 +145,49 @@ where
     }
 }
 
-impl<'a, T, S, I> WmaIndicator<'a, T, S, I>
+impl<T, S, I> WmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
-    pub fn new(indicator: &'a I, bar_count: usize) -> Self {
-        let calculator = WmaCalculator::new(indicator, bar_count);
+    pub fn new(indicator: Arc<I>, bar_count: usize) -> Self {
+        let calculator = WmaCalculator::new(Arc::clone(&indicator), bar_count);
         let cached = CachedIndicator::new_from_indicator(indicator, calculator);
         Self { cached }
     }
 }
 
-impl<'a, T, S, I> Indicator for WmaIndicator<'a, T, S, I>
+impl<T, S, I> Indicator for WmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T>,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         self.cached.get_cached_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.cached.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.cached.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
+    fn count_of_unstable_bars(&self) -> usize {
         self.cached.calculator().bar_count
     }
 }
 
-impl<'a, T, S, I> std::fmt::Display for WmaIndicator<'a, T, S, I>
+impl<T, S, I> std::fmt::Display for WmaIndicator<T, S, I>
 where
     T: TrNum + Clone + 'static,
-    S: for<'any> BarSeries<'any, T> + std::fmt::Debug,
-    I: Indicator<Num = T, Output = T, Series<'a> = S>,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Output = T, Series = S>,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "WMA(bar_count={})", self.get_count_of_unstable_bars())
+        write!(f, "WMA(bar_count={})", self.count_of_unstable_bars())
     }
 }
