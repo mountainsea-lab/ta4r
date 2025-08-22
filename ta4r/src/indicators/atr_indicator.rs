@@ -1,90 +1,89 @@
+use crate::bar::builder::types::BarSeriesRef;
 use crate::bar::types::BarSeries;
 use crate::indicators::Indicator;
 use crate::indicators::averages::mma_indicator::MMAIndicator;
 use crate::indicators::helpers::tr_indicator::TRIndicator;
 use crate::indicators::types::IndicatorError;
 use crate::num::TrNum;
+use std::sync::Arc;
 
 /// ATRIndicator
-pub struct ATRIndicator<'a, T, S>
+pub struct ATRIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
+    S: BarSeries<T> + 'static,
 {
-    tr_indicator: &'a TRIndicator<'a, T, S>,
-    average_true_range: MMAIndicator<'a, T, S, TRIndicator<'a, T, S>>,
+    tr_indicator: Arc<TRIndicator<T, S>>,
+    average_true_range: Arc<MMAIndicator<T, S, TRIndicator<T, S>>>,
 }
 
-impl<'a, T, S> Clone for ATRIndicator<'a, T, S>
+impl<T, S> Clone for ATRIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
+    S: BarSeries<T> + 'static,
 {
     fn clone(&self) -> Self {
         Self {
-            tr_indicator: self.tr_indicator,
+            tr_indicator: Arc::clone(&self.tr_indicator),
             average_true_range: self.average_true_range.clone(),
         }
     }
 }
 
-impl<'a, T, S> ATRIndicator<'a, T, S>
+impl<T, S> ATRIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
+    S: BarSeries<T> + 'static,
 {
     /// 使用已有 TRIndicator 创建 ATR
-    pub fn from_tr(tr_indicator: &'a TRIndicator<'a, T, S>, bar_count: usize) -> Self {
-        let atr = MMAIndicator::new(tr_indicator, bar_count).unwrap();
+    pub fn from_tr(tr_indicator: Arc<TRIndicator<T, S>>, bar_count: usize) -> Self {
+        let atr = MMAIndicator::new(Arc::clone(&tr_indicator), bar_count).unwrap();
         Self {
             tr_indicator,
-            average_true_range: atr,
+            average_true_range: Arc::new(atr),
         }
     }
 
     /// 获取 TRIndicator 引用
-    pub fn get_tr_indicator(&self) -> &TRIndicator<'a, T, S> {
-        self.tr_indicator
+    pub fn get_tr_indicator(&self) -> Arc<TRIndicator<T, S>> {
+        Arc::clone(&self.tr_indicator)
     }
 }
 
 // 实现 Indicator trait
-impl<'a, T, S> Indicator for ATRIndicator<'a, T, S>
+impl<T, S> Indicator for ATRIndicator<T, S>
 where
     T: TrNum + Clone + 'static,
-    S: for<'b> BarSeries<'b, T>,
+    S: BarSeries<T> + 'static,
 {
     type Num = T;
     type Output = T;
-    type Series<'b>
-        = S
-    where
-        Self: 'b;
+    type Series = S;
 
     fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
         self.average_true_range.get_value(index)
     }
 
-    fn get_bar_series(&self) -> &Self::Series<'_> {
-        self.tr_indicator.get_bar_series()
+    fn bar_series(&self) -> BarSeriesRef<Self::Series> {
+        self.tr_indicator.bar_series()
     }
 
-    fn get_count_of_unstable_bars(&self) -> usize {
-        self.average_true_range.get_count_of_unstable_bars()
+    fn count_of_unstable_bars(&self) -> usize {
+        self.average_true_range.count_of_unstable_bars()
     }
 }
 
 // 可选：Debug
-impl<'a, T, S> std::fmt::Debug for ATRIndicator<'a, T, S>
+impl<T, S> std::fmt::Debug for ATRIndicator<T, S>
 where
     T: TrNum + Clone + std::fmt::Debug,
-    S: for<'b> BarSeries<'b, T>,
+    S: BarSeries<T> + 'static,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
             "ATRIndicator count_of_unstable_bars: {}",
-            self.get_count_of_unstable_bars()
+            self.count_of_unstable_bars()
         )
     }
 }
