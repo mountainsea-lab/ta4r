@@ -32,28 +32,28 @@ use crate::trade::{Trade, TradeType};
 use std::fmt;
 
 #[derive(Clone)]
-pub struct Position<'a, T, CM, HM, S>
+pub struct Position<T, CM, HM, S>
 where
     T: TrNum + 'static,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
-    entry: Option<Trade<'a, T, CM, S>>,
-    exit: Option<Trade<'a, T, CM, S>>,
+    entry: Option<Trade<T, CM, S>>,
+    exit: Option<Trade<T, CM, S>>,
     starting_type: TradeType,
     transaction_cost_model: CM,
     holding_cost_model: HM,
-    _marker: std::marker::PhantomData<&'a S>,
+    _marker: std::marker::PhantomData<S>,
 }
 
-impl<'a, T, CM, HM, S> Position<'a, T, CM, HM, S>
+impl<T, CM, HM, S> Position<T, CM, HM, S>
 where
     T: TrNum + 'static,
     <T as TrNum>::Factory: NumFactory<T>,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     /// Creates a new Position with given starting type
     pub fn new(
@@ -78,8 +78,8 @@ where
 
     /// Creates a closed Position from entry and exit trades
     pub fn from_trades(
-        entry: Trade<'a, T, CM, S>,
-        exit: Trade<'a, T, CM, S>,
+        entry: Trade<T, CM, S>,
+        exit: Trade<T, CM, S>,
         transaction_cost_model: CM,
         holding_cost_model: HM,
     ) -> Self {
@@ -98,11 +98,11 @@ where
         }
     }
 
-    pub fn entry(&self) -> Option<&Trade<'a, T, CM, S>> {
+    pub fn entry(&self) -> Option<&Trade<T, CM, S>> {
         self.entry.as_ref()
     }
 
-    pub fn exit(&self) -> Option<&Trade<'a, T, CM, S>> {
+    pub fn exit(&self) -> Option<&Trade<T, CM, S>> {
         self.exit.as_ref()
     }
 
@@ -123,7 +123,7 @@ where
     }
 
     /// Operate to open or close position, returns the created Trade if any
-    pub fn operate(&mut self, index: usize, price: T, amount: T) -> Option<Trade<'a, T, CM, S>> {
+    pub fn operate(&mut self, index: usize, price: T, amount: T) -> Option<Trade<T, CM, S>> {
         if self.is_new() {
             let trade = Trade::new(
                 index,
@@ -244,12 +244,12 @@ where
     }
 }
 
-impl<'a, T, CM, HM, S> fmt::Debug for Position<'a, T, CM, HM, S>
+impl<T, CM, HM, S> fmt::Debug for Position<T, CM, HM, S>
 where
     T: TrNum + 'static + fmt::Debug,
     CM: CostModel<T> + Clone + fmt::Debug,
     HM: CostModel<T> + Clone + fmt::Debug,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Position")
@@ -263,14 +263,14 @@ where
     }
 }
 
-impl<'a, T, CM, HM, S> From<&Position<'a, T, CM, HM, S>> for CostContext<T>
+impl<T, CM, HM, S> From<&Position<T, CM, HM, S>> for CostContext<T>
 where
     T: TrNum + Clone,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
-    fn from(pos: &Position<'a, T, CM, HM, S>) -> Self {
+    fn from(pos: &Position<T, CM, HM, S>) -> Self {
         let trade = pos.entry.as_ref().expect("Position has no entry trade");
 
         CostContext {
@@ -283,12 +283,12 @@ where
     }
 }
 
-impl<'a, T, CM, HM, S> Position<'a, T, CM, HM, S>
+impl<'a, T, CM, HM, S> Position<T, CM, HM, S>
 where
     T: TrNum + Clone,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
 {
     pub fn to_closed_cost_context(&self, final_index: usize) -> CostContext<T> {
         let trade = self.entry.as_ref().expect("Position has no entry trade");
