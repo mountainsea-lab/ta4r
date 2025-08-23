@@ -125,13 +125,15 @@ where
             .and_then(|tr| {
                 let pos = tr.get_current_position();
                 if pos.is_opened() {
-                    pos.entry().map(|entry| {
-                        let current_price = self.price_indicator.get_value(index).unwrap();
-                        if entry.is_buy() {
-                            self.is_buy_satisfied(current_price, index, entry.index())
-                        } else {
-                            self.is_sell_satisfied(current_price, index, entry.index())
-                        }
+                    pos.entry().and_then(|entry| {
+                        // 安全获取当前价格，若出错返回 None
+                        self.price_indicator.get_value(index).ok().map(|current_price| {
+                            if entry.is_buy() {
+                                self.is_buy_satisfied(current_price, index, entry.index())
+                            } else {
+                                self.is_sell_satisfied(current_price, index, entry.index())
+                            }
+                        })
                     })
                 } else {
                     None
