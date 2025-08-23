@@ -140,7 +140,7 @@ pub trait TrNum:
     /// 平方根
     fn sqrt(&self) -> Result<Self, NumError>;
 
-    // /// 是否为 NaN，默认 false，NaN 类型可覆盖
+    /// 是否为 NaN，默认 false，NaN 类型可覆盖
     fn is_nan(&self) -> bool {
         false
     }

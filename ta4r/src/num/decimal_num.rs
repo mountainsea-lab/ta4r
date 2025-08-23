@@ -618,6 +618,12 @@ impl TrNum for DecimalNum {
         ))
     }
 
+    /// 是否为 NaN，默认 false，NaN 类型可覆盖
+    #[inline]
+    fn is_nan(&self) -> bool {
+        false
+    }
+
     fn min(&self, other: &Self) -> Self {
         if self <= other {
             self.clone()

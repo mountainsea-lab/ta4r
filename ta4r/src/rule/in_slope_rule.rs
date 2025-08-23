@@ -86,18 +86,23 @@ where
         index: usize,
         _trading_record: Option<&Self::TradingRec>,
     ) -> bool {
-        // diff = ref - prev
+        // 如果 min 和 max 都没定义，规则无意义
+        if self.min_slope.is_nan() && self.max_slope.is_nan() {
+            self.base_rule.trace_is_satisfied(index, false);
+            return false;
+        }
+
+        // 计算 ref - prev
         let diff = BinaryOperation::difference(self.ref_ind.clone(), Arc::new(self.prev.clone()));
         let val = match diff.get_value(index) {
             Ok(v) => v,
             Err(_) => return false,
         };
 
-        let min_slope_satisfied = self.min_slope.is_nan() || val >= self.min_slope;
-        let max_slope_satisfied = self.max_slope.is_nan() || val <= self.max_slope;
-        let is_nan = self.min_slope.is_nan() && self.max_slope.is_nan();
+        let min_ok = self.min_slope.is_nan() || val >= self.min_slope;
+        let max_ok = self.max_slope.is_nan() || val <= self.max_slope;
+        let satisfied = min_ok && max_ok;
 
-        let satisfied = min_slope_satisfied && max_slope_satisfied && !is_nan;
         self.base_rule.trace_is_satisfied(index, satisfied);
         satisfied
     }
