@@ -1,57 +1,82 @@
-// use std::marker::PhantomData;
-// use crate::indicators::helpers::close_price_indicator::ClosePriceIndicator;
-// use crate::rule::base_rule::BaseRule;
-//
-// pub struct AverageTrueRangeStopGainRule<'a, TR>
-// where
-//     TR: TradingRec<'a>,
-// {
-//     base: BaseRule<'a, Self>,
-//     reference_price: ClosePriceIndicator<'a, TR::Num, TR::Series<'a>>,
-//     atr: AtrIndicator<'a, TR::Num, TR::Series<'a>>,
-//     atr_coefficient: TR::Num,
-//     _marker: PhantomData<&'a TR>,
-// }
-//
-// impl<'a, TR> AverageTrueRangeStopGainRule<'a, TR>
-// where
-//     TR: TradingRec<'a>,
-// {
-//     /// 构造函数：默认 reference_price 为 ClosePriceIndicator
-//     pub fn new(series: &'a TR::Series<'a>, atr_bar_count: usize, atr_coefficient: TR::Num) -> Self {
-//         let reference_price = ClosePriceIndicator::new(series);
-//         let atr = ATRIndicator::new(series, atr_bar_count);
-//
-//         Self {
-//             base: BaseRule::new("AverageTrueRangeStopGainRule"),
-//             reference_price,
-//             atr,
-//             atr_coefficient,
-//             _marker: PhantomData,
-//         }
-//     }
-//
-//     /// 判断规则是否满足（依赖交易记录）
-//     pub fn is_satisfied(&self, index: usize, trading_record: Option<&TR>) -> bool {
-//         let mut satisfied = false;
-//
-//         if let Some(record) = trading_record {
-//             if let Some(position) = record.get_current_position() {
-//                 if position.is_opened() {
-//                     let entry_price = position.get_entry().get_net_price();
-//                     let current_price = self.reference_price.get_value(index).unwrap();
-//                     let gain_threshold = self.atr.get_value(index).unwrap() * self.atr_coefficient.clone();
-//
-//                     satisfied = if position.get_entry().is_buy() {
-//                         current_price >= entry_price + gain_threshold
-//                     } else {
-//                         current_price <= entry_price - gain_threshold
-//                     };
-//                 }
-//             }
-//         }
-//
-//         self.base.trace_is_satisfied(index, satisfied);
-//         satisfied
-//     }
-// }
+use crate::TradingRecord;
+use crate::analysis::CostModel;
+use crate::bar::types::BarSeries;
+use crate::indicators::Indicator;
+use crate::indicators::atr_indicator::ATRIndicator;
+use crate::num::TrNum;
+use crate::num::types::{trnum_add, trnum_sub};
+use crate::rule::Rule;
+use crate::rule::base_rule::BaseRule;
+use crate::trade::TradeType;
+use std::marker::PhantomData;
+use std::sync::Arc;
+
+pub struct AverageTrueRangeStopGainRule<T, CM, HM, S, I, R>
+where
+    T: TrNum + Clone + 'static,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Series = S, Output = T>,
+    R: TradingRecord<T, CM, HM, S>,
+{
+    stop_gain_threshold: Arc<ATRIndicator<T, S>>,
+    reference_price: Arc<I>,
+    base_rule: BaseRule<Self>,
+    _phantom: PhantomData<(CM, HM, R)>,
+}
+
+impl<T, CM, HM, S, I, R> Rule for AverageTrueRangeStopGainRule<T, CM, HM, S, I, R>
+where
+    T: TrNum + Clone + 'static,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Series = S, Output = T>,
+    R: TradingRecord<T, CM, HM, S>,
+{
+    type Num = T;
+    type CostBuy = CM;
+    type CostSell = HM;
+    type Series = S;
+    type TradingRec = R;
+    fn is_satisfied_with_record(
+        &self,
+        index: usize,
+        trading_record: Option<&Self::TradingRec>,
+    ) -> bool {
+        let mut satisfied = false;
+
+        if let Some(record) = trading_record {
+            let current_position = record.get_current_position();
+            if current_position.is_opened() {
+                if let Some(entry_trade) = current_position.entry() {
+                    let entry_price = entry_trade.net_price(); // 引用
+                    // 直接获取值
+                    let current_price_val = match self.reference_price.get_value(index) {
+                        Ok(p) => p,
+                        Err(_) => return false,
+                    };
+                    let threshold_val = match self.stop_gain_threshold.get_value(index) {
+                        Ok(t) => t,
+                        Err(_) => return false,
+                    };
+
+                    satisfied = match entry_trade.trade_type() {
+                        TradeType::Buy => {
+                            let target = trnum_add(entry_price, &threshold_val);
+                            current_price_val >= target
+                        }
+                        TradeType::Sell => {
+                            let target = trnum_sub(entry_price, &threshold_val);
+                            current_price_val <= target
+                        }
+                    };
+                }
+            }
+        }
+
+        self.base_rule.trace_is_satisfied(index, satisfied);
+        satisfied
+    }
+}

@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 
+use crate::num::TrNum;
 use rust_decimal::RoundingStrategy;
 use thiserror::Error;
 
@@ -86,4 +87,15 @@ pub enum NumError {
 
     #[error("Position Operate Error: {0}")]
     PositionOperateError(String),
+}
+
+/// TrNum 类型安全加法/减法辅助
+#[inline]
+pub fn trnum_add<T: TrNum>(a: &T, b: &T) -> T {
+    a.plus(b)
+}
+
+#[inline]
+pub fn trnum_sub<T: TrNum>(a: &T, b: &T) -> T {
+    a.minus(b)
 }

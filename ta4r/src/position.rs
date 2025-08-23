@@ -179,11 +179,11 @@ where
     pub fn get_gross_profit(&self, final_price: T) -> T {
         let mut gross_profit = if self.is_opened() {
             let e = self.entry.as_ref().unwrap();
-            e.get_amount().multiplied_by(&final_price) - e.get_value()
+            e.amount().multiplied_by(&final_price) - e.net_value()
         } else {
             let e = self.entry.as_ref().unwrap();
             let x = self.exit.as_ref().unwrap();
-            x.get_value() - e.get_value()
+            x.net_value() - e.net_value()
         };
         if self.entry.as_ref().unwrap().is_sell() {
             gross_profit = gross_profit.neg();
@@ -236,7 +236,7 @@ where
 
     fn zero(&self) -> T {
         let trade = self.entry.as_ref().unwrap();
-        let net_price = trade.get_net_price();
+        let net_price = trade.net_price();
         let factory = net_price.get_factory();
 
         let zero_wrapped = factory.zero();

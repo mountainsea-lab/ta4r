@@ -208,37 +208,84 @@ where
             .ok_or_else(|| format!("Close price at index {} is None", self.index))
     }
 
-    pub fn get_net_price(&self) -> &T {
+    /// 获取交易类型
+    #[inline]
+    pub fn trade_type(&self) -> TradeType {
+        self.trade_type
+    }
+
+    /// 获取索引
+    #[inline]
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
+    /// 原始价格
+    #[inline]
+    pub fn price_per_asset(&self) -> &T {
+        &self.price_per_asset
+    }
+
+    /// 净成交价格
+    #[inline]
+    pub fn net_price(&self) -> &T {
         &self.net_price
     }
 
-    pub fn get_amount(&self) -> &T {
+    #[inline]
+    pub fn net_price_cloned(&self) -> T {
+        self.net_price.clone()
+    }
+
+    /// 成交量
+    #[inline]
+    pub fn amount(&self) -> &T {
         &self.amount
     }
 
-    pub fn get_cost(&self) -> &T {
+    /// 交易成本
+    #[inline]
+    pub fn cost(&self) -> &T {
         &self.cost
     }
 
-    pub fn get_cost_model(&self) -> &CM {
+    /// 成本模型
+    #[inline]
+    pub fn cost_model(&self) -> &CM {
         &self.cost_model
     }
 
+    /// 是否买单
+    #[inline]
     pub fn is_buy(&self) -> bool {
         self.trade_type == TradeType::Buy
     }
 
+    /// 是否卖单
+    #[inline]
     pub fn is_sell(&self) -> bool {
         self.trade_type == TradeType::Sell
     }
 
-    pub fn get_value(&self) -> T {
+    /// 总成交价值 = price_per_asset * amount
+    #[inline]
+    pub fn value(&self) -> T {
         self.price_per_asset.multiplied_by(&self.amount)
     }
 
-    /// 获取净成交价值：net_price * amount
-    pub fn get_net_value(&self) -> T {
+    /// 净成交价值 = net_price * amount
+    #[inline]
+    pub fn net_value(&self) -> T {
         self.net_price.multiplied_by(&self.amount)
+    }
+
+    /// 静态工厂方法（买/卖）
+    pub fn buy(index: usize, price: T, amount: T, cost_model: CM) -> Self {
+        Self::new(index, TradeType::Buy, price, amount, cost_model)
+    }
+
+    pub fn sell(index: usize, price: T, amount: T, cost_model: CM) -> Self {
+        Self::new(index, TradeType::Sell, price, amount, cost_model)
     }
 
     /// 静态工厂方法，调用 panic 版本（保持兼容）
@@ -257,10 +304,6 @@ where
         )
     }
 
-    pub fn buy_at_price_with_cost_model(index: usize, price: T, amount: T, cost_model: CM) -> Self {
-        Self::new(index, TradeType::Buy, price, amount, cost_model)
-    }
-
     pub fn sell_at_with_amount_and_cost_model(
         index: usize,
         series: &S,
@@ -274,15 +317,6 @@ where
             amount,
             cost_model,
         )
-    }
-
-    pub fn sell_at_price_with_cost_model(
-        index: usize,
-        price: T,
-        amount: T,
-        cost_model: CM,
-    ) -> Self {
-        Self::new(index, TradeType::Sell, price, amount, cost_model)
     }
 }
 
@@ -412,7 +446,7 @@ where
             self.net_price,
             self.amount,
             self.cost,
-            self.get_net_value()
+            self.net_value()
         )
     }
 }
