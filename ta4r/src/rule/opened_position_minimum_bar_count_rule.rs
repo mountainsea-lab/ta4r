@@ -58,26 +58,6 @@ where
     type Series = S;
     type TradingRec = R;
 
-    // fn is_satisfied_with_record(
-    //     &self,
-    //     index: usize,
-    //     trading_record: Option<&Self::TradingRec>,
-    // ) -> bool {
-    //     let satisfied = if let Some(tr) = trading_record {
-    //         if tr.get_current_position().is_opened() {
-    //             let entry_index = tr.get_last_entry().index();
-    //             index >= entry_index + T::from_usize(self.bar_count)
-    //         } else {
-    //             false
-    //         }
-    //     } else {
-    //         false
-    //     };
-    //
-    //     self.base_rule.trace_is_satisfied(index, satisfied);
-    //     satisfied
-    // }
-
     fn is_satisfied_with_record(
         &self,
         index: usize,
