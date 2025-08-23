@@ -29,6 +29,7 @@ use crate::indicators::abstract_indicator::BaseIndicator;
 use crate::indicators::cached_indicator::CachedIndicator;
 use crate::indicators::types::{IndicatorCalculator, IndicatorError};
 use crate::num::TrNum;
+use crate::num::bool_num::BoolNum;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -84,7 +85,7 @@ where
     IU: Indicator<Num = T, Output = T, Series = S>,
     IL: Indicator<Num = T, Output = T, Series = S>,
 {
-    type Output = T;
+    type Output = BoolNum;
 
     fn calculate(
         &self,
@@ -162,7 +163,11 @@ where
 {
     pub fn new(up: Arc<IU>, low: Arc<IL>) -> Self {
         let calculator = CrossCalculator::new(Arc::clone(&up), Arc::clone(&low));
-        let cached = CachedIndicator::new_from_indicator(Arc::clone(&up), calculator);
+        // ⚠️ 这里不能用 new_from_indicator，因为输出类型不匹配
+        // let cached = CachedIndicator::new_from_indicator(Arc::clone(&up), calculator);
+        let bar_series = up.bar_series(); // 任意一个指标的 BarSeries
+        let cached = CachedIndicator::new_from_series(bar_series, calculator);
+
         Self { cached, up, low }
     }
 
@@ -183,10 +188,10 @@ where
     IL: Indicator<Num = T, Output = T, Series = S>,
 {
     type Num = T;
-    type Output = T;
+    type Output = BoolNum;
     type Series = S;
 
-    fn get_value(&self, index: usize) -> Result<T, IndicatorError> {
+    fn get_value(&self, index: usize) -> Result<Self::Output, IndicatorError> {
         self.cached.get_cached_value(index)
     }
 
