@@ -29,11 +29,10 @@ use crate::rule::base_rule::BaseRule;
 ///
 /// 仅当两个规则中**只有一个**满足时返回 true；
 /// 如果都不满足或都满足则返回 false。
-pub struct XorRule<'a, L, R>
+pub struct XorRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
@@ -41,16 +40,15 @@ where
             TradingRec = L::TradingRec,
         >,
 {
-    base: BaseRule<'a, L>,
+    base: BaseRule<L>,
     left: L,
     right: R,
 }
 
-impl<'a, L, R> XorRule<'a, L, R>
+impl<L, R> XorRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
@@ -77,11 +75,10 @@ where
     }
 }
 
-impl<'a, L, R> Rule<'a> for XorRule<'a, L, R>
+impl<L, R> Rule for XorRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,

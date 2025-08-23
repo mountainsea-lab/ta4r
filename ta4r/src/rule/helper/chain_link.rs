@@ -1,31 +1,25 @@
 use crate::rule::Rule;
 use std::fmt::Debug;
-use std::marker::PhantomData;
 
 /// ChainLink: 用于 ChainRule 的单个链接
-pub struct ChainLink<'a, R>
+pub struct ChainLink<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     /// 规则对象
     rule: R,
 
     /// threshold：规则必须在多少个 bar 内满足（包含当前 bar）
     threshold: usize,
-    _marker: PhantomData<&'a ()>,
 }
 
-impl<'a, R> ChainLink<'a, R>
+impl<R> ChainLink<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     /// 构造函数
     pub fn new(rule: R, threshold: usize) -> Self {
-        Self {
-            rule,
-            threshold,
-            _marker: PhantomData,
-        }
+        Self { rule, threshold }
     }
 
     /// 获取 rule
@@ -50,9 +44,9 @@ where
 }
 
 // 实现 Debug，用于打印
-impl<'a, R> Debug for ChainLink<'a, R>
+impl<R> Debug for ChainLink<R>
 where
-    R: Rule<'a> + Debug,
+    R: Rule + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ChainLink")
@@ -63,9 +57,9 @@ where
 }
 
 // 实现 PartialEq，用于比较
-impl<'a, R> PartialEq for ChainLink<'a, R>
+impl<R> PartialEq for ChainLink<R>
 where
-    R: Rule<'a> + PartialEq,
+    R: Rule + PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
         self.threshold == other.threshold && self.rule == other.rule
@@ -73,12 +67,12 @@ where
 }
 
 // 实现 Eq
-impl<'a, R> Eq for ChainLink<'a, R> where R: Rule<'a> + Eq {}
+impl<R> Eq for ChainLink<R> where R: Rule + Eq {}
 
 // 实现 Hash
-impl<'a, R> std::hash::Hash for ChainLink<'a, R>
+impl<R> std::hash::Hash for ChainLink<R>
 where
-    R: Rule<'a> + std::hash::Hash,
+    R: Rule + std::hash::Hash,
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.rule.hash(state);

@@ -25,30 +25,27 @@
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
 use crate::rule::helper::chain_link::ChainLink;
-use std::marker::PhantomData;
 
 /// ChainRule: 初始规则 + 链条规则 + threshold 检查
-pub struct ChainRule<'a, R>
+pub struct ChainRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
-    base: BaseRule<'a, R>,
+    base: BaseRule<R>,
     initial_rule: R,
-    rules_in_chain: Vec<ChainLink<'a, R>>,
-    _marker: PhantomData<&'a R>,
+    rules_in_chain: Vec<ChainLink<R>>,
 }
 
-impl<'a, R> ChainRule<'a, R>
+impl<R> ChainRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     /// 创建 ChainRule
-    pub fn new(initial_rule: R, chain_links: Vec<ChainLink<'a, R>>) -> Self {
+    pub fn new(initial_rule: R, chain_links: Vec<ChainLink<R>>) -> Self {
         Self {
             base: BaseRule::new("ChainRule"),
             initial_rule,
             rules_in_chain: chain_links,
-            _marker: PhantomData,
         }
     }
 
@@ -58,9 +55,9 @@ where
     }
 }
 
-impl<'a, R> Rule<'a> for ChainRule<'a, R>
+impl<R> Rule for ChainRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     type Num = R::Num;
     type CostBuy = R::CostBuy;

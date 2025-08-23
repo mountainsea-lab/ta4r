@@ -48,7 +48,7 @@ use crate::rule::xor_rule::XorRule;
 /// 一条交易规则（Trading Rule）
 ///
 /// 用于构建交易策略（Strategy），规则之间可以组合成更复杂的逻辑规则。
-pub trait Rule<'a> {
+pub trait Rule {
     /// 数值类型（例如 DecimalNum、f64 等）
     type Num: TrNum + 'static;
     /// 买入成本模型
@@ -56,9 +56,9 @@ pub trait Rule<'a> {
     /// 卖出成本模型
     type CostSell: CostModel<Self::Num> + Clone;
     /// Bar 序列类型
-    type Series: BarSeries<'a, Self::Num> + 'a;
+    type Series: BarSeries<Self::Num> + 'static;
     /// 交易记录类型
-    type TradingRec: TradingRecord<'a, Self::Num, Self::CostBuy, Self::CostSell, Self::Series>;
+    type TradingRec: TradingRecord<Self::Num, Self::CostBuy, Self::CostSell, Self::Series>;
 
     /// 规则在给定索引下是否满足（不依赖交易记录）
     fn is_satisfied(&self, index: usize) -> bool {
@@ -73,11 +73,10 @@ pub trait Rule<'a> {
     ) -> bool;
 
     /// 与另一条规则组合成 AND 规则
-    fn and<R>(self, other: R) -> AndRule<'a, Self, R>
+    fn and<R>(self, other: R) -> AndRule<Self, R>
     where
         Self: Sized,
         R: Rule<
-                'a,
                 Num = Self::Num,
                 CostBuy = Self::CostBuy,
                 CostSell = Self::CostSell,
@@ -89,11 +88,10 @@ pub trait Rule<'a> {
     }
 
     /// 与另一条规则组合成 OR 规则
-    fn or<R>(self, other: R) -> OrRule<'a, Self, R>
+    fn or<R>(self, other: R) -> OrRule<Self, R>
     where
         Self: Sized,
         R: Rule<
-                'a,
                 Num = Self::Num,
                 CostBuy = Self::CostBuy,
                 CostSell = Self::CostSell,
@@ -105,11 +103,10 @@ pub trait Rule<'a> {
     }
 
     /// 与另一条规则组合成 XOR 规则
-    fn xor<R>(self, other: R) -> XorRule<'a, Self, R>
+    fn xor<R>(self, other: R) -> XorRule<Self, R>
     where
         Self: Sized,
         R: Rule<
-                'a,
                 Num = Self::Num,
                 CostBuy = Self::CostBuy,
                 CostSell = Self::CostSell,
@@ -121,7 +118,7 @@ pub trait Rule<'a> {
     }
 
     /// 取反规则
-    fn negation(self) -> NotRule<'a, Self>
+    fn negation(self) -> NotRule<Self>
     where
         Self: Sized,
     {

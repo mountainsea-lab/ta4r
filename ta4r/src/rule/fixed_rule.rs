@@ -24,26 +24,23 @@
  */
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
-use std::marker::PhantomData;
 
-pub struct FixedRule<'a, R>
+pub struct FixedRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
-    base: BaseRule<'a, R>,
+    base: BaseRule<R>,
     indexes: Vec<usize>,
-    _marker: PhantomData<&'a R>,
 }
 
-impl<'a, R> FixedRule<'a, R>
+impl<R> FixedRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     pub fn new(indexes: &[usize]) -> Self {
         Self {
             base: BaseRule::new("FixedRule"),
             indexes: indexes.to_vec(),
-            _marker: PhantomData,
         }
     }
 
@@ -52,9 +49,9 @@ where
     }
 }
 
-impl<'a, R> Rule<'a> for FixedRule<'a, R>
+impl<R> Rule for FixedRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     type Num = R::Num;
     type CostBuy = R::CostBuy;

@@ -28,17 +28,17 @@ use std::marker::PhantomData;
 
 /// 基础规则
 /// 存放公共工具方法，比如调试日志
-pub struct BaseRule<'a, R>
+pub struct BaseRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     class_name: &'static str,
-    _marker: PhantomData<&'a R>,
+    _marker: PhantomData<R>,
 }
 
-impl<'a, R> BaseRule<'a, R>
+impl<R> BaseRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     /// 创建基础规则
     pub fn new(class_name: &'static str) -> Self {

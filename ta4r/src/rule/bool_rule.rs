@@ -25,17 +25,17 @@
 use crate::rule::{Rule, base_rule::BaseRule};
 
 /// BooleanRule: 总是返回固定 true/false 的规则
-pub struct BooleanRule<'a, R>
+pub struct BooleanRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
-    base: BaseRule<'a, R>,
+    base: BaseRule<R>,
     satisfied: bool,
 }
 
-impl<'a, R> BooleanRule<'a, R>
+impl<R> BooleanRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     /// 构造函数
     pub fn new(satisfied: bool) -> Self {
@@ -56,9 +56,9 @@ where
     }
 }
 
-impl<'a, R> Rule<'a> for BooleanRule<'a, R>
+impl<R> Rule for BooleanRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     type Num = R::Num;
     type CostBuy = R::CostBuy;

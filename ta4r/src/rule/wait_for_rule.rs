@@ -26,28 +26,25 @@ use crate::TradingRecord;
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
 use crate::trade::TradeType;
-use std::marker::PhantomData;
 
-pub struct WaitForRule<'a, R>
+pub struct WaitForRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
-    base: BaseRule<'a, R>,
+    base: BaseRule<R>,
     trade_type: TradeType,
     number_of_bars: usize,
-    _marker: PhantomData<&'a R>,
 }
 
-impl<'a, R> WaitForRule<'a, R>
+impl<R> WaitForRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     pub fn new(trade_type: TradeType, number_of_bars: usize) -> Self {
         Self {
             base: BaseRule::new("WaitForRule"),
             trade_type,
             number_of_bars,
-            _marker: PhantomData,
         }
     }
 
@@ -56,9 +53,9 @@ where
     }
 }
 
-impl<'a, R> Rule<'a> for WaitForRule<'a, R>
+impl<R> Rule for WaitForRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     type Num = R::Num;
     type CostBuy = R::CostBuy;

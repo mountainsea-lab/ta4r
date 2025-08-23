@@ -25,11 +25,10 @@
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
 
-pub struct AndRule<'a, L, R>
+pub struct AndRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
@@ -37,16 +36,15 @@ where
             TradingRec = L::TradingRec,
         >,
 {
-    base: BaseRule<'a, L>,
+    base: BaseRule<L>,
     left: L,
     right: R,
 }
 
-impl<'a, L, R> AndRule<'a, L, R>
+impl<L, R> AndRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
@@ -73,11 +71,10 @@ where
     }
 }
 
-impl<'a, L, R> Rule<'a> for AndRule<'a, L, R>
+impl<L, R> Rule for AndRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,

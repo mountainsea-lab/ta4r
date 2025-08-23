@@ -28,11 +28,10 @@ use crate::rule::base_rule::BaseRule;
 /// 一个 OR 组合规则
 ///
 /// 只要两个规则中有一个满足即可（短路逻辑：左边满足则右边不再检查）
-pub struct OrRule<'a, L, R>
+pub struct OrRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
@@ -40,16 +39,15 @@ where
             TradingRec = L::TradingRec,
         >,
 {
-    base: BaseRule<'a, L>,
+    base: BaseRule<L>,
     left: L,
     right: R,
 }
 
-impl<'a, L, R> OrRule<'a, L, R>
+impl<L, R> OrRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
@@ -76,11 +74,10 @@ where
     }
 }
 
-impl<'a, L, R> Rule<'a> for OrRule<'a, L, R>
+impl<L, R> Rule for OrRule<L, R>
 where
-    L: Rule<'a>,
+    L: Rule,
     R: Rule<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,

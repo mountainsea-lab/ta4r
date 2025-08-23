@@ -25,22 +25,20 @@
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
 use std::cell::Cell;
-use std::marker::PhantomData;
 
 /// 一次性规则：首次满足后，之后永远返回 false
-pub struct JustOnceRule<'a, R>
+pub struct JustOnceRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
-    base: BaseRule<'a, R>,
+    base: BaseRule<R>,
     rule: Option<R>,
     satisfied: Cell<bool>,
-    _marker: PhantomData<&'a R>,
 }
 
-impl<'a, R> JustOnceRule<'a, R>
+impl<R> JustOnceRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     /// 构造器：带子规则
     pub fn new(rule: R) -> Self {
@@ -48,7 +46,6 @@ where
             base: BaseRule::new("JustOnceRule"),
             rule: Some(rule),
             satisfied: Cell::new(false),
-            _marker: PhantomData,
         }
     }
 
@@ -58,7 +55,6 @@ where
             base: BaseRule::new("JustOnceRule"),
             rule: None,
             satisfied: Cell::new(false),
-            _marker: PhantomData,
         }
     }
 
@@ -67,9 +63,9 @@ where
     }
 }
 
-impl<'a, R> Rule<'a> for JustOnceRule<'a, R>
+impl<R> Rule for JustOnceRule<R>
 where
-    R: Rule<'a>,
+    R: Rule,
 {
     type Num = R::Num;
     type CostBuy = R::CostBuy;

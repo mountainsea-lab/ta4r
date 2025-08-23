@@ -29,17 +29,17 @@ use crate::rule::base_rule::BaseRule;
 ///
 /// 当目标规则不满足时返回 `true`；
 /// 当目标规则满足时返回 `false`。
-pub struct NotRule<'a, L>
+pub struct NotRule<L>
 where
-    L: Rule<'a>,
+    L: Rule,
 {
-    base: BaseRule<'a, L>,
+    base: BaseRule<L>,
     rule_to_negate: L,
 }
 
-impl<'a, L> NotRule<'a, L>
+impl<L> NotRule<L>
 where
-    L: Rule<'a>,
+    L: Rule,
 {
     /// 创建一个 NOT 规则
     pub fn new(rule_to_negate: L) -> Self {
@@ -55,9 +55,9 @@ where
     }
 }
 
-impl<'a, L> Rule<'a> for NotRule<'a, L>
+impl<L> Rule for NotRule<L>
 where
-    L: Rule<'a>,
+    L: Rule,
 {
     type Num = L::Num;
     type CostBuy = L::CostBuy;
