@@ -56,7 +56,7 @@ where
     CM: CostModel<T> + Clone,
     S: BarSeries<T>,
 {
-    trade_type: TradeType,
+    pub(crate) trade_type: TradeType,
     pub(crate) index: usize,
     pub(crate) price_per_asset: T,
     net_price: T,

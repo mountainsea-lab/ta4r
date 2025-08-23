@@ -31,7 +31,6 @@ use crate::num::{NumFactory, TrNum};
 use crate::trade::{Trade, TradeType};
 use std::fmt;
 
-#[derive(Clone)]
 pub struct Position<T, CM, HM, S>
 where
     T: TrNum + 'static,
@@ -45,6 +44,25 @@ where
     transaction_cost_model: CM,
     holding_cost_model: HM,
     _marker: std::marker::PhantomData<S>,
+}
+
+impl<T, CM, HM, S> Clone for Position<T, CM, HM, S>
+where
+    T: TrNum + 'static,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<T>, // 注意这里没有 Clone
+{
+    fn clone(&self) -> Self {
+        Self {
+            entry: self.entry.clone(),
+            exit: self.exit.clone(),
+            starting_type: self.starting_type,
+            transaction_cost_model: self.transaction_cost_model.clone(),
+            holding_cost_model: self.holding_cost_model.clone(),
+            _marker: std::marker::PhantomData,
+        }
+    }
 }
 
 impl<T, CM, HM, S> Position<T, CM, HM, S>

@@ -34,6 +34,7 @@ pub mod position;
 pub mod rule;
 pub mod strategy;
 pub mod trade;
+pub mod base_trading_record;
 
 use crate::analysis::CostModel;
 use crate::bar::types::BarSeries;
