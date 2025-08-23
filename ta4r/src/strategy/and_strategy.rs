@@ -1,19 +1,16 @@
 use crate::rule::and_rule::AndRule;
 use crate::strategy::Strategy;
-use std::marker::PhantomData;
 
 /// AndStrategy 组合两个策略
-pub struct AndStrategy<'a, L, R> {
+pub struct AndStrategy<L, R> {
     pub(crate) left: L,
     pub(crate) right: R,
-    pub(crate) _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, L, R> AndStrategy<'a, L, R>
+impl<L, R> AndStrategy<L, R>
 where
-    L: Strategy<'a>,
+    L: Strategy,
     R: Strategy<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
@@ -22,29 +19,20 @@ where
         >,
 {
     pub fn new(left: L, right: R) -> Self {
-        Self {
-            left,
-            right,
-            _phantom: PhantomData,
-        }
+        Self { left, right }
     }
 }
 
-impl<'a, L, R> Strategy<'a> for AndStrategy<'a, L, R>
+impl<L, R> Strategy for AndStrategy<L, R>
 where
-    L: Strategy<'a>,
+    L: Strategy,
     R: Strategy<
-            'a,
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
             Series = L::Series,
             TradingRec = L::TradingRec,
         >,
-    L::EntryRule: 'a,
-    L::ExitRule: 'a,
-    R::EntryRule: 'a,
-    R::ExitRule: 'a,
 {
     type Num = L::Num;
     type CostBuy = L::CostBuy;
@@ -52,8 +40,8 @@ where
     type Series = L::Series;
     type TradingRec = L::TradingRec;
 
-    type EntryRule = AndRule<'a, L::EntryRule, R::EntryRule>;
-    type ExitRule = AndRule<'a, L::ExitRule, R::ExitRule>;
+    type EntryRule = AndRule<L::EntryRule, R::EntryRule>;
+    type ExitRule = AndRule<L::ExitRule, R::ExitRule>;
 
     /// 返回组合后的 EntryRule（每次调用生成新的对象）
     fn entry_rule(&self) -> Self::EntryRule {

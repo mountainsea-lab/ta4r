@@ -1,30 +1,23 @@
 use crate::rule::not_rule::NotRule;
 use crate::strategy::Strategy;
-use std::marker::PhantomData;
 
 /// OppositeStrategy 取反策略
-pub struct OppositeStrategy<'a, S> {
+pub struct OppositeStrategy<S> {
     pub(crate) strategy: S,
-    pub(crate) _phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, S> OppositeStrategy<'a, S>
+impl<S> OppositeStrategy<S>
 where
-    S: Strategy<'a>,
+    S: Strategy,
 {
     pub fn new(strategy: S) -> Self {
-        Self {
-            strategy,
-            _phantom: PhantomData,
-        }
+        Self { strategy }
     }
 }
 
-impl<'a, S> Strategy<'a> for OppositeStrategy<'a, S>
+impl<S> Strategy for OppositeStrategy<S>
 where
-    S: Strategy<'a>,
-    S::EntryRule: 'a,
-    S::ExitRule: 'a,
+    S: Strategy,
 {
     type Num = S::Num;
     type CostBuy = S::CostBuy;
@@ -32,8 +25,8 @@ where
     type Series = S::Series;
     type TradingRec = S::TradingRec;
 
-    type EntryRule = NotRule<'a, S::EntryRule>;
-    type ExitRule = NotRule<'a, S::ExitRule>;
+    type EntryRule = NotRule<S::EntryRule>;
+    type ExitRule = NotRule<S::ExitRule>;
 
     /// 返回取反的 EntryRule（每次调用生成新的对象）
     fn entry_rule(&self) -> Self::EntryRule {

@@ -32,7 +32,7 @@ pub mod indicators;
 pub mod num;
 pub mod position;
 pub mod rule;
-// pub mod strategy;
+pub mod strategy;
 pub mod trade;
 
 use crate::analysis::CostModel;

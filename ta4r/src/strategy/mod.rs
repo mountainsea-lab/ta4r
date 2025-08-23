@@ -11,17 +11,15 @@ use crate::rule::Rule;
 use crate::strategy::and_strategy::AndStrategy;
 use crate::strategy::opposite_strategy::OppositeStrategy;
 use crate::strategy::or_strategy::OrStrategy;
-use std::marker::PhantomData;
 
-pub trait Strategy<'a> {
+pub trait Strategy {
     type Num: TrNum + 'static;
     type CostBuy: CostModel<Self::Num> + Clone;
     type CostSell: CostModel<Self::Num> + Clone;
-    type Series: BarSeries<'a, Self::Num> + 'a;
-    type TradingRec: TradingRecord<'a, Self::Num, Self::CostBuy, Self::CostSell, Self::Series>;
+    type Series: BarSeries<Self::Num> + 'static;
+    type TradingRec: TradingRecord<Self::Num, Self::CostBuy, Self::CostSell, Self::Series>;
 
     type EntryRule: Rule<
-            'a,
             Num = Self::Num,
             CostBuy = Self::CostBuy,
             CostSell = Self::CostSell,
@@ -29,7 +27,6 @@ pub trait Strategy<'a> {
             TradingRec = Self::TradingRec,
         >;
     type ExitRule: Rule<
-            'a,
             Num = Self::Num,
             CostBuy = Self::CostBuy,
             CostSell = Self::CostSell,
@@ -68,11 +65,10 @@ pub trait Strategy<'a> {
     }
 
     // 组合策略（静态分发）
-    fn and<S>(&self, other: S) -> AndStrategy<'a, Self, S>
+    fn and<S>(&self, other: S) -> AndStrategy<Self, S>
     where
         Self: Clone,
         S: Strategy<
-                'a,
                 Num = Self::Num,
                 CostBuy = Self::CostBuy,
                 CostSell = Self::CostSell,
@@ -83,29 +79,32 @@ pub trait Strategy<'a> {
         AndStrategy {
             left: self.clone(),
             right: other,
-            _phantom: PhantomData,
         }
     }
 
-    fn or<S>(&self, other: S) -> OrStrategy<'a, Self, S>
+    fn or<S>(&self, other: S) -> OrStrategy<Self, S>
     where
         Self: Clone,
-        S: Strategy<'a, Num = Self::Num, CostBuy = Self::CostBuy, CostSell = Self::CostSell, Series = Self::Series, TradingRec = Self::TradingRec>,
+        S: Strategy<
+                Num = Self::Num,
+                CostBuy = Self::CostBuy,
+                CostSell = Self::CostSell,
+                Series = Self::Series,
+                TradingRec = Self::TradingRec,
+            >,
     {
         OrStrategy {
             left: self.clone(),
             right: other,
-            _phantom: PhantomData,
         }
     }
 
-    fn opposite(&self) -> OppositeStrategy<'a, Self>
+    fn opposite(&self) -> OppositeStrategy<Self>
     where
         Self: Clone,
     {
         OppositeStrategy {
             strategy: self.clone(),
-            _phantom: Default::default(),
         }
     }
 }
