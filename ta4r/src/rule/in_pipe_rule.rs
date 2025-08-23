@@ -12,7 +12,7 @@ use std::sync::Arc;
 /// 满足条件：ref 指标的值在 lower 和 upper 指标（或常量）之间
 pub struct InPipeRule<T, CM, HM, S, IR, IU, IL, R>
 where
-    T: TrNum + Clone + From<bool> + 'static,
+    T: TrNum + Clone + 'static,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
     S: BarSeries<T> + 'static,
@@ -30,7 +30,7 @@ where
 
 impl<T, CM, HM, S, IR, IU, IL, R> InPipeRule<T, CM, HM, S, IR, IU, IL, R>
 where
-    T: TrNum + Clone + From<bool> + 'static,
+    T: TrNum + Clone + 'static,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
     S: BarSeries<T> + 'static,
@@ -98,7 +98,7 @@ where
 
 impl<T, CM, HM, S, IR, IU, IL, R> Rule for InPipeRule<T, CM, HM, S, IR, IU, IL, R>
 where
-    T: TrNum + Clone + From<bool> + 'static,
+    T: TrNum + Clone + 'static,
     CM: CostModel<T> + Clone,
     HM: CostModel<T> + Clone,
     S: BarSeries<T> + 'static,
