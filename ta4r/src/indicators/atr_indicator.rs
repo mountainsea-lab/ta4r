@@ -5,6 +5,8 @@ use crate::indicators::averages::mma_indicator::MMAIndicator;
 use crate::indicators::helpers::tr_indicator::TRIndicator;
 use crate::indicators::types::IndicatorError;
 use crate::num::TrNum;
+use parking_lot::RwLock;
+use std::cell::RefCell;
 use std::sync::Arc;
 
 /// ATRIndicator
@@ -35,6 +37,28 @@ where
     T: TrNum + Clone + 'static,
     S: BarSeries<T> + 'static,
 {
+    /// 通用构造，直接传入 BarSeriesRef
+    pub fn new(series_ref: BarSeriesRef<S>, bar_count: usize) -> Self {
+        let series = series_ref.clone();
+        let tr_indicator = Arc::new(TRIndicator::new(series));
+        let average_true_range = MMAIndicator::new(Arc::clone(&tr_indicator), bar_count)
+            .expect("Failed to create MMAIndicator for ATR");
+        Self {
+            tr_indicator,
+            average_true_range,
+        }
+    }
+
+    /// 快捷方式：从 Arc<RwLock<S>> 构造
+    pub fn from_shared(series: Arc<RwLock<S>>, bar_count: usize) -> Self {
+        Self::new(BarSeriesRef::Shared(series), bar_count)
+    }
+
+    /// 快捷方式：从 Arc<RefCell<S>> 构造
+    pub fn from_mut(series: Arc<RefCell<S>>, bar_count: usize) -> Self {
+        Self::new(BarSeriesRef::Mut(series), bar_count)
+    }
+
     /// 使用已有 TRIndicator 创建 ATR
     pub fn from_tr(tr_indicator: Arc<TRIndicator<T, S>>, bar_count: usize) -> Self {
         let atr = MMAIndicator::new(Arc::clone(&tr_indicator), bar_count).unwrap();

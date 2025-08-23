@@ -22,6 +22,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-mod binary_operation;
+pub mod binary_operation;
 // mod numeric_indicator;
-mod unary_operation;
+pub mod unary_operation;

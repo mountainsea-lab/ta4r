@@ -36,6 +36,18 @@ where
     _marker: PhantomData<R>,
 }
 
+impl<R> Default for BaseRule<R>
+where
+    R: Rule,
+{
+    fn default() -> Self {
+        Self {
+            class_name: std::any::type_name::<R>(),
+            _marker: PhantomData,
+        }
+    }
+}
+
 impl<R> BaseRule<R>
 where
     R: Rule,
