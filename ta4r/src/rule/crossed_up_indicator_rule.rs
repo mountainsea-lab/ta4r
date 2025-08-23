@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 /// CrossedUpIndicatorRule
-/// 满足条件：当 up 指标从上方穿过 low 指标时
+/// 满足条件：当 up crosses-up low  指标时
 pub struct CrossedUpIndicatorRule<T, CM, HM, S, IU, IL, R>
 where
     T: TrNum + Clone + From<bool> + 'static,
@@ -40,7 +40,7 @@ where
     pub fn new(up: Arc<IU>, low: Arc<IL>) -> Self {
         Self {
             cross: CrossIndicator::new(low, up),
-            base_rule: BaseRule::new("CrossedDownIndicatorRule"),
+            base_rule: BaseRule::new("CrossedUpIndicatorRule"),
             _phantom: PhantomData,
         }
     }
@@ -53,7 +53,7 @@ where
         let low = Arc::new(ConstantIndicator::new(indicator.bar_series(), threshold));
         CrossedUpIndicatorRule {
             cross: CrossIndicator::new(low, indicator),
-            base_rule: BaseRule::new("CrossedDownIndicatorRule"),
+            base_rule: BaseRule::new("CrossedUpIndicatorRule"),
             _phantom: PhantomData,
         }
     }
