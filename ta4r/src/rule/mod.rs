@@ -39,6 +39,7 @@ pub mod helper;
 mod in_pipe_rule;
 mod in_slope_rule;
 mod is_equal_rule;
+mod is_falling_rule;
 pub mod just_once_rule;
 pub mod not_rule;
 pub mod or_rule;
