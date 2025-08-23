@@ -52,9 +52,9 @@ mod stop_gain_rule;
 mod stop_loss_rule;
 mod time_range_rule;
 mod trailing_stop_loss_rule;
+mod under_indicator_rule;
 pub mod wait_for_rule;
 pub mod xor_rule;
-mod under_indicator_rule;
 
 use crate::TradingRecord;
 use crate::analysis::CostModel;

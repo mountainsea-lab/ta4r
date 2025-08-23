@@ -127,13 +127,16 @@ where
                 if pos.is_opened() {
                     pos.entry().and_then(|entry| {
                         // 安全获取当前价格，若出错返回 None
-                        self.price_indicator.get_value(index).ok().map(|current_price| {
-                            if entry.is_buy() {
-                                self.is_buy_satisfied(current_price, index, entry.index())
-                            } else {
-                                self.is_sell_satisfied(current_price, index, entry.index())
-                            }
-                        })
+                        self.price_indicator
+                            .get_value(index)
+                            .ok()
+                            .map(|current_price| {
+                                if entry.is_buy() {
+                                    self.is_buy_satisfied(current_price, index, entry.index())
+                                } else {
+                                    self.is_sell_satisfied(current_price, index, entry.index())
+                                }
+                            })
                     })
                 } else {
                     None
