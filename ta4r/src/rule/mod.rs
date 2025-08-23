@@ -45,6 +45,7 @@ mod is_lowest_rule;
 mod is_rising_rule;
 pub mod just_once_rule;
 pub mod not_rule;
+mod opened_position_minimum_bar_count_rule;
 pub mod or_rule;
 pub mod wait_for_rule;
 pub mod xor_rule;
