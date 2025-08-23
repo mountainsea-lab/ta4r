@@ -33,6 +33,7 @@ mod boolean_indicator_rule;
 pub mod chain_rule;
 pub mod crossed_down_indicator_rule;
 pub mod crossed_up_indicator_rule;
+mod day_of_week_rule;
 pub mod fixed_rule;
 pub mod helper;
 pub mod just_once_rule;
