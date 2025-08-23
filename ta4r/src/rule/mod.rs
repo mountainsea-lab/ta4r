@@ -36,6 +36,7 @@ pub mod crossed_up_indicator_rule;
 mod day_of_week_rule;
 pub mod fixed_rule;
 pub mod helper;
+mod in_pipe_rule;
 pub mod just_once_rule;
 pub mod not_rule;
 pub mod or_rule;
