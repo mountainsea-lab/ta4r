@@ -10,7 +10,7 @@ pub struct OppositeStrategy<S> {
 
 impl<S> OppositeStrategy<S>
 where
-    S: Strategy + Clone + 'static,
+    S: Strategy + Clone,
 {
     pub fn new(strategy: S) -> Self {
         Self { strategy }
@@ -22,7 +22,10 @@ where
     }
 
     /// 动态组合（支持不同类型策略）
-    pub fn boxed_dyn(self) -> DynStrategies<S::TradingRec> {
+    pub fn boxed_dyn(self) -> DynStrategies<S::TradingRec>
+    where
+        S: Strategy + Clone + 'static,
+    {
         DynStrategies::Opposite(Box::new(DynStrategies::from_strategy(self.strategy)))
     }
 }

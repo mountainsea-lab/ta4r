@@ -11,15 +11,14 @@ pub struct OrStrategy<L, R> {
 
 impl<L, R> OrStrategy<L, R>
 where
-    L: Strategy + Clone + 'static,
+    L: Strategy + Clone,
     R: Strategy<
             Num = L::Num,
             CostBuy = L::CostBuy,
             CostSell = L::CostSell,
             Series = L::Series,
             TradingRec = L::TradingRec,
-        > + Clone
-        + 'static,
+        > + Clone,
 {
     pub fn new(left: L, right: R) -> Self {
         Self { left, right }
@@ -37,7 +36,17 @@ where
     }
 
     /// 动态组合（支持不同类型，包装成 DynStrategies）
-    pub fn boxed_dyn(self) -> DynStrategies<L::TradingRec> {
+    pub fn boxed_dyn(self) -> DynStrategies<L::TradingRec>
+    where
+        L: Strategy + Clone + 'static,
+        R: Strategy<
+                Num = L::Num,
+                CostBuy = L::CostBuy,
+                CostSell = L::CostSell,
+                Series = L::Series,
+                TradingRec = L::TradingRec,
+            > + 'static,
+    {
         DynStrategies::Or(
             Box::new(DynStrategies::from_strategy(self.left)),
             Box::new(DynStrategies::from_strategy(self.right)),
