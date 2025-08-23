@@ -26,6 +26,7 @@
 pub mod and_rule;
 pub mod average_true_range_stop_gain_rule;
 pub mod average_true_range_stop_loss_rule;
+mod average_true_range_trailing_stop_loss_rule;
 pub mod base_rule;
 pub mod bool_rule;
 pub mod chain_rule;
