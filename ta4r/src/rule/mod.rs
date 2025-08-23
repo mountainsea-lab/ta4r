@@ -51,6 +51,7 @@ mod over_indicator_rule;
 mod stop_gain_rule;
 mod stop_loss_rule;
 mod time_range_rule;
+mod trailing_stop_loss_rule;
 pub mod wait_for_rule;
 pub mod xor_rule;
 
