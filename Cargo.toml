@@ -2,6 +2,7 @@
 members = [
     "ta4r",
     "tests_indicator",
-    "tests_strategy"
+    "tests_strategy",
+    "ta4r-examples",
 ]
 resolver = "3"

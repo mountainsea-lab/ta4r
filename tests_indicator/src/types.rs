@@ -20,24 +20,24 @@ impl NumKind {
     }
 }
 
-pub struct TestContext<'a, T, S, I, F>
+pub struct TestContext<T, S, I, F>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
     I: Indicator<Num = T> + Clone + 'static,
-    F: IndicatorFactory<'a, T, S, I>,
+    F: IndicatorFactory<T, S, I>,
 {
     pub kind: NumKind,
     pub factory: F,
-    pub phantom: std::marker::PhantomData<(&'a T, S, I)>,
+    pub phantom: std::marker::PhantomData<(T, S, I)>,
 }
 
-impl<'a, T, S, I, F> TestContext<'a, T, S, I, F>
+impl<T, S, I, F> TestContext<T, S, I, F>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
     I: Indicator<Num = T> + Clone + 'static,
-    F: IndicatorFactory<'a, T, S, I>,
+    F: IndicatorFactory<T, S, I>,
 {
     pub fn new(kind: NumKind, factory: F) -> Self {
         Self {
@@ -46,7 +46,7 @@ where
             phantom: std::marker::PhantomData,
         }
     }
-    pub fn build_indicator(&self, series: &'a S, params: &[usize]) -> Result<I, IndicatorError> {
+    pub fn build_indicator(&self, series: &S, params: &[usize]) -> Result<I, IndicatorError> {
         self.factory.build(series, params)
     }
 }

@@ -1,0 +1,1 @@
+mod trading_bot_on_moving_bar_series;

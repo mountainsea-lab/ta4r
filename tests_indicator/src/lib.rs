@@ -5,11 +5,11 @@ use ta4r::num::TrNum;
 
 pub mod types;
 
-pub trait IndicatorFactory<'a, T, S, I>
+pub trait IndicatorFactory<T, S, I>
 where
     T: TrNum + 'static,
-    S: BarSeries<'a, T>,
+    S: BarSeries<T>,
     I: Indicator<Num = T> + Clone + 'static,
 {
-    fn build(&self, series: &'a S, params: &[usize]) -> Result<I, IndicatorError>;
+    fn build(&self, series: &S, params: &[usize]) -> Result<I, IndicatorError>;
 }
