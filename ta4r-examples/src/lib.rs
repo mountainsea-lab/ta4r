@@ -2,3 +2,4 @@
 mod strategies;
 mod backtests;
 mod indicators;
+mod loaders;
