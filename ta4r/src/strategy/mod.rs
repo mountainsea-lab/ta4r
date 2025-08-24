@@ -13,8 +13,9 @@ use crate::strategy::and_strategy::AndStrategy;
 use crate::strategy::opposite_strategy::OppositeStrategy;
 use crate::strategy::or_strategy::OrStrategy;
 use crate::strategy::types::Strategies;
+use std::sync::Arc;
 
-pub trait Strategy: Clone {
+pub trait Strategy {
     type Num: TrNum + 'static;
     type CostBuy: CostModel<Self::Num> + Clone;
     type CostSell: CostModel<Self::Num> + Clone;
@@ -38,8 +39,8 @@ pub trait Strategy: Clone {
 
     fn name(&self) -> &str;
 
-    fn entry_rule(&self) -> Self::EntryRule;
-    fn exit_rule(&self) -> Self::ExitRule;
+    fn entry_rule(&self) -> Arc<Self::EntryRule>;
+    fn exit_rule(&self) -> Arc<Self::ExitRule>;
 
     fn unstable_bars(&self) -> usize;
 
@@ -77,6 +78,7 @@ pub trait Strategy: Clone {
     // =========================
     fn and<S>(self, other: S) -> AndStrategy<Self, S>
     where
+        Self: Sized,
         S: Strategy<
                 Num = Self::Num,
                 CostBuy = Self::CostBuy,
@@ -93,6 +95,7 @@ pub trait Strategy: Clone {
 
     fn or<S>(self, other: S) -> OrStrategy<Self, S>
     where
+        Self: Sized,
         S: Strategy<
                 Num = Self::Num,
                 CostBuy = Self::CostBuy,
@@ -107,7 +110,10 @@ pub trait Strategy: Clone {
         }
     }
 
-    fn opposite(self) -> OppositeStrategy<Self> {
+    fn opposite(self) -> OppositeStrategy<Self>
+    where
+        Self: Sized,
+    {
         OppositeStrategy { strategy: self }
     }
 
@@ -115,20 +121,32 @@ pub trait Strategy: Clone {
     // 枚举封装组合方法
     // 返回 Strategies<Self> 枚举，供用户自由组合
     // =========================
-    fn boxed(self) -> Strategies<Self> {
-        Strategies::Base(self)
+    fn boxed(self) -> Strategies<Self>
+    where
+        Self: Sized,
+    {
+        Strategies::Base(self.into())
     }
 
-    fn and_boxed(self, other: Strategies<Self>) -> Strategies<Self> {
-        Strategies::And(Box::new(self.boxed()), Box::new(other))
+    fn and_boxed(self, other: Strategies<Self>) -> Strategies<Self>
+    where
+        Self: Sized,
+    {
+        Strategies::And(Arc::new(self.boxed()), Arc::new(other))
     }
 
-    fn or_boxed(self, other: Strategies<Self>) -> Strategies<Self> {
-        Strategies::Or(Box::new(self.boxed()), Box::new(other))
+    fn or_boxed(self, other: Strategies<Self>) -> Strategies<Self>
+    where
+        Self: Sized,
+    {
+        Strategies::Or(Arc::new(self.boxed()), Arc::new(other))
     }
 
-    fn opposite_boxed(self) -> Strategies<Self> {
-        Strategies::Opposite(Box::new(self.boxed()))
+    fn opposite_boxed(self) -> Strategies<Self>
+    where
+        Self: Sized,
+    {
+        Strategies::Opposite(Arc::new(self.boxed()))
     }
 }
 

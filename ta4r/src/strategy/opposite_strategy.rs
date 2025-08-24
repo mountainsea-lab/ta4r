@@ -1,16 +1,18 @@
+use crate::rule::Rule;
 use crate::rule::not_rule::NotRule;
 use crate::strategy::Strategy;
 use crate::strategy::types::{DynStrategies, Strategies};
+use std::sync::Arc;
 
 /// OppositeStrategy 取反策略
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct OppositeStrategy<S> {
     pub strategy: S,
 }
 
 impl<S> OppositeStrategy<S>
 where
-    S: Strategy + Clone,
+    S: Strategy,
 {
     pub fn new(strategy: S) -> Self {
         Self { strategy }
@@ -18,7 +20,7 @@ where
 
     /// 转换成枚举封装，方便链式自由组合
     pub fn boxed(self) -> Strategies<S> {
-        Strategies::Opposite(Box::new(Strategies::Base(self.strategy)))
+        Strategies::Opposite(Arc::new(Strategies::Base(Arc::new(self.strategy))))
     }
 
     /// 动态组合（支持不同类型策略）
@@ -26,7 +28,7 @@ where
     where
         S: Strategy + Clone + 'static,
     {
-        DynStrategies::Opposite(Box::new(DynStrategies::from_strategy(self.strategy)))
+        DynStrategies::Opposite(Arc::new(DynStrategies::from_strategy(self.strategy)))
     }
 }
 
@@ -48,13 +50,15 @@ where
     }
 
     /// 返回取反的 EntryRule（每次调用生成新的对象）
-    fn entry_rule(&self) -> Self::EntryRule {
-        NotRule::new(self.strategy.entry_rule())
+    fn entry_rule(&self) -> Arc<Self::EntryRule> {
+        let entry_rule = (*self.strategy.entry_rule()).clone();
+        NotRule::new(entry_rule).clone_rule()
     }
 
     /// 返回取反的 ExitRule（每次调用生成新的对象）
-    fn exit_rule(&self) -> Self::ExitRule {
-        NotRule::new(self.strategy.exit_rule())
+    fn exit_rule(&self) -> Arc<Self::ExitRule> {
+        let exit_rule = (*self.strategy.exit_rule()).clone();
+        NotRule::new(exit_rule).clone_rule()
     }
 
     fn unstable_bars(&self) -> usize {

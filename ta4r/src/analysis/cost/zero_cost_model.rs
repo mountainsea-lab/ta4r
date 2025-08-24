@@ -28,7 +28,7 @@ use crate::analysis::cost::fixed_transaction_cost_model::FixedTransactionCostMod
 use crate::num::TrNum;
 
 // ZeroCostModel，组合FixedTransactionCostModel
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ZeroCostModel<T: TrNum + 'static> {
     inner: FixedTransactionCostModel<T>,
 }

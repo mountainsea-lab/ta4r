@@ -1,9 +1,11 @@
+use crate::rule::Rule;
 use crate::rule::and_rule::AndRule;
 use crate::strategy::Strategy;
 use crate::strategy::types::{DynStrategies, Strategies};
+use std::sync::Arc;
 
 /// AndStrategy 组合两个策略
-#[derive(Clone)]
+// #[derive(Clone)]
 pub struct AndStrategy<L, R> {
     pub(crate) left: L,
     pub(crate) right: R,
@@ -11,7 +13,7 @@ pub struct AndStrategy<L, R> {
 
 impl<L, R> AndStrategy<L, R>
 where
-    L: Strategy + Clone,
+    L: Strategy,
     R: Strategy<
             Num = L::Num,
             CostBuy = L::CostBuy,
@@ -29,8 +31,8 @@ where
         R: Into<L>, // 仅当 R 可以转换成 L 时
     {
         Strategies::And(
-            Box::new(Strategies::Base(self.left)),
-            Box::new(Strategies::Base(self.right.into())),
+            Arc::new(Strategies::Base(Arc::new(self.left))),
+            Arc::new(Strategies::Base(Arc::new(self.right.into()))),
         )
     }
 
@@ -47,8 +49,8 @@ where
             > + 'static,
     {
         DynStrategies::And(
-            Box::new(DynStrategies::from_strategy(self.left)),
-            Box::new(DynStrategies::from_strategy(self.right)),
+            Arc::new(DynStrategies::from_strategy(self.left)),
+            Arc::new(DynStrategies::from_strategy(self.right)),
         )
     }
 }
@@ -76,14 +78,18 @@ where
         "AndStrategy"
     }
 
-    /// 返回组合后的 EntryRule（每次调用生成新的对象）
-    fn entry_rule(&self) -> Self::EntryRule {
-        AndRule::new(self.left.entry_rule(), self.right.entry_rule())
+    /// 返回组合后的 EntryRule
+    fn entry_rule(&self) -> Arc<Self::EntryRule> {
+        let left_entry_rule = (*self.left.entry_rule()).clone();
+        let right_entry_rule = (*self.right.entry_rule()).clone();
+        AndRule::new(left_entry_rule, right_entry_rule).clone_rule()
     }
 
     /// 返回组合后的 ExitRule（每次调用生成新的对象）
-    fn exit_rule(&self) -> Self::ExitRule {
-        AndRule::new(self.left.exit_rule(), self.right.exit_rule())
+    fn exit_rule(&self) -> Arc<Self::ExitRule> {
+        let left_exit_rule = (*self.left.exit_rule()).clone();
+        let right_exit_rule = (*self.right.exit_rule()).clone();
+        AndRule::new(left_exit_rule, right_exit_rule).clone_rule()
     }
 
     fn unstable_bars(&self) -> usize {

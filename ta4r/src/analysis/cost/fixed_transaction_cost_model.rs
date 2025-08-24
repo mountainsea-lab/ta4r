@@ -27,7 +27,7 @@ use crate::analysis::cost::CostContext;
 use crate::num::TrNum;
 
 // FixedTransactionCostModel 实现
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct FixedTransactionCostModel<T: TrNum + 'static> {
     pub fee_per_trade: T,
 }

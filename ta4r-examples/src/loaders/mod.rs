@@ -1,1 +1,1 @@
-mod csv_bars_loader;
+pub mod csv_bars_loader;

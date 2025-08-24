@@ -4,7 +4,6 @@ use crate::bar::types::BarSeries;
 use crate::num::TrNum;
 use crate::position::Position;
 use crate::trade::{Trade, TradeType};
-use std::fmt;
 use std::marker::PhantomData;
 use std::sync::Arc;
 

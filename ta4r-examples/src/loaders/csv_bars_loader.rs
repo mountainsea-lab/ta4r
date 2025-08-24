@@ -138,13 +138,13 @@ use csv::ReaderBuilder;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
-use time::{Date, Duration, OffsetDateTime};
-use time_macros::format_description;
 use ta4r::bar::base_bar::BaseBar;
 use ta4r::bar::base_bar_series_builder::BaseBarSeriesBuilder;
+use ta4r::num::NumFactory;
 use ta4r::num::decimal_num::DecimalNum;
 use ta4r::num::decimal_num_factory::DecimalNumFactory;
-use ta4r::num::NumFactory;
+use time::{Date, Duration, OffsetDateTime};
+use time_macros::format_description;
 
 /// CSV 格式支持两种：
 /// 1. timestamp(ms), open, high, low, close, volume
@@ -203,7 +203,6 @@ impl CsvBarsLoader {
         Ok(dt)
     }
 
-
     /// 加载 CSV 文件，支持任意周期 duration
     pub fn load_csv_series(
         filename: &str,
@@ -214,12 +213,9 @@ impl CsvBarsLoader {
             .map_err(|e| format!("Failed to open file {}: {}", path.display(), e))?;
         let reader = BufReader::new(file);
 
-        let mut csv_reader = ReaderBuilder::new()
-            .has_headers(true)
-            .from_reader(reader);
+        let mut csv_reader = ReaderBuilder::new().has_headers(true).from_reader(reader);
 
-        let mut builder = BaseBarSeriesBuilder::<DecimalNum>::new()
-            .with_name(filename.to_string());
+        let mut builder = BaseBarSeriesBuilder::<DecimalNum>::new().with_name(filename.to_string());
 
         let factory = DecimalNumFactory::instance();
 
@@ -229,31 +225,36 @@ impl CsvBarsLoader {
             let dt = Self::parse_datetime(ts_str)?;
 
             let open: DecimalNum = factory.num_of_f64(
-                record.get(1)
+                record
+                    .get(1)
                     .ok_or("Missing open")?
                     .parse::<f64>()
                     .map_err(|e| format!("Invalid open: {}", e))?,
             );
             let high: DecimalNum = factory.num_of_f64(
-                record.get(2)
+                record
+                    .get(2)
                     .ok_or("Missing high")?
                     .parse::<f64>()
                     .map_err(|e| format!("Invalid high: {}", e))?,
             );
             let low: DecimalNum = factory.num_of_f64(
-                record.get(3)
+                record
+                    .get(3)
                     .ok_or("Missing low")?
                     .parse::<f64>()
                     .map_err(|e| format!("Invalid low: {}", e))?,
             );
             let close: DecimalNum = factory.num_of_f64(
-                record.get(4)
+                record
+                    .get(4)
                     .ok_or("Missing close")?
                     .parse::<f64>()
                     .map_err(|e| format!("Invalid close: {}", e))?,
             );
             let volume: DecimalNum = factory.num_of_f64(
-                record.get(5)
+                record
+                    .get(5)
                     .ok_or("Missing volume")?
                     .parse::<f64>()
                     .map_err(|e| format!("Invalid volume: {}", e))?,
@@ -300,7 +301,9 @@ mod tests {
             "appleinc_bars_from_20130101_usd.csv",
             Duration::days(1),
         )?;
-        let series = builder.build().map_err(|e| format!("Build error: {:?}", e))?;
+        let series = builder
+            .build()
+            .map_err(|e| format!("Build error: {:?}", e))?;
 
         println!("Series: {}", series.get_name());
         println!("Number of bars: {}", series.get_bar_count());
@@ -322,7 +325,9 @@ mod tests {
             "XRPUSD_251226-5m-2025-08-22.csv",
             Duration::minutes(5),
         )?;
-        let series = builder.build().map_err(|e| format!("Build error: {:?}", e))?;
+        let series = builder
+            .build()
+            .map_err(|e| format!("Build error: {:?}", e))?;
 
         println!("Series: {}", series.get_name());
         println!("Number of bars: {}", series.get_bar_count());
@@ -338,4 +343,3 @@ mod tests {
         Ok(())
     }
 }
-

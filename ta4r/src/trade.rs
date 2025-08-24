@@ -57,10 +57,10 @@ where
     S: BarSeries<T>,
 {
     pub(crate) trade_type: TradeType,
-    pub(crate) index: usize,
+    pub index: usize,
     pub(crate) price_per_asset: T,
-    net_price: T,
-    pub(crate) amount: T,
+    pub net_price: T,
+    pub amount: T,
     cost: T,
     cost_model: CM,
     // 你可以加个 PhantomData 来标记生命周期

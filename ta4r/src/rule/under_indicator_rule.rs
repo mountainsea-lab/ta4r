@@ -21,7 +21,7 @@ where
 {
     first: Arc<I1>,
     second: Arc<I2>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(T, CM, HM, S, R)>,
 }
 
@@ -40,6 +40,26 @@ where
             first,
             second,
             base_rule: BaseRule::new("UnderIndicatorRule"),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, CM, HM, S, I1, I2, R> Clone for UnderIndicatorRule<T, CM, HM, S, I1, I2, R>
+where
+    T: TrNum + Clone + 'static,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<T> + 'static,
+    I1: Indicator<Num = T, Output = T, Series = S> + 'static,
+    I2: Indicator<Num = T, Output = T, Series = S> + 'static,
+    R: TradingRecord<T, CM, HM, S>,
+{
+    fn clone(&self) -> Self {
+        UnderIndicatorRule {
+            first: Arc::clone(&self.first),    // Arc handles reference counting
+            second: Arc::clone(&self.second),  // Same for second indicator
+            base_rule: self.base_rule.clone(), // Clone the BaseRule (if needed)
             _phantom: PhantomData,
         }
     }

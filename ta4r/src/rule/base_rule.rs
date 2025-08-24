@@ -22,42 +22,26 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-use crate::rule::Rule;
 use log::trace;
-use std::marker::PhantomData;
 
 /// 基础规则
 /// 存放公共工具方法，比如调试日志
-pub struct BaseRule<R>
-where
-    R: Rule,
-{
+pub struct BaseRule {
     class_name: &'static str,
-    _marker: PhantomData<R>,
 }
 
-impl<R> Default for BaseRule<R>
-where
-    R: Rule,
-{
+impl Default for BaseRule {
     fn default() -> Self {
         Self {
-            class_name: std::any::type_name::<R>(),
-            _marker: PhantomData,
+            class_name: std::any::type_name::<Self>(),
         }
     }
 }
 
-impl<R> BaseRule<R>
-where
-    R: Rule,
-{
+impl BaseRule {
     /// 创建基础规则
     pub fn new(class_name: &'static str) -> Self {
-        Self {
-            class_name,
-            _marker: PhantomData,
-        }
+        Self { class_name }
     }
 
     /// 记录规则是否满足
@@ -66,5 +50,13 @@ where
             "{}#is_satisfied({}): {}",
             self.class_name, index, is_satisfied
         );
+    }
+}
+
+impl Clone for BaseRule {
+    fn clone(&self) -> Self {
+        BaseRule {
+            class_name: self.class_name, // class_name 不需要克隆，它是静态的
+        }
     }
 }

@@ -22,8 +22,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
+use std::sync::Arc;
 
 /// 一个取反（NOT）规则
 ///
@@ -33,7 +35,7 @@ pub struct NotRule<L>
 where
     L: Rule,
 {
-    base: BaseRule<L>,
+    base: BaseRule,
     rule_to_negate: L,
 }
 
@@ -75,5 +77,24 @@ where
             .is_satisfied_with_record(index, trading_record);
         self.base.trace_is_satisfied(index, satisfied);
         satisfied
+    }
+
+    fn clone_rule(&self) -> Arc<Self>
+    where
+        Self: Sized,
+    {
+        Arc::new(self.clone())
+    }
+}
+
+impl<L> Clone for NotRule<L>
+where
+    L: Rule + Clone,
+{
+    fn clone(&self) -> Self {
+        NotRule {
+            base: self.base.clone(),
+            rule_to_negate: self.rule_to_negate.clone(),
+        }
     }
 }

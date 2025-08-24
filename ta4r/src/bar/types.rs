@@ -284,7 +284,7 @@ pub trait BarSeriesBuilder<T: TrNum + 'static> {
     type BarSeries: BarSeries<T>;
 
     /// 构建并返回一个 BarSeries
-    fn build(self) -> Result<Self::BarSeries, String>;
+    fn build(&self) -> Result<Self::BarSeries, String>;
 }
 
 // BarAggregator trait - 对应 ta4j 的 BarAggregator 接口

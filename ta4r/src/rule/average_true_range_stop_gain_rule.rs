@@ -37,7 +37,7 @@ where
 {
     stop_gain_threshold: Arc<BinaryOperation<T, ATRIndicator<T, S>, ConstantIndicator<T, S>>>,
     reference_price: Arc<I>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, R)>,
 }
 
@@ -118,6 +118,8 @@ where
         Self::new(series, reference_price, atr_bar_count, atr_coefficient)
     }
 }
+
+
 
 impl<T, CM, HM, S, I, R> Rule for AverageTrueRangeStopGainRule<T, CM, HM, S, I, R>
 where

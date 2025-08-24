@@ -22,8 +22,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
+use std::sync::Arc;
 
 /// 一个 OR 组合规则
 ///
@@ -39,7 +41,7 @@ where
             TradingRec = L::TradingRec,
         >,
 {
-    base: BaseRule<L>,
+    base: BaseRule,
     left: L,
     right: R,
 }
@@ -101,5 +103,32 @@ where
 
         self.base.trace_is_satisfied(index, satisfied);
         satisfied
+    }
+
+    fn clone_rule(&self) -> Arc<Self>
+    where
+        Self: Sized,
+    {
+        Arc::new(self.clone())
+    }
+}
+
+impl<L, R> Clone for OrRule<L, R>
+where
+    L: Rule,
+    R: Rule<
+            Num = L::Num,
+            CostBuy = L::CostBuy,
+            CostSell = L::CostSell,
+            Series = L::Series,
+            TradingRec = L::TradingRec,
+        >,
+{
+    fn clone(&self) -> Self {
+        OrRule {
+            base: self.base.clone(),
+            left: self.left.clone(),
+            right: self.right.clone(),
+        }
     }
 }
