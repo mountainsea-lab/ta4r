@@ -38,7 +38,7 @@ pub struct BaseBarSeriesBuilder<T: TrNum> {
     /// 序列名称
     name: Option<String>,
     /// 预设的 Bar 列表
-    bars: Vec<BaseBar<T>>,
+    pub bars: Vec<BaseBar<T>>,
     /// 是否受约束
     constrained: bool,
     /// 最大 Bar 数量
@@ -124,26 +124,61 @@ where
 {
     type BarSeries = BaseBarSeries<T>;
 
+    // fn build(self) -> Result<Self::BarSeries, String> {
+    //     // 确定序列名称
+    //     let name = self.name.unwrap_or_else(|| "unnamed_series".to_string());
+    //
+    //     // 确定数值工厂
+    //     let num_factory = Arc::clone(&self.num_factory);
+    //
+    //     // 确定 Bar 构建器工厂
+    //     let bar_builder_factory = self.bar_builder_factory.unwrap_or_else(|| {
+    //         BarBuilderFactories::TimeBarFactory(TimeBarBuilderFactory::<T>::default())
+    //     });
+    //
+    //     // 计算索引
+    //     let (begin_index, end_index) = if self.bars.is_empty() {
+    //         (None, None)
+    //     } else {
+    //         (Some(0), Some(self.bars.len() - 1))
+    //     };
+    //
+    //     // 创建 BaseBarSeries
+    //     let mut series = BaseBarSeries::new(
+    //         name,
+    //         self.bars,
+    //         begin_index,
+    //         end_index,
+    //         self.constrained,
+    //         num_factory,
+    //         bar_builder_factory,
+    //     )?;
+    //
+    //     // 设置最大 Bar 数量
+    //     if self.max_bar_count != usize::MAX {
+    //         let _ = series.set_maximum_bar_count(self.max_bar_count);
+    //     }
+    //
+    //     Ok(series)
+    // }
+
     fn build(self) -> Result<Self::BarSeries, String> {
-        // 确定序列名称
         let name = self.name.unwrap_or_else(|| "unnamed_series".to_string());
 
-        // 确定数值工厂
-        let num_factory = Arc::clone(&self.num_factory);
+        // 不再 clone，直接 move
+        let num_factory = self.num_factory;
 
-        // 确定 Bar 构建器工厂
+        // 保留 None 语义
         let bar_builder_factory = self.bar_builder_factory.unwrap_or_else(|| {
             BarBuilderFactories::TimeBarFactory(TimeBarBuilderFactory::<T>::default())
         });
 
-        // 计算索引
         let (begin_index, end_index) = if self.bars.is_empty() {
             (None, None)
         } else {
             (Some(0), Some(self.bars.len() - 1))
         };
 
-        // 创建 BaseBarSeries
         let mut series = BaseBarSeries::new(
             name,
             self.bars,
@@ -154,9 +189,8 @@ where
             bar_builder_factory,
         )?;
 
-        // 设置最大 Bar 数量
         if self.max_bar_count != usize::MAX {
-            let _ = series.set_maximum_bar_count(self.max_bar_count);
+            series.set_maximum_bar_count(self.max_bar_count)?;
         }
 
         Ok(series)

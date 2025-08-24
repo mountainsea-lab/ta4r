@@ -34,7 +34,7 @@ use time::{Duration, OffsetDateTime};
 #[derive(Debug, Clone)]
 pub struct BaseBar<T: TrNum> {
     /// 时间周期（例如 1 天、15 分钟等）
-    pub(crate) time_period: Duration,
+    pub time_period: Duration,
     /// Bar 周期的开始时间（UTC）
     pub begin_time: OffsetDateTime,
     /// Bar 周期的结束时间（UTC）
