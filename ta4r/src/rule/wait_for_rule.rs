@@ -71,7 +71,7 @@ where
         let mut satisfied = false;
 
         if let Some(record) = trading_record {
-            if let Some(last_trade) = record.get_last_trade() {
+            if let Some(last_trade) = record.last_trade() {
                 let current_number_of_bars = index.saturating_sub(last_trade.index);
                 satisfied = current_number_of_bars >= self.number_of_bars;
             }

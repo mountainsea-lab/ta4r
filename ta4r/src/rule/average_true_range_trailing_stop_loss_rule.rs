@@ -105,7 +105,7 @@ where
         let mut satisfied = false;
 
         if let Some(record) = trading_record {
-            let current_pos = record.get_current_position();
+            let current_pos = record.current_position();
             if current_pos.is_opened() {
                 if let Some(entry_trade) = current_pos.entry() {
                     let entry_price = entry_trade.net_price();

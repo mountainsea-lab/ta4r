@@ -62,7 +62,7 @@ pub trait Strategy: Clone {
     }
 
     fn should_operate(&self, index: usize, trading_record: &Self::TradingRec) -> bool {
-        let position = trading_record.get_current_position();
+        let position = trading_record.current_position();
         if position.is_new() {
             self.should_enter(index, Some(trading_record))
         } else if position.is_opened() {

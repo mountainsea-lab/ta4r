@@ -80,7 +80,7 @@ where
 
     /// 是否执行交易（结合 should_enter / should_exit）
     pub fn should_operate(&self, index: usize, trading_record: &S::TradingRec) -> bool {
-        let position = trading_record.get_current_position();
+        let position = trading_record.current_position();
         if position.is_new() {
             self.should_enter(index, Some(trading_record))
         } else if position.is_opened() {

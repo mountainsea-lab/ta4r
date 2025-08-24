@@ -65,8 +65,8 @@ where
     ) -> bool {
         let satisfied = trading_record
             .and_then(|tr| {
-                if tr.get_current_position().is_opened() {
-                    tr.get_last_entry()
+                if tr.current_position().is_opened() {
+                    tr.last_entry()
                         .map(|entry| index >= entry.index() + self.bar_count)
                 } else {
                     None

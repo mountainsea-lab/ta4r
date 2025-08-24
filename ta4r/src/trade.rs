@@ -454,7 +454,7 @@ where
 impl<T, CM, S> Debug for Trade<T, CM, S>
 where
     T: TrNum + 'static + Debug,
-    CM: CostModel<T> + Clone + Debug,
+    CM: CostModel<T> + Clone,
     S: BarSeries<T>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -465,7 +465,6 @@ where
             .field("net_price", &self.net_price)
             .field("amount", &self.amount)
             .field("cost", &self.cost)
-            .field("cost_model", &self.cost_model)
             // _marker 跳过
             .finish()
     }

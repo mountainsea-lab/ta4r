@@ -123,7 +123,7 @@ where
     ) -> bool {
         let satisfied = trading_record
             .and_then(|tr| {
-                let pos = tr.get_current_position();
+                let pos = tr.current_position();
                 if pos.is_opened() {
                     pos.entry().and_then(|entry| {
                         // 安全获取当前价格，若出错返回 None

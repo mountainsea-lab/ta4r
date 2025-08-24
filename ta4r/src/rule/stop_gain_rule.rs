@@ -101,7 +101,7 @@ where
     ) -> bool {
         let satisfied = trading_record
             .and_then(|tr| {
-                let pos = tr.get_current_position();
+                let pos = tr.current_position();
                 if pos.is_opened() {
                     pos.entry().and_then(|entry| {
                         let entry_price = entry.net_price();
