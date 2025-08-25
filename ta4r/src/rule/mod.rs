@@ -123,20 +123,20 @@ pub trait Rule: Clone {
         OrRule::new(self, other)
     }
 
-    // /// 与另一条规则组合成 XOR 规则
-    // fn xor<R>(self, other: R) -> XorRule<Self, R>
-    // where
-    //     Self: Sized,
-    //     R: Rule<
-    //             Num = Self::Num,
-    //             CostBuy = Self::CostBuy,
-    //             CostSell = Self::CostSell,
-    //             Series = Self::Series,
-    //             TradingRec = Self::TradingRec,
-    //         >,
-    // {
-    //     XorRule::new(self, other)
-    // }
+    /// 与另一条规则组合成 XOR 规则
+    fn xor<R>(self, other: R) -> XorRule<Self, R>
+    where
+        Self: Sized,
+        R: Rule<
+                Num = Self::Num,
+                CostBuy = Self::CostBuy,
+                CostSell = Self::CostSell,
+                Series = Self::Series,
+                TradingRec = Self::TradingRec,
+            >,
+    {
+        XorRule::new(self, other)
+    }
 
     /// 取反规则
     fn negation(self) -> NotRule<Self>
