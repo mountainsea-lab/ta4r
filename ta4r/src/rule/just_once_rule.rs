@@ -31,7 +31,7 @@ pub struct JustOnceRule<R>
 where
     R: Rule,
 {
-    base: BaseRule<R>,
+    base: BaseRule,
     rule: Option<R>,
     satisfied: Cell<bool>,
 }
@@ -60,6 +60,19 @@ where
 
     fn trace_is_satisfied(&self, index: usize, is_satisfied: bool) {
         self.base.trace_is_satisfied(index, is_satisfied);
+    }
+}
+
+impl<R> Clone for JustOnceRule<R>
+where
+    R: Rule,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            rule: self.rule.clone(),
+            satisfied: Cell::new(self.satisfied.get()),
+        }
     }
 }
 

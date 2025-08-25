@@ -19,7 +19,7 @@ where
     R: TradingRecord<T, CM, HM, S>,
 {
     indicator: Arc<I>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, R)>,
 }
 
@@ -36,6 +36,24 @@ where
         Self {
             indicator,
             base_rule: BaseRule::new("BooleanIndicatorRule"),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, CM, HM, S, I, R> Clone for BooleanIndicatorRule<T, CM, HM, S, I, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    I: 'static + Indicator<Num = T, Series = S, Output = bool>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            indicator: self.indicator.clone(),
+            base_rule: self.base_rule.clone(),
             _phantom: PhantomData,
         }
     }

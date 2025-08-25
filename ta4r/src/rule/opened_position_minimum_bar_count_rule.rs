@@ -16,7 +16,7 @@ where
     R: TradingRecord<T, CM, HM, S>,
 {
     bar_count: usize,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(T, CM, HM, S, R)>,
 }
 
@@ -41,6 +41,23 @@ where
     /// 获取 bar_count
     pub fn bar_count(&self) -> usize {
         self.bar_count
+    }
+}
+
+impl<T, CM, HM, S, R> Clone for OpenedPositionMinimumBarCountRule<T, CM, HM, S, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            bar_count: self.bar_count,
+            base_rule: self.base_rule.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

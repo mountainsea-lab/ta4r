@@ -2,6 +2,7 @@ use crate::rule::Rule;
 use std::fmt::Debug;
 
 /// ChainLink: 用于 ChainRule 的单个链接
+#[derive(Clone)]
 pub struct ChainLink<R>
 where
     R: Rule,

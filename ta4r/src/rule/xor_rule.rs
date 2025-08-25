@@ -40,7 +40,7 @@ where
             TradingRec = L::TradingRec,
         >,
 {
-    base: BaseRule<L>,
+    base: BaseRule,
     left: L,
     right: R,
 }
@@ -72,6 +72,26 @@ where
     /// 获取右侧规则
     pub fn right(&self) -> &R {
         &self.right
+    }
+}
+
+impl<L, R> Clone for XorRule<L, R>
+where
+    L: Rule,
+    R: Rule<
+            Num = L::Num,
+            CostBuy = L::CostBuy,
+            CostSell = L::CostSell,
+            Series = L::Series,
+            TradingRec = L::TradingRec,
+        >,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            left: self.left.clone(),
+            right: self.right.clone(),
+        }
     }
 }
 

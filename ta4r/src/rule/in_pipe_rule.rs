@@ -24,7 +24,7 @@ where
     ref_ind: Arc<IR>,
     upper: Arc<IU>,
     lower: Arc<IL>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, R)>,
 }
 
@@ -93,6 +93,28 @@ where
 
     pub fn get_lower(&self) -> Arc<IL> {
         Arc::clone(&self.lower)
+    }
+}
+
+impl<T, CM, HM, S, IR, IU, IL, R> Clone for InPipeRule<T, CM, HM, S, IR, IU, IL, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    IL: Indicator<Num = T, Output = T, Series = S>,
+    IR: Indicator<Num = T, Output = T, Series = S>,
+    IU: Indicator<Num = T, Output = T, Series = S>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            ref_ind: Arc::clone(&self.ref_ind),
+            upper: Arc::clone(&self.upper),
+            lower: Arc::clone(&self.lower),
+            base_rule: self.base_rule.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

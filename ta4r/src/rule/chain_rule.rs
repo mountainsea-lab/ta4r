@@ -22,18 +22,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
 use crate::rule::helper::chain_link::ChainLink;
+use std::marker::PhantomData;
 
 /// ChainRule: 初始规则 + 链条规则 + threshold 检查
 pub struct ChainRule<R>
 where
     R: Rule,
 {
-    base: BaseRule<R>,
+    base: BaseRule,
     initial_rule: R,
     rules_in_chain: Vec<ChainLink<R>>,
+    _phantom: PhantomData<R>,
 }
 
 impl<R> ChainRule<R>
@@ -46,12 +49,27 @@ where
             base: BaseRule::new("ChainRule"),
             initial_rule,
             rules_in_chain: chain_links,
+            _phantom: PhantomData,
         }
     }
 
     /// 内部日志方法
     fn trace_is_satisfied(&self, index: usize, is_satisfied: bool) {
         self.base.trace_is_satisfied(index, is_satisfied);
+    }
+}
+
+impl<R> Clone for ChainRule<R>
+where
+    R: Rule,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            initial_rule: self.initial_rule.clone(),
+            rules_in_chain: self.rules_in_chain.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

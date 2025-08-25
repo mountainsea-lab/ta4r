@@ -21,7 +21,7 @@ where
     close_price: Arc<ClosePriceIndicator<T, S>>,
     gain_percentage: T,
     hundred: T,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, S, R)>,
 }
 
@@ -77,6 +77,25 @@ where
         let ratio = ratio / self.hundred.clone();
         let threshold = entry_price * ratio;
         current_price <= threshold
+    }
+}
+
+impl<T, CM, HM, S, R> Clone for StopGainRule<T, CM, HM, S, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            close_price: self.close_price.clone(),
+            gain_percentage: self.gain_percentage.clone(),
+            hundred: self.hundred.clone(),
+            base_rule: self.base_rule.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

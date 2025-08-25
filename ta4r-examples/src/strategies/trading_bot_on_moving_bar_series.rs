@@ -124,8 +124,8 @@ where
 pub fn trading_bot_on_moving_series() {
     println!("********************** Initialization **********************");
 
-    let  builder = init_moving_bar_series(20);
-    let  series = Arc::new(RwLock::new(builder.build().expect("Build series failed")));
+    let builder = init_moving_bar_series(20);
+    let series = Arc::new(RwLock::new(builder.build().expect("Build series failed")));
 
     // 构建策略
     let strategy: BaseStrategy<

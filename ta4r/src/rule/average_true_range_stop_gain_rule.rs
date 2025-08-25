@@ -51,27 +51,6 @@ where
     R: TradingRecord<T, CM, HM, S>,
 {
     /// 通用构造函数：指定参考价格和 ATR 系数
-    // pub fn new(
-    //     series: Arc<RwLock<S>>,
-    //     reference_price: Arc<I>,
-    //     atr_bar_count: usize,
-    //     atr_coefficient: T,
-    // ) -> Result<Self, IndicatorError> {
-    //     let tr_indicator = Arc::new(TRIndicator::from_shared(series.clone()));
-    //     let atr_indicator = Arc::new(ATRIndicator::from_tr(tr_indicator, atr_bar_count));
-    //
-    //     // 将 atr_coefficient 包装为 ConstantIndicator
-    //     let right_indicator = ConstantIndicator::new(atr_indicator.bar_series(), atr_coefficient);
-    //     let stop_gain_threshold =
-    //         BinaryOperation::product(&*atr_indicator, &right_indicator);
-    //     Ok(Self {
-    //         stop_gain_threshold: Arc::new(stop_gain_threshold),
-    //         reference_price,
-    //         base_rule: BaseRule::new("AverageTrueRangeStopGainRule"),
-    //         _phantom: PhantomData,
-    //     })
-    // }
-
     pub fn new(
         series: Arc<RwLock<S>>,
         reference_price: Arc<I>,
@@ -119,7 +98,24 @@ where
     }
 }
 
-
+impl<T, CM, HM, S, I, R> Clone for AverageTrueRangeStopGainRule<T, CM, HM, S, I, R>
+where
+    T: TrNum + Clone + 'static,
+    CM: CostModel<T> + Clone,
+    HM: CostModel<T> + Clone,
+    S: BarSeries<T> + 'static,
+    I: Indicator<Num = T, Series = S, Output = T> + 'static,
+    R: TradingRecord<T, CM, HM, S>,
+{
+    fn clone(&self) -> Self {
+        Self {
+            stop_gain_threshold: self.stop_gain_threshold.clone(), // Arc clone
+            reference_price: self.reference_price.clone(),         // Arc clone
+            base_rule: self.base_rule.clone(),                     // BaseRule 必须实现 Clone
+            _phantom: PhantomData,
+        }
+    }
+}
 
 impl<T, CM, HM, S, I, R> Rule for AverageTrueRangeStopGainRule<T, CM, HM, S, I, R>
 where

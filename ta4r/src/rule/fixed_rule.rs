@@ -22,15 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
+use std::marker::PhantomData;
 
 pub struct FixedRule<R>
 where
     R: Rule,
 {
-    base: BaseRule<R>,
+    base: BaseRule,
     indexes: Vec<usize>,
+    _phantom: PhantomData<R>,
 }
 
 impl<R> FixedRule<R>
@@ -41,11 +44,25 @@ where
         Self {
             base: BaseRule::new("FixedRule"),
             indexes: indexes.to_vec(),
+            _phantom: PhantomData,
         }
     }
 
     fn trace_is_satisfied(&self, index: usize, is_satisfied: bool) {
         self.base.trace_is_satisfied(index, is_satisfied);
+    }
+}
+
+impl<R> Clone for FixedRule<R>
+where
+    R: Rule,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            indexes: self.indexes.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

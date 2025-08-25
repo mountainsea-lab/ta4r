@@ -27,7 +27,7 @@ where
 {
     time_ranges: Vec<TimeRange>,
     time_indicator: Arc<DateTimeIndicator<T, S, F>>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(T, CM, HM, S, R)>,
 }
 
@@ -48,6 +48,25 @@ where
             time_ranges,
             time_indicator,
             base_rule: BaseRule::new("TimeRangeRule"),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, CM, HM, S, R, F> Clone for TimeRangeRule<T, CM, HM, S, R, F>
+where
+    CM: Clone + CostModel<T>,
+    F: Copy + Fn(&S::Bar) -> OffsetDateTime,
+    HM: Clone + CostModel<T>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            time_ranges: self.time_ranges.clone(),
+            time_indicator: self.time_indicator.clone(),
+            base_rule: self.base_rule.clone(),
             _phantom: PhantomData,
         }
     }

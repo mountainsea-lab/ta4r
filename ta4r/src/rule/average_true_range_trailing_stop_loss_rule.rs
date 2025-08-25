@@ -30,7 +30,7 @@ where
 {
     stop_loss_threshold: Arc<BinaryOperation<T, ATRIndicator<T, S>, ConstantIndicator<T, S>>>,
     reference_price: Arc<I>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, R)>,
 }
 
@@ -79,6 +79,25 @@ where
         let close_price_indicator = Arc::new(ClosePriceIndicator::from_shared(series.clone()));
         let reference_price = Arc::new(I::from(close_price_indicator));
         Self::new(series, reference_price, atr_bar_count, atr_coefficient)
+    }
+}
+
+impl<T, CM, HM, S, I, R> Clone for AverageTrueRangeTrailingStopLossRule<T, CM, HM, S, I, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    I: 'static + Indicator<Num = T, Series = S, Output = T>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            stop_loss_threshold: self.stop_loss_threshold.clone(),
+            reference_price: self.reference_price.clone(),
+            base_rule: self.base_rule.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

@@ -22,18 +22,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::TradingRecord;
 use crate::rule::Rule;
 use crate::rule::base_rule::BaseRule;
 use crate::trade::TradeType;
+use std::marker::PhantomData;
 
 pub struct WaitForRule<R>
 where
     R: Rule,
 {
-    base: BaseRule<R>,
+    base: BaseRule,
     trade_type: TradeType,
     number_of_bars: usize,
+    _phantom: PhantomData<R>,
 }
 
 impl<R> WaitForRule<R>
@@ -45,11 +48,26 @@ where
             base: BaseRule::new("WaitForRule"),
             trade_type,
             number_of_bars,
+            _phantom: PhantomData,
         }
     }
 
     fn trace_is_satisfied(&self, index: usize, is_satisfied: bool) {
         self.base.trace_is_satisfied(index, is_satisfied);
+    }
+}
+
+impl<R> Clone for WaitForRule<R>
+where
+    R: Rule,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            trade_type: self.trade_type,
+            number_of_bars: self.number_of_bars,
+            _phantom: PhantomData,
+        }
     }
 }
 

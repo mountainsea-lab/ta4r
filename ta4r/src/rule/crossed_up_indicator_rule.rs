@@ -23,7 +23,7 @@ where
     R: TradingRecord<T, CM, HM, S>,
 {
     cross: CrossIndicator<T, S, IL, IU>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, R)>,
 }
 
@@ -77,6 +77,25 @@ where
 
     pub fn get_low(&self) -> Arc<IL> {
         self.cross.get_up()
+    }
+}
+
+impl<T, CM, HM, S, IU, IL, R> Clone for CrossedUpIndicatorRule<T, CM, HM, S, IU, IL, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    IL: Indicator<Num = T, Output = T, Series = S>,
+    IU: Indicator<Num = T, Output = T, Series = S>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + From<bool> + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            cross: self.cross.clone(),
+            base_rule: self.base_rule.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

@@ -22,15 +22,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 use crate::rule::{Rule, base_rule::BaseRule};
+use std::marker::PhantomData;
 
 /// BooleanRule: 总是返回固定 true/false 的规则
 pub struct BooleanRule<R>
 where
     R: Rule,
 {
-    base: BaseRule<R>,
+    base: BaseRule,
     satisfied: bool,
+    _phantom: PhantomData<R>,
 }
 
 impl<R> BooleanRule<R>
@@ -42,6 +45,7 @@ where
         Self {
             base: BaseRule::new("BooleanRule"),
             satisfied,
+            _phantom: PhantomData,
         }
     }
 
@@ -53,6 +57,19 @@ where
     /// 总是返回 false 的静态实例
     pub fn false_rule() -> Self {
         Self::new(false)
+    }
+}
+
+impl<R> Clone for BooleanRule<R>
+where
+    R: Rule,
+{
+    fn clone(&self) -> Self {
+        Self {
+            base: self.base.clone(),
+            satisfied: self.satisfied,
+            _phantom: PhantomData,
+        }
     }
 }
 

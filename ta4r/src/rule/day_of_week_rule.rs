@@ -22,7 +22,7 @@ where
 {
     time_indicator: DateTimeIndicator<T, S, F>,
     days_of_week: HashSet<Weekday>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: std::marker::PhantomData<(CM, HM, R)>,
 }
 
@@ -53,6 +53,25 @@ where
     /// 获取允许的 Weekday 集合
     pub fn get_days_of_week(&self) -> &HashSet<Weekday> {
         &self.days_of_week
+    }
+}
+
+impl<T, CM, HM, S, F, R> Clone for DayOfWeekRule<T, CM, HM, S, F, R>
+where
+    CM: Clone + CostModel<T>,
+    F: Copy + Fn(&S::Bar) -> OffsetDateTime,
+    HM: Clone + CostModel<T>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + From<bool> + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            time_indicator: self.time_indicator.clone(),
+            days_of_week: self.days_of_week.clone(),
+            base_rule: self.base_rule.clone(),
+            _phantom: std::marker::PhantomData,
+        }
     }
 }
 

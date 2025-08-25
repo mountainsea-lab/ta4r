@@ -24,37 +24,37 @@
  */
 
 pub mod and_rule;
-// pub mod average_true_range_stop_gain_rule;
-// pub mod average_true_range_stop_loss_rule;
-// pub mod average_true_range_trailing_stop_loss_rule;
+pub mod average_true_range_stop_gain_rule;
+pub mod average_true_range_stop_loss_rule;
+pub mod average_true_range_trailing_stop_loss_rule;
 pub mod base_rule;
-// pub mod bool_rule;
-// pub mod boolean_indicator_rule;
-// pub mod chain_rule;
-// pub mod crossed_down_indicator_rule;
-// pub mod crossed_up_indicator_rule;
-// pub mod day_of_week_rule;
-// pub mod fixed_rule;
-// pub mod helper;
-// pub mod in_pipe_rule;
-// pub mod in_slope_rule;
-// pub mod is_equal_rule;
-// pub mod is_falling_rule;
-// pub mod is_highest_rule;
-// pub mod is_lowest_rule;
-// pub mod is_rising_rule;
-// pub mod just_once_rule;
+pub mod bool_rule;
+pub mod boolean_indicator_rule;
+pub mod chain_rule;
+pub mod crossed_down_indicator_rule;
+pub mod crossed_up_indicator_rule;
+pub mod day_of_week_rule;
+pub mod fixed_rule;
+pub mod helper;
+pub mod in_pipe_rule;
+pub mod in_slope_rule;
+pub mod is_equal_rule;
+pub mod is_falling_rule;
+pub mod is_highest_rule;
+pub mod is_lowest_rule;
+pub mod is_rising_rule;
+pub mod just_once_rule;
 pub mod not_rule;
-// pub mod opened_position_minimum_bar_count_rule;
+pub mod opened_position_minimum_bar_count_rule;
 pub mod or_rule;
 pub mod over_indicator_rule;
-// pub mod stop_gain_rule;
-// pub mod stop_loss_rule;
-// pub mod time_range_rule;
-// pub mod trailing_stop_loss_rule;
+pub mod stop_gain_rule;
+pub mod stop_loss_rule;
+pub mod time_range_rule;
+pub mod trailing_stop_loss_rule;
 pub mod under_indicator_rule;
-// pub mod wait_for_rule;
-// pub mod xor_rule;
+pub mod wait_for_rule;
+pub mod xor_rule;
 
 use crate::TradingRecord;
 use crate::analysis::CostModel;
@@ -63,8 +63,8 @@ use crate::num::TrNum;
 use crate::rule::and_rule::AndRule;
 use crate::rule::not_rule::NotRule;
 use crate::rule::or_rule::OrRule;
+use crate::rule::xor_rule::XorRule;
 use std::sync::Arc;
-// use crate::rule::xor_rule::XorRule;
 
 /// 一条交易规则（Trading Rule）
 ///

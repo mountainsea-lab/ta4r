@@ -22,7 +22,7 @@ where
 {
     first: Arc<I1>,
     second: Arc<I2>,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, R)>,
 }
 
@@ -70,6 +70,26 @@ where
             first,
             second,
             base_rule: BaseRule::new("IsEqualRule"),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, CM, HM, S, I1, I2, R> Clone for IsEqualRule<T, CM, HM, S, I1, I2, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    I1: 'static + Indicator<Num = T, Output = T, Series = S>,
+    I2: 'static + Indicator<Num = T, Output = T, Series = S>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            first: self.first.clone(),
+            second: self.second.clone(),
+            base_rule: self.base_rule.clone(),
             _phantom: PhantomData,
         }
     }

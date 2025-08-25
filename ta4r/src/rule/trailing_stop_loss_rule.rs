@@ -24,7 +24,7 @@ where
     price_indicator: Arc<I>,
     bar_count: usize,
     loss_percentage: T,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(T, CM, HM, S, R)>,
 }
 
@@ -98,6 +98,26 @@ where
                     })
             })
             .unwrap_or(false)
+    }
+}
+
+impl<T, CM, HM, S, I, R> Clone for TrailingStopLossRule<T, CM, HM, S, I, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    I: 'static + Indicator<Num = T, Series = S, Output = T>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            price_indicator: self.price_indicator.clone(),
+            bar_count: self.bar_count,
+            loss_percentage: self.loss_percentage.clone(),
+            base_rule: self.base_rule.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
 

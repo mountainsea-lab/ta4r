@@ -21,7 +21,7 @@ where
     ref_ind: Arc<IR>,
     bar_count: usize,
     min_strength: f64,
-    base_rule: BaseRule<Self>,
+    base_rule: BaseRule,
     _phantom: PhantomData<(CM, HM, R)>,
 }
 
@@ -51,6 +51,26 @@ where
             bar_count,
             min_strength: strength,
             base_rule: BaseRule::new("IsFallingRule"),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, CM, HM, S, IR, R> Clone for IsFallingRule<T, CM, HM, S, IR, R>
+where
+    CM: Clone + CostModel<T>,
+    HM: Clone + CostModel<T>,
+    IR: 'static + Indicator<Num = T, Output = T, Series = S>,
+    R: TradingRecord<T, CM, HM, S>,
+    S: 'static + BarSeries<T>,
+    T: 'static + Clone + TrNum,
+{
+    fn clone(&self) -> Self {
+        Self {
+            ref_ind: self.ref_ind.clone(),
+            bar_count: self.bar_count,
+            min_strength: self.min_strength,
+            base_rule: self.base_rule.clone(),
             _phantom: PhantomData,
         }
     }
