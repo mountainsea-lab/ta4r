@@ -34,44 +34,6 @@ pub fn init_moving_bar_series(max_bar_count: usize) -> BaseBarSeriesBuilder<Deci
 }
 
 /// 随机生成 Bar
-// fn generate_random_bar(series: &impl BarSeries<DecimalNum>) -> BaseBar<DecimalNum> {
-//     let factory = DecimalNumFactory::instance();
-//     let mut rng = rand::thread_rng();
-//
-//     // 从 series 里获取最后一个 close price，而不是全局变量
-//
-//     let open: DecimalNum = series
-//         .get_last_bar()
-//         .and_then(|bar| bar.get_close_price())
-//         .unwrap_or_else(|| factory.num_of_usize(1));
-//
-//     // 随机因子 0..1
-//     let factor = factory.num_of_f64(rng.gen_range(0.0..1.0));
-//
-//     // 最大波动范围 3% = 0.03
-//     let max_range = factory.num_of_f64(0.03);
-//
-//     let low = open.clone() - max_range.clone() * factor.clone();
-//     let high = open.clone() + max_range.clone() * factor;
-//
-//     let close_value = rng.gen_range(low.to_f64().unwrap()..=high.to_f64().unwrap());
-//     let close = factory.num_of_f64(close_value);
-//
-//     BaseBar {
-//         time_period: Duration::days(1),
-//         begin_time: OffsetDateTime::now_utc() - Duration::days(1),
-//         end_time: OffsetDateTime::now_utc(),
-//         open_price: Some(open),
-//         high_price: Some(high),
-//         low_price: Some(low),
-//         close_price: Some(close),
-//         volume: factory.num_of_i64(1),
-//         amount: None,
-//         trades: 0,
-//     }
-// }
-
-/// 随机生成 Bar
 fn generate_random_bar(last_close: Option<DecimalNum>) -> BaseBar<DecimalNum> {
     let factory = DecimalNumFactory::instance();
     let mut rng = rand::thread_rng();
@@ -162,8 +124,8 @@ where
 pub fn trading_bot_on_moving_series() {
     println!("********************** Initialization **********************");
 
-    let mut builder = init_moving_bar_series(20);
-    let mut series = Arc::new(RwLock::new(builder.build().expect("Build series failed")));
+    let  builder = init_moving_bar_series(20);
+    let  series = Arc::new(RwLock::new(builder.build().expect("Build series failed")));
 
     // 构建策略
     let strategy: BaseStrategy<
